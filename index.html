@@ -1104,8 +1104,8 @@ function applySettingsToDom(s) {
   // Apply background directly to home screen too
   const homeEl = document.getElementById('home');
   if(homeEl) homeEl.style.background = s.homeBg||settingDefaults.homeBg;
-  const titleEl = document.getElementById('appTitleEl');
-  if(titleEl) titleEl.style.color = s.titleColor||settingDefaults.titleColor;
+  const titleEl2 = document.getElementById('appTitleEl');
+  if(titleEl2) titleEl2.style.color = s.titleColor||settingDefaults.titleColor;
   const subtitleEl = document.getElementById('appSubtitleEl');
   if(subtitleEl) subtitleEl.style.color = s.subtitleColor||settingDefaults.subtitleColor;
 }
@@ -2760,10 +2760,8 @@ function exportExcel() {
   let csv = '﻿'; // BOM for Excel UTF-8
 
   // Sheet: Employees
-  csv += 'EMPLEADOS
-';
-  csv += 'Empresa,Apellidos,Nombres,Cédula,Cargo,Tipo Contrato,Salario,Fecha Ingreso,Antigüedad,Estado,EPS,ARL,Pensión,Caja,Celular,Correo,Ciudad,Tipo Sangre,Sexo,Fecha Nac,Edad,Contacto Emergencia,Tel Emergencia
-';
+  csv += 'EMPLEADOS\n';
+  csv += 'Empresa,Apellidos,Nombres,Cédula,Cargo,Tipo Contrato,Salario,Fecha Ingreso,Antigüedad,Estado,EPS,ARL,Pensión,Caja,Celular,Correo,Ciudad,Tipo Sangre,Sexo,Fecha Nac,Edad,Contacto Emergencia,Tel Emergencia\n';
   empresas.forEach((em,i)=>{
     getEmployees(i).forEach(e=>{
       const ant = e.fechaIngreso ? calcAntiguedad(e.fechaIngreso) : '';
@@ -2777,16 +2775,12 @@ function exportExcel() {
         e.sangre||'', e.sexo||'', e.fechaNac||'', age,
         e.emergNombre||'', e.emergCelular||''
       ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
-      csv += row.join(',') + '
-';
+      csv += row.join(',') + '\n';
     });
   });
 
-  csv += '
-VEHÍCULOS
-';
-  csv += 'Placa,Tipo,Marca,Modelo,Color,Propietario,Leasing,Entidad Leasing,Tráiler,Estado,SOAT Fin,RTM Fin,Póliza Fin
-';
+  csv += '\nVEHÍCULOS\n';
+  csv += 'Placa,Tipo,Marca,Modelo,Color,Propietario,Leasing,Entidad Leasing,Tráiler,Estado,SOAT Fin,RTM Fin,Póliza Fin\n';
   (state.vehicles||[]).forEach(v=>{
     const row = [
       v.placa||'', v.tipo||'', v.marca||'', v.modelo||'', v.color||'',
@@ -2795,23 +2789,18 @@ VEHÍCULOS
       v.activo===false?'Inactivo':'Activo',
       v.soat_fin||'', v.rtm_fin||'', v.poliza_fin||''
     ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
-    csv += row.join(',') + '
-';
+    csv += row.join(',') + '\n';
   });
 
-  csv += '
-TRÁILERES
-';
-  csv += 'Placa,Tipo Carrocería,Marca,Modelo,Color,Capacidad(t),Ejes,Propietario,Estado,Póliza Fin
-';
+  csv += '\nTRÁILERES\n';
+  csv += 'Placa,Tipo Carrocería,Marca,Modelo,Color,Capacidad(t),Ejes,Propietario,Estado,Póliza Fin\n';
   (state.trailers||[]).forEach(t=>{
     const row = [
       t.placa||'', t.tipo||'', t.marca||'', t.modelo||'', t.color||'',
       t.capacidad||'', t.ejes||'', t.propietario||'',
       t.activo===false?'Inactivo':'Activo', t.poliza_fin||''
     ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
-    csv += row.join(',') + '
-';
+    csv += row.join(',') + '\n';
   });
 
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
