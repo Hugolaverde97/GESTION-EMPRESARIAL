@@ -733,6 +733,8 @@
       <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="tr_color" placeholder="Color"></div>
       <div class="form-group"><label class="form-label">Capacidad (ton)</label><input class="form-input" id="tr_capacidad" placeholder="Ej: 34" type="number" min="0" step="0.5"></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="tr_propietario" placeholder="Propietario"></div>
+      <div class="form-group"><label class="form-label">Tipo de ID Propietario</label><select class="form-select" id="tr_tipoIdPropietario"><option value="">Seleccionar...</option><option value="CC">Cédula de Ciudadanía</option><option value="NIT">NIT</option><option value="CE">Cédula de Extranjería</option><option value="PAS">Pasaporte</option><option value="TI">Tarjeta de Identidad</option></select></div>
+      <div class="form-group"><label class="form-label">No. Identificación Propietario</label><input class="form-input" id="tr_noIdPropietario" placeholder="Número de identificación"></div>
       <div class="form-group"><label class="form-label">N° de ejes</label><input class="form-input" id="tr_ejes" placeholder="Ej: 3" type="number" min="1" max="10"></div>
       <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza Todo Riesgo</div>
       <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="tr_poliza_ini"></div>
@@ -933,14 +935,14 @@
           <div class="form-group"><label class="form-label">Tipo de licencia</label>
             <select class="form-select" id="emp_tipoLicencia">
               <option value="">— Seleccionar —</option>
-              <option value="A1">A1 - Motocicletas hasta 125cc</option>
-              <option value="A2">A2 - Motocicletas más de 125cc</option>
-              <option value="B1">B1 - Automóviles y camperos</option>
-              <option value="B2">B2 - Camionetas y microbuses</option>
-              <option value="B3">B3 - Ambulancias y similares</option>
-              <option value="C1">C1 - Camiones rígidos</option>
-              <option value="C2">C2 - Tractocamiones</option>
-              <option value="C3">C3 - Vehículos articulados</option>
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+              <option value="B3">B3</option>
+              <option value="C1">C1</option>
+              <option value="C2">C2</option>
+              <option value="C3">C3</option>
             </select>
           </div>
           <div class="form-group"><label class="form-label">Vencimiento licencia</label>
@@ -1009,6 +1011,17 @@
       <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="veh_modelo" placeholder="2024"></div>
       <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="veh_color" placeholder="Color"></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="veh_propietario" placeholder="Propietario"></div>
+      <div class="form-group"><label class="form-label">Tipo de ID Propietario</label>
+        <select class="form-select" id="veh_tipoIdPropietario">
+          <option value="">Seleccionar...</option>
+          <option value="CC">Cédula de Ciudadanía</option>
+          <option value="NIT">NIT</option>
+          <option value="CE">Cédula de Extranjería</option>
+          <option value="PAS">Pasaporte</option>
+          <option value="TI">Tarjeta de Identidad</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">No. Identificación Propietario</label><input class="form-input" id="veh_noIdPropietario" placeholder="Número de identificación"></div>
       <div class="form-group full" style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
         <label for="veh_leasing" style="font-size:.88rem;font-weight:600;cursor:pointer;margin:0;color:var(--text2)">¿Está en leasing?</label>
         <div style="display:flex;gap:8px;margin-left:auto">
@@ -1462,6 +1475,10 @@ function openEmployee(id) {
     <div class="section-title">Seguridad Social</div>
     <div class="fields-grid">
       <div class="field-card"><div class="field-label">EPS</div><div class="field-value">${e.eps||'—'}</div></div>
+      <div class="field-card"><div class="field-label">ARL</div><div class="field-value">${e.arl||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Nivel Riesgo ARL</div><div class="field-value">${e.nivelArl?'Nivel '+e.nivelArl:'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fondo de pensión</div><div class="field-value">${e.pension||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Caja de compensación</div><div class="field-value">${e.caja||'—'}</div></div>
       ${(e.cargo||'').toLowerCase().includes('conductor')?`
       <div class="section-title" style="margin-top:8px">🚗 Información de Conductor</div>
       <div class="field-card"><div class="field-label">Tipo de licencia</div><div class="field-value">${e.tipoLicencia||'—'}</div></div>
@@ -1473,10 +1490,6 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Parentesco</div><div class="field-value">${e.emergParentesco||'—'}</div></div>
       <div class="field-card"><div class="field-label">Celular</div><div class="field-value">${e.emergCelular?`<a href="tel:${e.emergCelular}" style="color:var(--accent1)">${e.emergCelular}</a>`:'—'}</div></div>
       <div class="field-card"><div class="field-label">Dirección</div><div class="field-value">${e.emergDireccion||'—'}</div></div>
-      <div class="field-card"><div class="field-label">ARL</div><div class="field-value">${e.arl||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Nivel Riesgo ARL</div><div class="field-value">${e.nivelArl?'Nivel '+e.nivelArl:'—'}</div></div>
-      <div class="field-card"><div class="field-label">Fondo de pensión</div><div class="field-value">${e.pension||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Caja de compensación</div><div class="field-value">${e.caja||'—'}</div></div>
     </div>
 
     <div class="section-title">Documentos</div>
@@ -1785,6 +1798,7 @@ function openVehicle(id) {
       <div class="field-card"><div class="field-label">Modelo / Año</div><div class="field-value">${v.modelo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Color</div><div class="field-value">${v.color||'—'}</div></div>
       <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${v.propietario||'—'}</div></div>
+      <div class="field-card"><div class="field-label">ID Propietario</div><div class="field-value">${v.tipoIdPropietario?v.tipoIdPropietario+' '+v.noIdPropietario:'—'}</div></div>
       ${v.leasing?`<div class="field-card"><div class="field-label">Leasing</div><div class="field-value" style="color:var(--accent1)">✅ Sí · ${v.leasingEntidad||'Entidad no especificada'}</div></div>`:''}
       ${(v.tipo||'').toLowerCase().includes('tractoc')||(v.tipo||'').toLowerCase().includes('tractom')?`<div class="field-card"><div class="field-label">🚛 Tráiler enganchado</div><div class="field-value" style="color:${v.trailerAsignado?'var(--accent3)':'var(--text2)'}">${getTrailerName(v.trailerAsignado)}</div></div>`:''}
     </div>
@@ -1840,12 +1854,12 @@ function handleVehFiles(input) {
 }
 function deleteVehDoc(idx){const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v?.docs)return;v.docs.splice(idx,1);save();renderVehDocs();}
 
-function openAddVehicle(){setLeasing(false);document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
+function openAddVehicle(){setLeasing(false);document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipoIdPropietario').value='';document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
 
 function openEditVehicle(){
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
-  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
   document.getElementById('veh_tipo').value=v.tipo||'';
   setLeasing(v.leasing||false);
   document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
@@ -1859,7 +1873,7 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
   if(editingVehicle){
@@ -2027,6 +2041,7 @@ function openTrailerDetail(id) {
       <div class="field-card"><div class="field-label">Capacidad</div><div class="field-value">${t.capacidad?t.capacidad+' toneladas':'—'}</div></div>
       <div class="field-card"><div class="field-label">N° de ejes</div><div class="field-value">${t.ejes||'—'}</div></div>
       <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${t.propietario||'—'}</div></div>
+      <div class="field-card"><div class="field-label">ID Propietario</div><div class="field-value">${t.tipoIdPropietario?t.tipoIdPropietario+' '+t.noIdPropietario:'—'}</div></div>
       <div class="field-card"><div class="field-label">Vehículo enganchado</div><div class="field-value" style="color:${veh?'var(--accent3)':'var(--text2)'}">${veh?'🚛 '+veh.placa+' · '+(veh.marca||''):'— Sin enganchar'}</div></div>
       <div class="section-title">📄 Documentos</div>
       ${docs.map(d=>`<div class="field-card"><div class="field-label">${d.label}</div><div class="field-value" style="color:${d.color}">${d.text} ${d.icon}</div></div>`).join('')}
@@ -2044,7 +2059,8 @@ function openTrailerDetail(id) {
 function openAddTrailer() {
   editingTrailerId = null;
   document.getElementById('trailerModalTitle').textContent='Agregar Tráiler';
-  ['tr_placa','tr_marca','tr_modelo','tr_color','tr_propietario'].forEach(id=>document.getElementById(id).value='');
+  ['tr_placa','tr_marca','tr_modelo','tr_color','tr_propietario','tr_noIdPropietario'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('tr_tipoIdPropietario').value='';
   ['tr_capacidad','tr_ejes'].forEach(id=>document.getElementById(id).value='');
   ['tr_poliza_ini','tr_poliza_fin'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('tr_tipo').value='';
@@ -2078,6 +2094,8 @@ function saveTrailer() {
     capacidad:document.getElementById('tr_capacidad').value,
     ejes:document.getElementById('tr_ejes').value,
     propietario:document.getElementById('tr_propietario').value.trim(),
+    tipoIdPropietario:document.getElementById('tr_tipoIdPropietario').value,
+    noIdPropietario:document.getElementById('tr_noIdPropietario').value.trim(),
     poliza_ini:document.getElementById('tr_poliza_ini').value,
     poliza_fin:document.getElementById('tr_poliza_fin').value,
     activo:true
