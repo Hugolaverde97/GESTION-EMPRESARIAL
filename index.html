@@ -482,7 +482,7 @@
     <div class="main-buttons">
       <button class="main-btn btn1" onclick="openEmpresasScreen()"><span class="btn-emoji">🏢</span><span>EMPRESAS</span></button>
       <button class="main-btn btn4" onclick="openVehicles()"><span class="btn-emoji" id="emoji4">🚗</span><span id="vehiclesBtn">VEHÍCULOS</span></button>
-      <button class="main-btn btn5" onclick="exportExcel()"><span class="btn-emoji">📊</span><span>EXPORTAR EXCEL</span></button>
+      <button class="main-btn btn5" onclick="canExcel()?exportExcel():toast('⛔ Sin permiso para exportar Excel')" id="excelBtn"><span class="btn-emoji">📊</span><span>EXPORTAR EXCEL</span></button>
     </div>
   </div>
 </div>
@@ -522,7 +522,7 @@
     <button class="back-btn" onclick="goHome()">← Inicio</button>
     <span class="bar-title">Empresas</span>
     <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
-      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
+      
       <button class="icon-btn" id="addEmpresaBtn" onclick="openAddEmpresa()" title="Agregar empresa">➕</button>
     </div>
   </div>
@@ -536,7 +536,7 @@
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('empresasScreen');renderEmpresasList()">← Empresas</button>
     <span class="bar-title" id="empresaModuleTitle">Empresa</span>
-    <div class="bar-actions"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div></div>
+    <div class="bar-actions"></div>
   </div>
   <div class="screen-content pb-safe">
     <div class="module-buttons" id="empresaModuleBtns" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px"></div>
@@ -617,7 +617,7 @@
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">← Inicio</button>
     <span class="bar-title">Vehículos</span>
-    <div class="bar-actions"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div></div>
+    <div class="bar-actions"></div>
   </div>
   <div class="screen-content pb-safe">
     <div class="module-buttons" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px">
@@ -641,7 +641,7 @@
     <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
     <span class="bar-title">Vehículos</span>
     <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
-      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
+      
       <button class="icon-btn" onclick="openAddVehicle()" title="Agregar" id="addVehTopBtn">➕</button>
     </div>
   </div>
@@ -673,7 +673,7 @@
     <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
     <span class="bar-title">Tráileres</span>
     <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
-      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
+      
       <button class="icon-btn" onclick="openAddTrailer()" title="Agregar" id="addTrailerTopBtn">➕</button>
     </div>
   </div>
@@ -998,8 +998,16 @@
       <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="veh_color" placeholder="Color"></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="veh_propietario" placeholder="Propietario"></div>
       <div class="form-group full" style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-        <input type="checkbox" id="veh_leasing" onchange="toggleLeasing()" style="width:18px;height:18px;accent-color:#5b8df6;cursor:pointer;flex-shrink:0">
-        <label for="veh_leasing" style="font-size:.9rem;font-weight:600;cursor:pointer;margin:0">¿Está en leasing?</label>
+        <label for="veh_leasing" style="font-size:.88rem;font-weight:600;cursor:pointer;margin:0;color:var(--text2)">¿Está en leasing?</label>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;transition:all .15s" id="lbl_leasing_no" onclick="setLeasing(false)">
+            <span>No</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 12px;border-radius:8px;border:1.5px solid var(--border);font-size:.82rem;font-weight:600;transition:all .15s" id="lbl_leasing_si" onclick="setLeasing(true)">
+            <span>Sí</span>
+          </label>
+        </div>
+        <input type="checkbox" id="veh_leasing" onchange="toggleLeasing()" style="display:none">
       </div>
       <div class="form-group full" id="grupo_leasing" style="display:none">
         <label class="form-label">Banco / Entidad financiera</label>
@@ -1163,16 +1171,8 @@ function resetSettings() {
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  // Always hide FABs on settings screen
-  const onSettings = id === 'settings';
-  if(onSettings) {
-    // FAB always visible - no hide needed
-    const usersFab = document.getElementById('usersFab');
-    if(usersFab) usersFab.style.display = 'none';
-  } else {
-    // Re-apply permissions for current user role
-    applyUserPermissions();
-  }
+  closeFabMenu();
+  applyUserPermissions();
 }
 // ── EMPRESAS NAVIGATION ──────────────────────────────────────────────────────
 let currentEmpresaIdx = null; // index into state.empresas array
@@ -1825,15 +1825,14 @@ function handleVehFiles(input) {
 }
 function deleteVehDoc(idx){const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v?.docs)return;v.docs.splice(idx,1);save();renderVehDocs();}
 
-function openAddVehicle(){document.getElementById('veh_leasing').checked=false;document.getElementById('grupo_leasing').style.display='none';document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
+function openAddVehicle(){setLeasing(false);document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
 
 function openEditVehicle(){
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
   ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
   document.getElementById('veh_tipo').value=v.tipo||'';
-  document.getElementById('veh_leasing').checked=v.leasing||false;
-  document.getElementById('grupo_leasing').style.display=v.leasing?'':'none';
+  setLeasing(v.leasing||false);
   document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
   const esTractomula=(v.tipo||'').toLowerCase().includes('tractoc')||(v.tipo||'').toLowerCase().includes('tractom');
   document.getElementById('grupo_trailer_asignado').style.display=esTractomula?'':'none';
@@ -2104,6 +2103,16 @@ function reactivateTrailer() {
 }
 
 // Toggle trailer field on vehicle form
+
+function setLeasing(val) {
+  const cb = document.getElementById('veh_leasing');
+  if(cb) cb.checked = val;
+  const lblNo = document.getElementById('lbl_leasing_no');
+  const lblSi = document.getElementById('lbl_leasing_si');
+  if(lblNo) { lblNo.style.background = !val ? '#ef444422' : 'transparent'; lblNo.style.borderColor = !val ? '#ef4444' : 'var(--border)'; lblNo.style.color = !val ? '#ef4444' : 'var(--text2)'; }
+  if(lblSi) { lblSi.style.background = val ? '#22c55e22' : 'transparent'; lblSi.style.borderColor = val ? '#22c55e' : 'var(--border)'; lblSi.style.color = val ? '#22c55e' : 'var(--text2)'; }
+  toggleLeasing();
+}
 function toggleLeasing() {
   const checked = document.getElementById('veh_leasing').checked;
   document.getElementById('grupo_leasing').style.display = checked ? '' : 'none';
@@ -2151,7 +2160,7 @@ document.addEventListener('focusin',e=>{if(['INPUT','SELECT','TEXTAREA'].include
     b.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:999;background:#1a1d27;border-top:1px solid #2e3347;padding:16px 20px calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:14px;font-family:Sora,sans-serif;box-shadow:0 -8px 32px rgba(0,0,0,.5);';
     b.innerHTML='<span style="font-size:2rem">📲</span><div style="flex:1"><div style="font-weight:700;font-size:.9rem;color:#e8ecf4">Instalar como app</div><div style="font-size:.78rem;color:#8b92a9;margin-top:2px">Toca <strong style="color:#e8ecf4">⎙ Compartir</strong> → <strong style="color:#e8ecf4">Agregar a pantalla de inicio</strong></div></div><button onclick="this.parentElement.remove();localStorage.setItem(\'install_dismissed\',\'1\')" style="background:#2e3347;border:none;color:#8b92a9;width:28px;height:28px;border-radius:50%;font-size:1rem;cursor:pointer;">✕</button>';
     document.body.appendChild(b);
-    const fab=document.getElementById('settingsFab');
+    const fab=document.getElementById('fabContainer');
     if(fab)fab.style.bottom='calc(90px + env(safe-area-inset-bottom))';
   }
 })();
@@ -2246,13 +2255,19 @@ function applyUserPermissions() {
     vehBtn2.style.display = (isAdmin || empresas.includes('vehiculos')) ? 'flex' : 'none';
   }
 
-  // ── Settings FAB: only admin and editor ─────────────────────────
-  const fab = document.getElementById('settingsFab');
-  if(fab) fab.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
+  // ── FAB container always visible ────────────────────────────────
+  const fabCont = document.getElementById('fabContainer');
+  if(fabCont) fabCont.style.display = 'flex';
+  // Show/hide users button inside FAB based on role
+  const fabUsers = document.getElementById('fabUsersBtn');
+  if(fabUsers) fabUsers.style.display = isAdmin ? 'flex' : 'none';
+  // Show/hide settings button inside FAB based on role
+  const fabSett = document.getElementById('fabSettingsBtn');
+  if(fabSett) fabSett.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
 
-  // ── Users FAB: only admin ────────────────────────────────────────
-  const usersFab = document.getElementById('usersFab');
-  if(usersFab) usersFab.style.display = isAdmin ? 'flex' : 'none';
+  // ── Excel button ────────────────────────────────────────────────────
+  const excelBtn = document.getElementById('excelBtn');
+  if(excelBtn) excelBtn.style.opacity = canExcel() ? '1' : '0.4';
 
   // ── Add/Edit buttons: admin and editor only ──────────────────────
   const showAdd = isAdmin || isEditor;
@@ -2265,6 +2280,11 @@ function applyUserPermissions() {
 
 function canEdit() { return currentUser && (currentUser.role==='admin' || currentUser.role==='editor'); }
 function canDelete() { return currentUser && currentUser.role==='admin'; }
+function canExcel() {
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  return currentUser.puede_excel === true;
+}
 function canSeeSalary() { return currentUser && (currentUser.role==='admin' || currentUser.puede_ver_salarios); }
 function hasAccess(module) {
   if(!currentUser) return false;
@@ -2332,7 +2352,7 @@ function openAddUser() {
   document.getElementById('ue_password').value = '';
   document.getElementById('ue_role').value = 'editor';
   document.getElementById('ue_del_btn').style.display = 'none';
-  ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios'].forEach(id=>document.getElementById(id).checked=false);
+  ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios','ue_excel'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
   toggleUserPerms();
   refreshPermVisuals();
   openModal('userEditModal');
@@ -2354,6 +2374,7 @@ async function openEditUser(id) {
     document.getElementById('ue_acc2').checked = data.role==='admin' || empresas.includes('empresa2');
     document.getElementById('ue_acc3').checked = data.role==='admin' || empresas.includes('vehiculos');
     document.getElementById('ue_salarios').checked = data.puede_ver_salarios || data.role==='admin';
+    const excelEl = document.getElementById('ue_excel'); if(excelEl) excelEl.checked = data.puede_excel || data.role==='admin';
     toggleUserPerms();
     refreshPermVisuals();
     openModal('userEditModal');
@@ -2411,7 +2432,7 @@ function toggleUserPerms() {
   permsDiv.style.display = role==='admin' ? 'none' : '';
   // Only auto-check ALL when admin selected — never auto-uncheck for other roles
   if(role==='admin') {
-    ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios'].forEach(id=>document.getElementById(id).checked=true);
+    ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios','ue_excel'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=true;});
   }
   refreshPermVisuals();
   // For non-admin: leave checkboxes as-is so user can freely toggle them
