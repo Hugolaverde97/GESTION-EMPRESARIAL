@@ -1049,7 +1049,7 @@ async function saveSettings() {
   try { await sb.from('gestion_data').upsert({key:'settings',value:JSON.stringify(state.settings),updated_at:new Date().toISOString()},{onConflict:'key'}); } catch(e){}
   saveLocal();
 }
-async async function loadSettings() {
+async function loadSettings() {
   try { const {data}=await sb.from('gestion_data').select('value').eq('key','settings').single(); if(data?.value){state.settings=JSON.parse(data.value);return;} } catch(e){}
   loadLocal();
 }
