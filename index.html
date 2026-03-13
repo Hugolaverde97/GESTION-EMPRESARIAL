@@ -471,12 +471,8 @@
 <div id="home" class="screen active">
   <div class="home-inner">
     <div class="home-header" style="position:relative">
-      <div style="position:absolute;top:0;left:0;display:flex;gap:4px;align-items:center">
-        <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;padding:4px;line-height:1" title="Cumpleaños">🎂</button>
-        <button id="notifBell" onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.5rem;padding:4px;line-height:1">
-          🔔<span id="notifBadge" style="display:none;position:absolute;top:0;right:0;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:700;align-items:center;justify-content:center">0</span>
-        </button>
-      </div>
+      <div style="position:absolute;top:0;left:0"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">+</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">Cumpleanos</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">Notificaciones</button></div></div></div>
+      <span id="notifBadge" style="display:none"></span>
       <div class="home-title" id="appTitleEl">GESTIÓN EMPRESARIAL</div>
       <div class="home-subtitle" id="appSubtitleEl">Sistema de Control de Personal y Vehículos</div>
       <div style="position:relative;margin-top:16px">
@@ -526,9 +522,8 @@
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">← Inicio</button>
     <span class="bar-title">Empresas</span>
-    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
-      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
-      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot2" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
+      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
       <button class="icon-btn" id="addEmpresaBtn" onclick="openAddEmpresa()" title="Agregar empresa">➕</button>
     </div>
   </div>
@@ -542,12 +537,7 @@
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('empresasScreen');renderEmpresasList()">← Empresas</button>
     <span class="bar-title" id="empresaModuleTitle">Empresa</span>
-    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
-      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Cumpleaños">🎂</button>
-      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Notificaciones">
-        🔔<span id="notifBadge2" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span>
-      </button>
-    </div>
+    <div class="bar-actions"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div></div>
   </div>
   <div class="screen-content pb-safe">
     <div class="module-buttons" id="empresaModuleBtns" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px"></div>
@@ -628,10 +618,7 @@
   <div class="top-bar">
     <button class="back-btn" onclick="goHome()">← Inicio</button>
     <span class="bar-title">Vehículos</span>
-    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
-      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
-      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot3" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
-    </div>
+    <div class="bar-actions"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div></div>
   </div>
   <div class="screen-content pb-safe">
     <div class="module-buttons" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px">
@@ -654,9 +641,8 @@
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
     <span class="bar-title">Vehículos</span>
-    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
-      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
-      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot4" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
+      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
       <button class="icon-btn" onclick="openAddVehicle()" title="Agregar" id="addVehTopBtn">➕</button>
     </div>
   </div>
@@ -687,9 +673,8 @@
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
     <span class="bar-title">Tráileres</span>
-    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
-      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
-      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot5" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
+      <div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">＋</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🎂 Cumpleaños</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">🔔 Notificaciones</button></div></div>
       <button class="icon-btn" onclick="openAddTrailer()" title="Agregar" id="addTrailerTopBtn">➕</button>
     </div>
   </div>
@@ -818,8 +803,34 @@
   </div>
 </div>
 
-<button class="settings-fab" onclick="openSettings()" id="settingsFab">⚙️</button>
-<button id="usersFab" onclick="openUserMgmt()" style="position:fixed;bottom:24px;right:84px;width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:1.2rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:100;transition:background .2s,color .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);" onmouseover="this.style.background='#5b8df6';this.style.color='#fff'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--text2)'">👥</button>
+<!-- EXPANDABLE FAB MENU -->
+<div id="fabMenu" style="position:fixed;bottom:24px;right:20px;z-index:200;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+  <!-- Sub-buttons (hidden by default) -->
+  <div id="fabSubBtns" style="display:none;flex-direction:column;align-items:flex-end;gap:8px;margin-bottom:4px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
+      <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Notificaciones</span>
+      <button onclick="closeFabMenu();openNotifCenter()" style="position:relative;width:46px;height:46px;border-radius:50%;background:#f59e0b;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center">
+        🔔<span id="notifBadgeFab" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span>
+      </button>
+    </div>
+    <div id="fabUsersBtn" style="display:none;flex-direction:row;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Usuarios</span>
+      <button onclick="closeFabMenu();openUserMgmt()" style="width:46px;height:46px;border-radius:50%;background:#8b5cf6;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(139,92,246,.4);display:flex;align-items:center;justify-content:center">👥</button>
+    </div>
+    <div id="fabSettingsBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Ajustes</span>
+      <button onclick="closeFabMenu();openSettings()" style="width:46px;height:46px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.4);display:flex;align-items:center;justify-content:center">⚙️</button>
+    </div>
+  </div>
+  <!-- Main FAB toggle button -->
+  <button id="fabToggleBtn" onclick="toggleFabMenu()" style="width:54px;height:54px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(91,141,246,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s,background .2s">➕</button>
+</div>
+<!-- FAB backdrop -->
+<div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
 <div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
   <div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px">
     <span id="currentUserName"></span>
@@ -1059,8 +1070,15 @@ async function syncToCloud() {
 async function loadFromCloud() {
   try {
     showSyncStatus('🔄 Sincronizando...');
+    // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
-    if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings; saveLocal(); showSyncStatus('✅ Sincronizado'); return true; }
+    if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings; }
+    // Also load settings separately (saved by saveSettings)
+    try {
+      const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
+      if(sd?.value) { const ss=JSON.parse(sd.value); state.settings=ss; }
+    } catch(e2){}
+    saveLocal(); showSyncStatus('✅ Sincronizado'); return true;
   } catch(e) { showSyncStatus('⚠️ Sin conexión (datos locales)'); }
   return false;
 }
@@ -1102,19 +1120,24 @@ function applySettingsToDom(s) {
     'btn1bg':'--btn1-bg','btn1text':'--btn1-text',
     'btn2bg':'--btn2-bg','btn2text':'--btn2-text',
     'btn3bg':'--btn3-bg','btn3text':'--btn3-text',
-    'btn4bg':'--btn4-bg','btn4text':'--btn4-text'
+    'btn4bg':'--btn4-bg','btn4text':'--btn4-text',
+    'btn5bg':'--btn5-bg','btn5text':'--btn5-text'
   };
   Object.entries(btnMap).forEach(([k,cssVar])=>{
     const val = s[k] || settingDefaults[k];
     r.setProperty(cssVar, val);
   });
-  // Also apply inline to the buttons directly (fixes iOS/Safari CSS var cache issue)
-  const btns = document.querySelectorAll('.main-btn');
-  const btnKeys = [['btn1bg','btn1text'],['btn2bg','btn2text'],['btn3bg','btn3text'],['btn4bg','btn4text'],['btn5bg','btn5text']];
-  btns.forEach((btn,i)=>{
-    if(btnKeys[i]) {
-      btn.style.background = s[btnKeys[i][0]] || settingDefaults[btnKeys[i][0]];
-      btn.style.color = s[btnKeys[i][1]] || settingDefaults[btnKeys[i][1]];
+  // Apply button colors by class (not index, to avoid mismatch)
+  const btnClassMap = {
+    'btn1': ['btn1bg','btn1text'],
+    'btn4': ['btn4bg','btn4text'],
+    'btn5': ['btn5bg','btn5text'],
+  };
+  Object.entries(btnClassMap).forEach(([cls,[bgKey,textKey]])=>{
+    const el = document.querySelector('.main-btn.'+cls);
+    if(el) {
+      el.style.background = s[bgKey] || settingDefaults[bgKey];
+      el.style.color = s[textKey] || settingDefaults[textKey];
     }
   });
   r.setProperty('--home-bg', s.homeBg||settingDefaults.homeBg);
@@ -1128,10 +1151,10 @@ function applySettingsToDom(s) {
   const subtitleEl = document.getElementById('appSubtitleEl');
   if(subtitleEl) subtitleEl.style.color = s.subtitleColor||settingDefaults.subtitleColor;
 }
-function applySettings() {
+async function applySettings() {
   const s={};
-  for(const [k,id] of Object.entries(settingFields)) s[k]=document.getElementById(id).value;
-  state.settings=s; applySettingsToDom(s); saveSettings(); toast('✅ Cambios guardados');
+  for(const [k,id] of Object.entries(settingFields)) { const el=document.getElementById(id); if(el) s[k]=el.value; }
+  state.settings=s; saveLocal(); applySettingsToDom(s); await saveSettings(); toast('✅ Cambios guardados');
 }
 function loadSettingsToForm(s) { for(const [k,id] of Object.entries(settingFields)) document.getElementById(id).value=s[k]||settingDefaults[k]; }
 function resetSettings() {
@@ -2533,6 +2556,25 @@ function buildNotifications() {
   return notifs;
 }
 
+
+function toggleQuickMenu(btn) {
+  const menu = btn.nextElementSibling;
+  const isOpen = menu.style.display === 'flex';
+  // Close all open menus
+  document.querySelectorAll('.quick-menu-open').forEach(m=>{ m.style.display='none'; m.classList.remove('quick-menu-open'); });
+  if(!isOpen) { menu.style.display='flex'; menu.classList.add('quick-menu-open'); }
+  // Close on outside click
+  if(!isOpen) {
+    setTimeout(()=>{
+      document.addEventListener('click', function closeMenu(e){
+        if(!btn.parentElement.contains(e.target)){
+          menu.style.display='none'; menu.classList.remove('quick-menu-open');
+          document.removeEventListener('click',closeMenu);
+        }
+      });
+    }, 0);
+  }
+}
 function updateNotifBadge() {
   const notifs = buildNotifications();
   const unread = notifs.filter(n=>!readNotifs.has(n.id));
