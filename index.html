@@ -965,6 +965,7 @@
       </div>
       <div class="form-group" id="grupo_duracion" style="display:none"><label class="form-label">Duración contrato (meses)</label><input type="number" class="form-input" id="emp_duracion" placeholder="Ej: 6" min="1"></div>
       <div class="form-group"><label class="form-label">Salario mensual</label><input class="form-input" id="emp_salario" placeholder="Ej: 2.500.000"></div>
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent3);font-weight:600;margin:8px 0 10px;grid-column:1/-1">🏥 Seguridad Social</div>
       <div class="form-group"><label class="form-label">EPS</label><input class="form-input" id="emp_eps" placeholder="Nombre de EPS"></div>
       <div class="form-group"><label class="form-label">ARL</label><input class="form-input" id="emp_arl" placeholder="Nombre de ARL"></div>
       <div class="form-group"><label class="form-label">Nivel de Riesgo ARL</label><select class="form-select" id="emp_nivelArl"><option value="">Seleccionar...</option><option value="I">Nivel I – Mínimo</option><option value="II">Nivel II – Bajo</option><option value="III">Nivel III – Medio</option><option value="IV">Nivel IV – Alto</option><option value="V">Nivel V – Máximo</option></select></div>
@@ -982,7 +983,7 @@
         </select>
       </div>
       <div class="form-group"><label class="form-label">Celular contacto</label><input class="form-input" id="emp_emergCelular" placeholder="3XX XXX XXXX" type="tel"></div>
-      <div class="form-group"><label class="form-label">Dirección contacto</label><input class="form-input" id="emp_emergDireccion" placeholder="Dirección (opcional)"></div>
+      <input type="hidden" id="emp_emergDireccion">
     <button class="save-btn" onclick="saveEmployee()">💾 Guardar empleado</button>
   </div>
 </div>
@@ -998,7 +999,7 @@
           <option value="">Seleccionar...</option>
           <option>Automóvil</option><option>Camioneta</option><option>Camión</option>
           <option>Motocicleta</option><option>Bus</option><option>Furgón</option>
-          <option>Tractocamión / Tractomula</option><option>Volqueta</option>
+          <option>Tractocamión / Tractomula</option><option>Turbo</option><option>Sencillo</option><option>Dobletroque</option><option>Volqueta</option>
         </select>
       </div>
       <div class="form-group full" id="grupo_trailer_asignado" style="display:none">
