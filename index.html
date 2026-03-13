@@ -471,7 +471,6 @@
 <div id="home" class="screen active">
   <div class="home-inner">
     <div class="home-header" style="position:relative">
-      <div style="position:absolute;top:0;left:0"><div style="position:relative;display:inline-block"><button onclick="toggleQuickMenu(this)" style="background:none;border:1px solid var(--border);cursor:pointer;font-size:.85rem;padding:5px 10px;line-height:1;border-radius:8px;color:var(--text1)">+</button><div style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.3);min-width:150px;flex-direction:column;gap:2px"><button onclick="openBirthdays();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">Cumpleanos</button><button onclick="openNotifCenter();this.closest('[style*=absolute]').style.display='none'" style="background:none;border:none;cursor:pointer;padding:9px 12px;border-radius:8px;text-align:left;width:100%;color:var(--text1);font-family:var(--font);font-size:.88rem;display:flex;align-items:center;gap:8px">Notificaciones</button></div></div></div>
       <span id="notifBadge" style="display:none"></span>
       <div class="home-title" id="appTitleEl">GESTIÓN EMPRESARIAL</div>
       <div class="home-subtitle" id="appSubtitleEl">Sistema de Control de Personal y Vehículos</div>
@@ -820,6 +819,14 @@
     <div id="fabUsersBtn" style="display:none;flex-direction:row;align-items:center;gap:8px">
       <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Usuarios</span>
       <button onclick="closeFabMenu();openUserMgmt()" style="width:46px;height:46px;border-radius:50%;background:#8b5cf6;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(139,92,246,.4);display:flex;align-items:center;justify-content:center">👥</button>
+    </div>
+    <div id="fabBirthdayBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
+      <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
+    </div>
+    <div id="fabNotifBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Notificaciones</span>
+      <button onclick="closeFabMenu();openNotifCenter()" style="width:46px;height:46px;border-radius:50%;background:#f59e0b;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center">🔔</button>
     </div>
     <div id="fabSettingsBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
       <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Ajustes</span>
@@ -2557,6 +2564,24 @@ function buildNotifications() {
 }
 
 
+function toggleFabMenu() {
+  const menu = document.getElementById('fabMenu');
+  const btn = document.getElementById('fabToggleBtn');
+  const backdrop = document.getElementById('fabBackdrop');
+  if(!menu) return;
+  const isOpen = menu.style.display === 'flex';
+  menu.style.display = isOpen ? 'none' : 'flex';
+  if(backdrop) backdrop.style.display = isOpen ? 'none' : 'block';
+  if(btn) btn.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(45deg)';
+}
+function closeFabMenu() {
+  const menu = document.getElementById('fabMenu');
+  const btn = document.getElementById('fabToggleBtn');
+  const backdrop = document.getElementById('fabBackdrop');
+  if(menu) menu.style.display = 'none';
+  if(backdrop) backdrop.style.display = 'none';
+  if(btn) btn.style.transform = 'rotate(0deg)';
+}
 function toggleQuickMenu(btn) {
   const menu = btn.nextElementSibling;
   const isOpen = menu.style.display === 'flex';
