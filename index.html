@@ -803,38 +803,28 @@
 </div>
 
 <!-- EXPANDABLE FAB MENU -->
-<div id="fabMenu" style="position:fixed;bottom:24px;right:20px;z-index:200;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+<div id="fabContainer" style="position:fixed;bottom:24px;right:20px;z-index:200;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
   <!-- Sub-buttons (hidden by default) -->
   <div id="fabSubBtns" style="display:none;flex-direction:column;align-items:flex-end;gap:8px;margin-bottom:4px">
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
+      <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
       <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Notificaciones</span>
-      <button onclick="closeFabMenu();openNotifCenter()" style="position:relative;width:46px;height:46px;border-radius:50%;background:#f59e0b;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center">
-        🔔<span id="notifBadgeFab" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span>
-      </button>
+      <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Notificaciones</span>
+      <button onclick="closeFabMenu();openNotifCenter()" style="position:relative;width:46px;height:46px;border-radius:50%;background:#f59e0b;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center">🔔<span id="notifBadgeFab" style="display:none;position:absolute;top:0;right:0;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span></button>
     </div>
-    <div id="fabUsersBtn" style="display:none;flex-direction:row;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Usuarios</span>
+    <div id="fabUsersBtn" style="display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Usuarios</span>
       <button onclick="closeFabMenu();openUserMgmt()" style="width:46px;height:46px;border-radius:50%;background:#8b5cf6;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(139,92,246,.4);display:flex;align-items:center;justify-content:center">👥</button>
     </div>
-    <div id="fabBirthdayBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
-      <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
-    </div>
-    <div id="fabNotifBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Notificaciones</span>
-      <button onclick="closeFabMenu();openNotifCenter()" style="width:46px;height:46px;border-radius:50%;background:#f59e0b;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center">🔔</button>
-    </div>
-    <div id="fabSettingsBtn" style="display:flex;flex-direction:row;align-items:center;gap:8px">
-      <span style="background:rgba(0,0,0,.7);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Ajustes</span>
+    <div id="fabSettingsBtn" style="display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Ajustes</span>
       <button onclick="closeFabMenu();openSettings()" style="width:46px;height:46px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.4);display:flex;align-items:center;justify-content:center">⚙️</button>
     </div>
   </div>
-  <!-- Main FAB toggle button -->
-  <button id="fabToggleBtn" onclick="toggleFabMenu()" style="width:54px;height:54px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(91,141,246,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s,background .2s">➕</button>
+  <!-- Main FAB toggle button - always visible -->
+  <button id="fabToggleBtn" onclick="toggleFabMenu()" style="width:54px;height:54px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(91,141,246,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s">➕</button>
 </div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
@@ -1176,7 +1166,7 @@ function showScreen(id) {
   // Always hide FABs on settings screen
   const onSettings = id === 'settings';
   if(onSettings) {
-    document.getElementById('settingsFab').style.display = 'none';
+    // FAB always visible - no hide needed
     const usersFab = document.getElementById('usersFab');
     if(usersFab) usersFab.style.display = 'none';
   } else {
@@ -2565,20 +2555,20 @@ function buildNotifications() {
 
 
 function toggleFabMenu() {
-  const menu = document.getElementById('fabMenu');
+  const sub = document.getElementById('fabSubBtns');
   const btn = document.getElementById('fabToggleBtn');
   const backdrop = document.getElementById('fabBackdrop');
-  if(!menu) return;
-  const isOpen = menu.style.display === 'flex';
-  menu.style.display = isOpen ? 'none' : 'flex';
+  if(!sub) return;
+  const isOpen = sub.style.display === 'flex';
+  sub.style.display = isOpen ? 'none' : 'flex';
   if(backdrop) backdrop.style.display = isOpen ? 'none' : 'block';
   if(btn) btn.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(45deg)';
 }
 function closeFabMenu() {
-  const menu = document.getElementById('fabMenu');
+  const sub = document.getElementById('fabSubBtns');
   const btn = document.getElementById('fabToggleBtn');
   const backdrop = document.getElementById('fabBackdrop');
-  if(menu) menu.style.display = 'none';
+  if(sub) sub.style.display = 'none';
   if(backdrop) backdrop.style.display = 'none';
   if(btn) btn.style.transform = 'rotate(0deg)';
 }
