@@ -482,10 +482,9 @@
       </div>
     </div>
     <div class="main-buttons">
-      <button class="main-btn btn1" onclick="openEmpresasScreen()"><span class="btn-emoji">🏢</span><span>Empresas</span></button>
-      <button class="main-btn btn4" onclick="openVehicles()"><span class="btn-emoji" id="emoji4">🚗</span><span id="vehiclesBtn">Vehículos</span></button>
-      <button class="main-btn" style="background:linear-gradient(135deg,#ec4899,#f43f5e);color:#fff" onclick="openBirthdays()"><span class="btn-emoji">🎂</span><span>Cumpleaños</span></button>
-      <button class="main-btn" style="background:linear-gradient(135deg,#16a34a,#15803d);color:#fff" onclick="exportExcel()"><span class="btn-emoji">📊</span><span>Exportar Excel</span></button>
+      <button class="main-btn btn1" onclick="openEmpresasScreen()"><span class="btn-emoji">🏢</span><span>EMPRESAS</span></button>
+      <button class="main-btn btn4" onclick="openVehicles()"><span class="btn-emoji" id="emoji4">🚗</span><span id="vehiclesBtn">VEHÍCULOS</span></button>
+      <button class="main-btn btn5" onclick="exportExcel()"><span class="btn-emoji">📊</span><span>EXPORTAR EXCEL</span></button>
     </div>
   </div>
 </div>
@@ -538,7 +537,12 @@
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('empresasScreen');renderEmpresasList()">← Empresas</button>
     <span class="bar-title" id="empresaModuleTitle">Empresa</span>
-    <div class="bar-actions"></div>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Notificaciones">
+        🔔<span id="notifBadge2" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span>
+      </button>
+    </div>
   </div>
   <div class="screen-content pb-safe">
     <div class="module-buttons" id="empresaModuleBtns" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px"></div>
@@ -787,6 +791,8 @@
       <div class="setting-row"><label class="setting-label">Empresa 3 – texto</label><input type="color" class="color-input" id="s_btn3text" value="#ffffff"></div>
       <div class="setting-row"><label class="setting-label">Vehículos – fondo</label><input type="color" class="color-input" id="s_btn4bg" value="#fb923c"></div>
       <div class="setting-row"><label class="setting-label">Vehículos – texto</label><input type="color" class="color-input" id="s_btn4text" value="#ffffff"></div>
+      <div class="setting-row"><label class="setting-label">Excel – fondo</label><input type="color" class="color-input" id="s_btn5bg" value="#16a34a"></div>
+      <div class="setting-row"><label class="setting-label">Excel – texto</label><input type="color" class="color-input" id="s_btn5text" value="#ffffff"></div>
     </div>
     <div class="settings-section">
       <h3>🖥️ Fondo y Texto</h3>
@@ -1063,8 +1069,8 @@ function showSyncStatus(msg) {
 }
 
 // ===================== SETTINGS =====================
-const settingFields = { appTitle:'s_appTitle',appSubtitle:'s_appSubtitle',company1:'s_company1',company2:'s_company2',company3:'s_company3',vehicles:'s_vehicles',emoji1:'s_emoji1',emoji2:'s_emoji2',emoji3:'s_emoji3',emoji4:'s_emoji4',btn1bg:'s_btn1bg',btn1text:'s_btn1text',btn2bg:'s_btn2bg',btn2text:'s_btn2text',btn3bg:'s_btn3bg',btn3text:'s_btn3text',btn4bg:'s_btn4bg',btn4text:'s_btn4text',homeBg:'s_homeBg',titleColor:'s_titleColor',subtitleColor:'s_subtitleColor' };
-const settingDefaults = { appTitle:'GESTIÓN EMPRESARIAL',appSubtitle:'Sistema de Control de Personal y Vehículos',company1:'Empresa 1',company2:'Empresa 2',company3:'Empresa 3',vehicles:'Vehículos',emoji1:'🏢',emoji2:'🏭',emoji3:'🏗️',emoji4:'🚗',btn1bg:'#5b8df6',btn1text:'#ffffff',btn2bg:'#a78bfa',btn2text:'#ffffff',btn3bg:'#34d399',btn3text:'#ffffff',btn4bg:'#fb923c',btn4text:'#ffffff',homeBg:'#0f1117',titleColor:'#e8ecf4',subtitleColor:'#8b92a9' };
+const settingFields = { appTitle:'s_appTitle',appSubtitle:'s_appSubtitle',company1:'s_company1',company2:'s_company2',company3:'s_company3',vehicles:'s_vehicles',emoji1:'s_emoji1',emoji2:'s_emoji2',emoji3:'s_emoji3',emoji4:'s_emoji4',btn1bg:'s_btn1bg',btn1text:'s_btn1text',btn2bg:'s_btn2bg',btn2text:'s_btn2text',btn3bg:'s_btn3bg',btn3text:'s_btn3text',btn4bg:'s_btn4bg',btn4text:'s_btn4text',btn5bg:'s_btn5bg',btn5text:'s_btn5text',homeBg:'s_homeBg',titleColor:'s_titleColor',subtitleColor:'s_subtitleColor' };
+const settingDefaults = { appTitle:'GESTIÓN EMPRESARIAL',appSubtitle:'Sistema de Control de Personal y Vehículos',company1:'Empresa 1',company2:'Empresa 2',company3:'Empresa 3',vehicles:'Vehículos',emoji1:'🏢',emoji2:'🏭',emoji3:'🏗️',emoji4:'🚗',btn1bg:'#5b8df6',btn1text:'#ffffff',btn2bg:'#a78bfa',btn2text:'#ffffff',btn3bg:'#34d399',btn3text:'#ffffff',btn4bg:'#fb923c',btn4text:'#ffffff',btn5bg:'#16a34a',btn5text:'#ffffff',homeBg:'#0f1117',titleColor:'#e8ecf4',subtitleColor:'#8b92a9' };
 
 function applySettingsToDom(s) {
   const r=document.documentElement.style;
@@ -1091,7 +1097,7 @@ function applySettingsToDom(s) {
   });
   // Also apply inline to the buttons directly (fixes iOS/Safari CSS var cache issue)
   const btns = document.querySelectorAll('.main-btn');
-  const btnKeys = [['btn1bg','btn1text'],['btn2bg','btn2text'],['btn3bg','btn3text'],['btn4bg','btn4text']];
+  const btnKeys = [['btn1bg','btn1text'],['btn2bg','btn2text'],['btn3bg','btn3text'],['btn4bg','btn4text'],['btn5bg','btn5text']];
   btns.forEach((btn,i)=>{
     if(btnKeys[i]) {
       btn.style.background = s[btnKeys[i][0]] || settingDefaults[btnKeys[i][0]];
@@ -2596,7 +2602,7 @@ function renderGlobalSearch() {
   empresas.forEach((em, i) => {
     getEmployees(i).forEach(e=>{
       const full = [(e.nombres||''),(e.apellidos||''),(e.nombre||''),(e.cedula||''),(e.cargo||''),(e.celular||'')].join(' ').toLowerCase();
-      if(full.includes(q)) results.push({ type:'emp', icon:'👤', title:(e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||''), sub: (e.cargo||'Sin cargo')+' · '+em.nombre, action:()=>{ openCompanyWorkers(i); setTimeout(()=>openEmployee(e.id),200); } });
+      if(full.includes(q)) results.push({ type:'emp', icon:'👤', title:(e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||''), sub: (e.cargo||'Sin cargo')+' · '+em.nombre, action:()=>{ currentCompany=i; currentEmpresaIdx=i; openEmployee(e.id); closeGlobalSearch(); } });
     });
   });
 
