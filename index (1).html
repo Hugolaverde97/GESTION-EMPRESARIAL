@@ -1,0 +1,2952 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Gestión Empresarial</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gestión">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1d27">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  /* iOS Splash screen */
+  #splash {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #2a2d3a 0%, #1a1d27 100%);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    transition: opacity 0.4s ease;
+  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  #splash canvas { border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+  #splash-title { color: #e8ecf4; font-family: Sora,sans-serif; font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; }
+  #splash-sub { color: #8b92a9; font-family: Sora,sans-serif; font-size: 0.8rem; font-weight: 300; letter-spacing: 0.05em; margin-top: -12px; }
+  #splash-dots { display: flex; gap: 8px; }
+  #splash-dots span { width: 8px; height: 8px; border-radius: 50%; background: #5b8df6; animation: pulse 1.2s ease-in-out infinite; }
+  #splash-dots span:nth-child(2) { animation-delay: 0.2s; background: #a78bfa; }
+  #splash-dots span:nth-child(3) { animation-delay: 0.4s; background: #34d399; }
+  @keyframes pulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+</style>
+<link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180">
+<link id="pwa-icon" rel="icon" type="image/png" sizes="192x192">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  // Draw book icon on canvas
+  function drawIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    const r = size * 0.18; // corner radius
+
+    // Background: dark gradient
+    const grad = ctx.createLinearGradient(0, 0, size, size);
+    grad.addColorStop(0, '#2a2d3a');
+    grad.addColorStop(1, '#1a1d27');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, r);
+    ctx.fill();
+
+    // Subtle glow
+    const glow = ctx.createRadialGradient(size*0.5, size*0.4, 0, size*0.5, size*0.4, size*0.5);
+    glow.addColorStop(0, 'rgba(91,141,246,0.15)');
+    glow.addColorStop(1, 'rgba(91,141,246,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, r);
+    ctx.fill();
+
+    const cx = size * 0.5;
+    const bookW = size * 0.58;
+    const bookH = size * 0.52;
+    const bookX = cx - bookW / 2;
+    const bookY = size * 0.24;
+    const spineW = size * 0.055;
+    const pageR = size * 0.04;
+
+    // Drop shadow for book
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = size * 0.07;
+    ctx.shadowOffsetY = size * 0.04;
+
+    // Left page (slightly angled)
+    ctx.fillStyle = '#e8dcc8';
+    ctx.beginPath();
+    ctx.roundRect(bookX, bookY, bookW/2 - spineW/2, bookH, [pageR, 0, 0, pageR]);
+    ctx.fill();
+
+    // Right page
+    ctx.fillStyle = '#f0e6d0';
+    ctx.beginPath();
+    ctx.roundRect(cx + spineW/2, bookY, bookW/2 - spineW/2, bookH, [0, pageR, pageR, 0]);
+    ctx.fill();
+
+    // Spine
+    ctx.shadowColor = 'transparent';
+    const spineGrad = ctx.createLinearGradient(cx - spineW/2, 0, cx + spineW/2, 0);
+    spineGrad.addColorStop(0, '#5b8df6');
+    spineGrad.addColorStop(0.5, '#7ba8ff');
+    spineGrad.addColorStop(1, '#4a7ae0');
+    ctx.fillStyle = spineGrad;
+    ctx.beginPath();
+    ctx.roundRect(cx - spineW/2, bookY - size*0.01, spineW, bookH + size*0.02, size*0.02);
+    ctx.fill();
+
+    // Lines on left page
+    ctx.strokeStyle = 'rgba(160,140,110,0.5)';
+    ctx.lineWidth = size * 0.018;
+    ctx.lineCap = 'round';
+    const lineStartX = bookX + size * 0.045;
+    const lineEndX = cx - spineW/2 - size * 0.03;
+    const lineSpacing = bookH / 6;
+    for(let i = 1; i <= 4; i++) {
+      const ly = bookY + lineSpacing * i;
+      const w = i === 4 ? 0.6 : 1;
+      ctx.beginPath();
+      ctx.moveTo(lineStartX, ly);
+      ctx.lineTo(lineStartX + (lineEndX - lineStartX) * w, ly);
+      ctx.stroke();
+    }
+
+    // Lines on right page
+    const rLineStartX = cx + spineW/2 + size * 0.03;
+    const rLineEndX = bookX + bookW - size * 0.045;
+    for(let i = 1; i <= 4; i++) {
+      const ly = bookY + lineSpacing * i;
+      const w = i === 4 ? 0.55 : 1;
+      ctx.beginPath();
+      ctx.moveTo(rLineStartX, ly);
+      ctx.lineTo(rLineStartX + (rLineEndX - rLineStartX) * w, ly);
+      ctx.stroke();
+    }
+
+    // Small bookmark ribbon on spine top
+    ctx.fillStyle = '#fb923c';
+    const bmW = spineW * 0.7;
+    const bmH = size * 0.1;
+    ctx.beginPath();
+    ctx.moveTo(cx - bmW/2, bookY - size*0.01);
+    ctx.lineTo(cx + bmW/2, bookY - size*0.01);
+    ctx.lineTo(cx + bmW/2, bookY + bmH);
+    ctx.lineTo(cx, bookY + bmH - bmW*0.4);
+    ctx.lineTo(cx - bmW/2, bookY + bmH);
+    ctx.closePath();
+    ctx.fill();
+
+    // Text "GE" subtle at bottom
+    ctx.font = `bold ${size*0.1}px Sora,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(139,146,169,0.7)';
+    ctx.fillText('GESTIÓN', cx, bookY + bookH + size * 0.1);
+
+    return c.toDataURL('image/png');
+  }
+
+  const iconUrl = drawIcon(192);
+  const iconUrl512 = drawIcon(512);
+  document.getElementById('apple-touch-icon').href = iconUrl;
+  document.getElementById('pwa-icon').href = iconUrl;
+
+  const manifest = {
+    name: 'Gestión Empresarial',
+    short_name: 'Gestión',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#1a1d27',
+    theme_color: '#1a1d27',
+    orientation: 'portrait-primary',
+    icons: [
+      {src: iconUrl, sizes: '192x192', type: 'image/png'},
+      {src: iconUrl512, sizes: '512x512', type: 'image/png'}
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const link = document.createElement('link'); link.rel='manifest'; link.href=URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+  :root {
+    --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3347;
+    --accent1:#5b8df6; --accent2:#a78bfa; --accent3:#34d399; --accent4:#fb923c;
+    --text:#e8ecf4; --text2:#8b92a9; --danger:#f87171; --radius:16px;
+    --font:'Sora',sans-serif; --mono:'JetBrains Mono',monospace;
+    --btn1-bg:#5b8df6; --btn2-bg:#a78bfa; --btn3-bg:#34d399; --btn4-bg:#fb923c;
+    --btn1-text:#fff; --btn2-text:#fff; --btn3-text:#fff; --btn4-text:#fff;
+    --title-text:#e8ecf4; --subtitle-text:#8b92a9; --home-bg:#0f1117;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{height:-webkit-fill-available;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+  input,select,button,textarea{-webkit-appearance:none;appearance:none;}
+  .screen{display:none;min-height:100vh;}
+  .screen.active{display:flex;flex-direction:column;}
+
+  /* HOME */
+  #home{background:var(--home-bg);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
+  #home::before{content:'';position:absolute;top:-40%;left:-20%;width:140%;height:140%;background:radial-gradient(ellipse at 30% 20%,rgba(91,141,246,.12) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(167,139,250,.10) 0%,transparent 60%);pointer-events:none;}
+  .home-inner{width:100%;max-width:480px;z-index:1;}
+  .home-header{text-align:center;margin-bottom:48px;}
+  .home-title{font-size:clamp(1.6rem,5vw,2.4rem);font-weight:800;letter-spacing:-.03em;color:var(--title-text);line-height:1.1;}
+  .home-subtitle{font-size:.85rem;color:var(--subtitle-text);margin-top:8px;font-weight:300;letter-spacing:.05em;}
+  .main-buttons{display:flex;flex-direction:column;gap:14px;}
+  .main-btn{display:flex;align-items:center;gap:16px;padding:20px 24px;border-radius:var(--radius);border:none;cursor:pointer;font-family:var(--font);font-size:1rem;font-weight:700;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden;}
+  .main-btn::after{content:'→';position:absolute;right:20px;font-size:1.1rem;opacity:.6;transition:right .2s,opacity .2s;}
+  .main-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.3);}
+  .main-btn:hover::after{right:14px;opacity:1;}
+  .btn-emoji{font-size:1.6rem;line-height:1;}
+  .btn1{background:var(--btn1-bg);color:var(--btn1-text);}
+  .btn2{background:var(--btn2-bg);color:var(--btn2-text);}
+  .btn3{background:var(--btn3-bg);color:var(--btn3-text);}
+  .btn4{background:var(--btn4-bg);color:var(--btn4-text);}
+
+  /* TOP BAR */
+  .top-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;}
+  .back-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:10px;cursor:pointer;font-family:var(--font);font-size:.85rem;font-weight:600;transition:background .15s;white-space:nowrap;}
+  .back-btn:hover{background:var(--border);}
+  .bar-title{font-size:1rem;font-weight:700;flex:1;}
+  .bar-actions{display:flex;gap:8px;}
+  .icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:38px;height:38px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:background .15s;}
+  .icon-btn:hover{background:var(--accent1);color:#fff;border-color:var(--accent1);}
+  .screen-content{flex:1;padding:20px;max-width:700px;width:100%;margin:0 auto;}
+
+  /* TABS */
+  .tabs{display:flex;gap:4px;background:var(--surface2);border-radius:12px;padding:4px;margin-bottom:16px;}
+  .tab{flex:1;padding:9px 8px;border-radius:9px;border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s,color .15s;}
+  .tab.active{background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3);}
+
+  /* SEARCH */
+  .search-wrap{margin-bottom:16px;}
+  .search-input{width:100%;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--font);font-size:.9rem;outline:none;transition:border-color .15s;}
+  .search-input:focus{border-color:var(--accent1);}
+  .search-input::placeholder{color:var(--text2);}
+
+  /* FILTER ROW */
+  .filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .filter-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;}
+  .filter-btn.active{background:var(--accent1);color:#fff;border-color:var(--accent1);}
+
+  /* LIST */
+  .list-container{display:flex;flex-direction:column;gap:10px;}
+  .list-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color .15s,background .15s;}
+  .list-item:hover{border-color:var(--accent1);background:var(--surface2);}
+  .list-item.inactive{opacity:.55;}
+  .list-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0;color:#fff;}
+  .list-avatar.inactive-avatar{background:linear-gradient(135deg,#444,#666);}
+  .list-info{flex:1;}
+  .list-name{font-weight:600;font-size:.95rem;}
+  .list-sub{font-size:.78rem;color:var(--text2);margin-top:2px;}
+  .list-arrow{color:var(--text2);font-size:.9rem;}
+  .plate-badge{background:var(--surface2);border:2px solid var(--border);border-radius:8px;padding:6px 12px;font-family:var(--mono);font-size:.9rem;font-weight:600;letter-spacing:.1em;}
+
+  /* STATUS BADGES */
+  .badge{padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;}
+  .badge-active{background:rgba(52,211,153,.15);color:var(--accent3);}
+  .badge-inactive{background:rgba(248,113,113,.15);color:var(--danger);}
+  .badge-ok{background:rgba(52,211,153,.15);color:var(--accent3);}
+  .badge-warn{background:rgba(251,146,60,.15);color:var(--accent4);}
+  .badge-exp{background:rgba(248,113,113,.15);color:var(--danger);}
+
+  /* DETAIL */
+  .detail-section{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin:14px 0 8px;padding:0 2px;grid-column:1/-1}
+.detail-header{background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .detail-avatar{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;flex-shrink:0;color:#fff;}
+  .detail-avatar.inactive-avatar{background:linear-gradient(135deg,#444,#666);}
+  .detail-name{font-size:1.2rem;font-weight:800;}
+  .detail-cargo{font-size:.85rem;color:var(--text2);margin-top:4px;}
+  .detail-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+  /* ACTION BUTTONS */
+  .action-btn{padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font);font-size:.82rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+  .action-btn:hover{border-color:var(--accent1);color:var(--accent1);}
+  .action-btn.danger{border-color:var(--danger);color:var(--danger);}
+  .action-btn.danger:hover{background:rgba(248,113,113,.1);}
+  .action-btn.success{border-color:var(--accent3);color:var(--accent3);}
+  .action-btn.success:hover{background:rgba(52,211,153,.1);}
+
+  /* FIELDS */
+  .section-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text2);font-weight:600;margin:20px 0 12px;padding-left:4px;}
+  .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px;}
+  @media(max-width:480px){.fields-grid{grid-template-columns:1fr;}}
+  .field-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;}
+  .field-label{font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-weight:600;}
+  .field-value{font-size:.92rem;font-weight:600;color:var(--text);word-break:break-word;}
+  .field-full{grid-column:1/-1;}
+
+  /* DOC SECTION */
+  .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;}
+  .doc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .doc-name{font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:8px;}
+  .doc-dates{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+  .date-group{flex:1;min-width:130px;}
+  .date-label{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;margin-top:8px;}
+  .upload-zone:hover{border-color:var(--accent1);background:rgba(91,141,246,.04);}
+  .upload-zone input{display:none;}
+  .upload-icon{font-size:1.8rem;margin-bottom:8px;}
+  .upload-text{font-size:.82rem;color:var(--text2);}
+  .doc-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .doc-file{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:.82rem;}
+  .doc-file .doc-fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .doc-del{cursor:pointer;color:var(--danger);font-size:1rem;padding:4px;border-radius:4px;background:none;border:none;}
+
+  /* FORMS */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  @media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+  .form-group{display:flex;flex-direction:column;gap:6px;}
+  .form-group.full{grid-column:1/-1;}
+  .form-label{font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+  .form-input,.form-select{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-family:var(--font);font-size:.9rem;outline:none;transition:border-color .15s;width:100%;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent1);}
+  .form-select{cursor:pointer;}
+  .form-select option{background:var(--surface2);}
+  .save-btn{width:100%;padding:14px;border-radius:12px;border:none;background:var(--accent1);color:#fff;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;margin-top:20px;transition:opacity .15s,transform .1s;}
+  .save-btn:hover{opacity:.9;transform:translateY(-1px);}
+  .del-btn{width:100%;padding:12px;border-radius:12px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-family:var(--font);font-size:.9rem;font-weight:600;cursor:pointer;margin-top:10px;transition:background .15s;}
+  .del-btn:hover{background:rgba(248,113,113,.1);}
+  .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;border:1px dashed var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:.9rem;font-weight:600;cursor:pointer;margin-bottom:16px;width:100%;transition:border-color .15s,color .15s;}
+  .add-btn:hover{border-color:var(--accent1);color:var(--accent1);}
+
+  /* CHARTS */
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:500px){.charts-grid{grid-template-columns:1fr;}}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .chart-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin-bottom:12px;}
+  .chart-wrap{position:relative;height:160px;}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+  .stat-num{font-size:1.6rem;font-weight:800;line-height:1;}
+  .stat-lbl{font-size:.72rem;color:var(--text2);margin-top:4px;text-transform:uppercase;letter-spacing:.06em;}
+
+  /* SETTINGS */
+  #settings{background:var(--surface);overflow-y:auto;}
+  .settings-section{background:var(--bg);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+  .settings-section h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);font-weight:600;margin-bottom:16px;}
+  .setting-row{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .setting-label{flex:1;font-size:.88rem;font-weight:500;}
+  .setting-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:.88rem;outline:none;width:200px;max-width:55%;}
+  .color-input{width:44px;height:36px;padding:2px;border-radius:8px;border:1px solid var(--border);cursor:pointer;background:var(--surface);}
+  .emoji-input{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:1.2rem;width:60px;text-align:center;outline:none;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:24px;}
+  .modal-title{font-size:1.1rem;font-weight:800;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+  .modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;}
+
+  /* TOGGLE SWITCH */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+  .toggle-label{font-weight:600;font-size:.9rem;}
+  .toggle{position:relative;width:48px;height:26px;flex-shrink:0;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:13px;cursor:pointer;transition:background .2s;}
+  .toggle-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:transform .2s;}
+  .toggle input:checked+.toggle-slider{background:var(--accent3);}
+  .toggle input:checked+.toggle-slider:before{transform:translateX(22px);}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent3);color:#0f1117;padding:12px 24px;border-radius:100px;font-weight:700;font-size:.88rem;opacity:0;transition:opacity .3s,transform .3s;z-index:300;white-space:nowrap;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text2);}
+  .empty-icon{font-size:3rem;margin-bottom:12px;}
+  .empty-text{font-size:.9rem;}
+  .pb-safe{padding-bottom:80px;}
+  .settings-fab{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;transition:background .2s,color .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+  .settings-fab:hover{background:var(--accent1);color:#fff;}
+</style>
+</head>
+<body>
+
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(135deg,#1a1d27 0%,#0f1117 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:var(--font);">
+  <canvas id="loginIcon" width="90" height="90" style="border-radius:18px;margin-bottom:20px;box-shadow:0 12px 40px rgba(0,0,0,0.5)"></canvas>
+  <div style="font-size:1.5rem;font-weight:800;color:#e8ecf4;letter-spacing:-.02em;margin-bottom:6px">GESTIÓN EMPRESARIAL</div>
+  <div style="font-size:.8rem;color:#8b92a9;margin-bottom:36px;letter-spacing:.05em">Inicia sesión para continuar</div>
+  <div style="width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px">
+    <div>
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#8b92a9;font-weight:600;margin-bottom:6px">Usuario</div>
+      <input id="login_user" class="form-input" placeholder="Nombre de usuario" autocomplete="username" style="width:100%">
+    </div>
+    <div>
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#8b92a9;font-weight:600;margin-bottom:6px">Contraseña</div>
+      <div style="position:relative">
+        <input id="login_pass" type="password" class="form-input" placeholder="Contraseña" autocomplete="current-password" style="width:100%;padding-right:44px" onkeydown="if(event.key==='Enter')doLogin()">
+        <button onclick="togglePassVis('login_pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8b92a9;cursor:pointer;font-size:1rem;padding:4px">👁</button>
+      </div>
+    </div>
+    <div id="login_error" style="color:#f87171;font-size:.82rem;text-align:center;display:none;padding:8px;background:rgba(248,113,113,.1);border-radius:8px"></div>
+    <button onclick="doLogin()" style="width:100%;padding:14px;border-radius:12px;border:none;background:#5b8df6;color:#fff;font-family:var(--font);font-size:1rem;font-weight:700;cursor:pointer;margin-top:4px;transition:opacity .15s" id="loginBtn">Ingresar</button>
+  </div>
+</div>
+
+<!-- USER MANAGEMENT MODAL -->
+<div class="modal-overlay" id="userMgmtModal">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title"><span>👥 Gestión de Usuarios</span><button class="modal-close" onclick="closeModal('userMgmtModal')">✕</button></div>
+    <button class="add-btn" onclick="openAddUser()" style="margin-bottom:12px">➕ Agregar usuario</button>
+    <div id="userList" style="display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT USER MODAL -->
+<div class="modal-overlay" id="userEditModal">
+  <div class="modal">
+    <div class="modal-title"><span id="userEditTitle">Agregar Usuario</span><button class="modal-close" onclick="closeModal('userEditModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nombre de usuario *</label><input class="form-input" id="ue_username" placeholder="usuario123" autocomplete="off"></div>
+      <div class="form-group full" id="ue_pass_group">
+        <label class="form-label">Contraseña *</label>
+        <div style="position:relative">
+          <input type="password" class="form-input" id="ue_password" placeholder="Contraseña" style="width:100%;padding-right:44px">
+          <button onclick="togglePassVis('ue_password',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8b92a9;cursor:pointer;font-size:1rem;padding:4px">👁</button>
+        </div>
+        <div style="font-size:.72rem;color:#8b92a9;margin-top:4px">Dejar vacío para no cambiar la contraseña (al editar)</div>
+      </div>
+      <div class="form-group full"><label class="form-label">Rol</label>
+        <select class="form-select" id="ue_role" onchange="toggleUserPerms()">
+          <option value="editor">Editor (agregar y editar)</option>
+          <option value="readonly">Solo lectura</option>
+          <option value="supervisor">Supervisor (estadísticas)</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </div>
+      <div id="ue_perms" style="grid-column:1/-1">
+        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#8b92a9;font-weight:600;margin:4px 0 10px">Acceso a módulos</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <label id="lbl_acc0" onclick="togglePermLabel('ue_acc0','lbl_acc0','#5b8df6')" style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--surface2);padding:12px 16px;border-radius:12px;border:2px solid var(--border);transition:all .18s">
+            <span style="font-size:1.3rem">🏢</span>
+            <span style="font-size:.9rem;font-weight:600;flex:1" id="ue_acc0_lbl">Empresa 1</span>
+            <span id="ue_acc0_icon" style="font-size:1.1rem;opacity:.3">○</span>
+            <input type="checkbox" id="ue_acc0" style="display:none">
+          </label>
+          <label id="lbl_acc1" onclick="togglePermLabel('ue_acc1','lbl_acc1','#a78bfa')" style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--surface2);padding:12px 16px;border-radius:12px;border:2px solid var(--border);transition:all .18s">
+            <span style="font-size:1.3rem">🏭</span>
+            <span style="font-size:.9rem;font-weight:600;flex:1" id="ue_acc1_lbl">Empresa 2</span>
+            <span id="ue_acc1_icon" style="font-size:1.1rem;opacity:.3">○</span>
+            <input type="checkbox" id="ue_acc1" style="display:none">
+          </label>
+          <label id="lbl_acc2" onclick="togglePermLabel('ue_acc2','lbl_acc2','#34d399')" style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--surface2);padding:12px 16px;border-radius:12px;border:2px solid var(--border);transition:all .18s">
+            <span style="font-size:1.3rem">🏗️</span>
+            <span style="font-size:.9rem;font-weight:600;flex:1" id="ue_acc2_lbl">Empresa 3</span>
+            <span id="ue_acc2_icon" style="font-size:1.1rem;opacity:.3">○</span>
+            <input type="checkbox" id="ue_acc2" style="display:none">
+          </label>
+          <label id="lbl_acc3" onclick="togglePermLabel('ue_acc3','lbl_acc3','#fb923c')" style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--surface2);padding:12px 16px;border-radius:12px;border:2px solid var(--border);transition:all .18s">
+            <span style="font-size:1.3rem">🚗</span>
+            <span style="font-size:.9rem;font-weight:600;flex:1">Vehículos</span>
+            <span id="ue_acc3_icon" style="font-size:1.1rem;opacity:.3">○</span>
+            <input type="checkbox" id="ue_acc3" style="display:none">
+          </label>
+          <label id="lbl_salarios" onclick="togglePermLabel('ue_salarios','lbl_salarios','#fbbf24')" style="display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--surface2);padding:12px 16px;border-radius:12px;border:2px solid var(--border);transition:all .18s">
+            <span style="font-size:1.3rem">💰</span>
+            <span style="font-size:.9rem;font-weight:600;flex:1">Ver salarios</span>
+            <span id="ue_salarios_icon" style="font-size:1.1rem;opacity:.3">○</span>
+            <input type="checkbox" id="ue_salarios" style="display:none">
+          </label>
+        </div>
+      </div>
+    </div>
+    <button class="save-btn" onclick="saveUser()">💾 Guardar usuario</button>
+    <button class="del-btn" id="ue_del_btn" onclick="deleteUser()" style="display:none">🗑️ Eliminar usuario</button>
+  </div>
+</div>
+
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <canvas id="splashCanvas" width="120" height="120" style="border-radius:24px"></canvas>
+  <div id="splash-title">GESTIÓN EMPRESARIAL</div>
+  <div id="splash-sub">Sistema de Control de Personal</div>
+  <div id="splash-dots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <div class="home-inner">
+    <div class="home-header" style="position:relative">
+      <div style="position:absolute;top:0;left:0;display:flex;gap:4px;align-items:center">
+        <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.5rem;padding:4px;line-height:1" title="Cumpleaños">🎂</button>
+        <button id="notifBell" onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.5rem;padding:4px;line-height:1">
+          🔔<span id="notifBadge" style="display:none;position:absolute;top:0;right:0;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:.6rem;font-weight:700;align-items:center;justify-content:center">0</span>
+        </button>
+      </div>
+      <div class="home-title" id="appTitleEl">GESTIÓN EMPRESARIAL</div>
+      <div class="home-subtitle" id="appSubtitleEl">Sistema de Control de Personal y Vehículos</div>
+      <div style="position:relative;margin-top:16px">
+        <input type="search" id="globalSearch" class="search-input" placeholder="🔍 Buscar empleados, vehículos, tráileres..." oninput="renderGlobalSearch()" style="width:100%;padding-left:14px">
+        <div id="globalSearchResults" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;z-index:200;max-height:320px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.4)"></div>
+      </div>
+    </div>
+    <div class="main-buttons">
+      <button class="main-btn btn1" onclick="openEmpresasScreen()"><span class="btn-emoji">🏢</span><span>EMPRESAS</span></button>
+      <button class="main-btn btn4" onclick="openVehicles()"><span class="btn-emoji" id="emoji4">🚗</span><span id="vehiclesBtn">VEHÍCULOS</span></button>
+      <button class="main-btn btn5" onclick="exportExcel()"><span class="btn-emoji">📊</span><span>EXPORTAR EXCEL</span></button>
+    </div>
+  </div>
+</div>
+
+
+<!-- NOTIFICATION CENTER -->
+<div id="notifScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">← Inicio</button>
+    <span class="bar-title">🔔 Notificaciones</span>
+    <div class="bar-actions"><button class="icon-btn" onclick="markAllRead()" title="Marcar todo leído" style="font-size:.75rem;padding:4px 8px">✓ Todo</button></div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="filter-row" style="margin-bottom:14px">
+      <button class="filter-btn active" id="nf-todas" onclick="setNotifFilter('todas')">Todas</button>
+      <button class="filter-btn" id="nf-vencimientos" onclick="setNotifFilter('vencimientos')">⚠️ Vencimientos</button>
+      <button class="filter-btn" id="nf-cumple" onclick="setNotifFilter('cumple')">🎂 Cumpleaños</button>
+    </div>
+    <div id="notifList"></div>
+  </div>
+</div>
+
+<!-- BIRTHDAY SCREEN -->
+<div id="birthdayScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">← Inicio</button>
+    <span class="bar-title">🎂 Cumpleaños</span>
+  </div>
+  <div class="screen-content pb-safe">
+    <div id="birthdayCalendar" style="margin-bottom:20px"></div>
+    <div id="birthdayList"></div>
+  </div>
+</div>
+<!-- EMPRESAS LIST SCREEN -->
+<div id="empresasScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">← Inicio</button>
+    <span class="bar-title">Empresas</span>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot2" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+      <button class="icon-btn" id="addEmpresaBtn" onclick="openAddEmpresa()" title="Agregar empresa">➕</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="list-container" id="empresasList"></div>
+  </div>
+</div>
+
+<!-- EMPRESA MODULE SCREEN -->
+<div id="empresaModuleScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('empresasScreen');renderEmpresasList()">← Empresas</button>
+    <span class="bar-title" id="empresaModuleTitle">Empresa</span>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.4rem;padding:6px;line-height:1;border-radius:10px;color:var(--text1)" title="Notificaciones">
+        🔔<span id="notifBadge2" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;color:#fff;border-radius:50%;width:14px;height:14px;font-size:.55rem;font-weight:700;align-items:center;justify-content:center">0</span>
+      </button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="module-buttons" id="empresaModuleBtns" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT EMPRESA MODAL -->
+<div class="modal-overlay" id="empresaModal">
+  <div class="modal">
+    <div class="modal-title"><span id="empresaModalTitle">Nueva Empresa</span><button class="modal-close" onclick="closeModal('empresaModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nombre de la empresa *</label><input class="form-input" id="em_nombre" placeholder="Nombre"></div>
+      <div class="form-group"><label class="form-label">Emoji / Ícono</label><input class="form-input" id="em_emoji" placeholder="🏢" maxlength="4" style="font-size:1.4rem;text-align:center"></div>
+      <div class="form-group"><label class="form-label">Color del botón</label><input type="color" class="form-input" id="em_color" value="#5b8df6" style="height:44px;cursor:pointer"></div>
+    </div>
+    <button class="save-btn" onclick="saveEmpresa()">💾 Guardar</button>
+    <button class="del-btn" id="em_del_btn" onclick="deleteEmpresa()" style="display:none">🗑️ Eliminar empresa</button>
+  </div>
+</div>
+
+<!-- COMPANY SCREEN (tabs: lista + estadísticas) -->
+<div id="companyList" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" id="backFromCompany" onclick="backToEmpresaModule()">← Atrás</button>
+    <span class="bar-title" id="companyListTitle">Personal</span>
+    <div class="bar-actions">
+      <button class="icon-btn" onclick="openAddEmployee()" title="Agregar" id="addEmpTopBtn">➕</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="tabs">
+      <button class="tab active" id="tab-lista" onclick="switchTab('lista')">👥 Personal</button>
+      <button class="tab" id="tab-stats" onclick="switchTab('stats')">📊 Estadísticas</button>
+    </div>
+
+    <!-- TAB LISTA -->
+    <div id="panel-lista">
+      <div class="search-wrap">
+        <input type="search" class="search-input" placeholder="Buscar por nombre o cédula..." id="employeeSearch" oninput="filterEmployees()">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <div class="filter-row" style="margin:0;flex:1">
+          <button class="filter-btn active" id="filter-todos" onclick="setFilter('todos')">Todos</button>
+          <button class="filter-btn" id="filter-activos" onclick="setFilter('activos')">✅ Activos</button>
+          <button class="filter-btn" id="filter-inactivos" onclick="setFilter('inactivos')">⛔ Inactivos</button>
+        </div>
+        <select class="form-select" id="emp_sort" onchange="renderEmployeeList()" style="width:auto;padding:6px 10px;font-size:.78rem">
+          <option value="nombre">A-Z Nombre</option>
+          <option value="apellido">A-Z Apellido</option>
+          <option value="antiguedad">Antigüedad</option>
+          <option value="cedula">Cédula</option>
+          <option value="nacimiento">F. Nacimiento</option>
+        </select>
+      </div>
+      <div class="list-container" id="employeeList"></div>
+      <button class="add-btn" onclick="openAddEmployee()">➕ Agregar empleado</button>
+    </div>
+
+    <!-- TAB ESTADÍSTICAS -->
+    <div id="panel-stats" style="display:none">
+      <div class="stats-row" id="statsRow"></div>
+      <div class="charts-grid" id="chartsGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLOYEE DETAIL -->
+<div id="employeeDetail" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goToCompanyList()">← Lista</button>
+    <span class="bar-title">Empleado</span>
+  </div>
+  <div class="screen-content pb-safe" id="employeeDetailContent"></div>
+</div>
+
+<!-- VEHICLES MODULE -->
+<div id="vehiclesModule" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">← Inicio</button>
+    <span class="bar-title">Vehículos</span>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot3" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="module-buttons" style="padding:24px 16px;display:flex;flex-direction:column;gap:14px">
+      <button class="main-btn" style="background:#fb923c;color:#fff;font-size:1.1rem;padding:22px 20px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start" onclick="openVehiclesList()">
+        <span style="font-size:1.8rem">🚗</span>
+        <div style="text-align:left"><div>Vehículos</div><div id="vehModuleCount" style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">0 registrados</div></div>
+        <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+      </button>
+      <button class="main-btn" style="background:#64748b;color:#fff;font-size:1.1rem;padding:22px 20px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start" onclick="openTrailersList()">
+        <span style="font-size:1.8rem">🚛</span>
+        <div style="text-align:left"><div>Tráileres</div><div id="trailerModuleCount" style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">0 registrados</div></div>
+        <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- VEHICLES LIST -->
+<div id="vehiclesList" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
+    <span class="bar-title">Vehículos</span>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot4" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+      <button class="icon-btn" onclick="openAddVehicle()" title="Agregar" id="addVehTopBtn">➕</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="search-wrap">
+      <input type="search" class="search-input" placeholder="Buscar por placa, tipo o marca..." id="vehicleSearch" oninput="filterVehicles()">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <div class="filter-row" style="margin:0;flex:1">
+        <button class="filter-btn active" id="vfilter-todos" onclick="setVFilter('todos')">Todos</button>
+        <button class="filter-btn" id="vfilter-activos" onclick="setVFilter('activos')">✅ Activos</button>
+        <button class="filter-btn" id="vfilter-inactivos" onclick="setVFilter('inactivos')">⛔ Inactivos</button>
+      </div>
+      <select class="form-select" id="veh_sort" onchange="renderVehicleList()" style="width:auto;padding:6px 10px;font-size:.78rem">
+        <option value="placa">A-Z Placa</option>
+        <option value="tipo">A-Z Tipo</option>
+        <option value="antiguedad">Antigüedad</option>
+        <option value="marca">A-Z Marca</option>
+      </select>
+    </div>
+    <div class="list-container" id="vehicleList"></div>
+    <button class="add-btn" onclick="openAddVehicle()">➕ Agregar vehículo</button>
+  </div>
+</div>
+
+<!-- TRAILERS LIST -->
+<div id="trailersList" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
+    <span class="bar-title">Tráileres</span>
+    <div class="bar-actions" style="display:flex;align-items:center;gap:2px">
+      <button onclick="openBirthdays()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Cumpleaños">🎂</button>
+      <button onclick="openNotifCenter()" style="position:relative;background:none;border:none;cursor:pointer;font-size:1.3rem;padding:5px;line-height:1;border-radius:8px" title="Notificaciones">🔔<span class="notif-dot5" style="display:none;position:absolute;top:2px;right:2px;background:#ef4444;border-radius:50%;width:8px;height:8px"></span></button>
+      <button class="icon-btn" onclick="openAddTrailer()" title="Agregar" id="addTrailerTopBtn">➕</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="search-wrap">
+      <input type="search" class="search-input" placeholder="Buscar por placa o tipo..." id="trailerSearch" oninput="renderTrailerList()">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <div class="filter-row" style="margin:0;flex:1">
+        <button class="filter-btn active" id="tfilter-todos" onclick="setTFilter('todos')">Todos</button>
+        <button class="filter-btn" id="tfilter-activos" onclick="setTFilter('activos')">✅ Activos</button>
+        <button class="filter-btn" id="tfilter-inactivos" onclick="setTFilter('inactivos')">⛔ Inactivos</button>
+      </div>
+      <select class="form-select" id="trailer_sort" onchange="renderTrailerList()" style="width:auto;padding:6px 10px;font-size:.78rem">
+        <option value="placa">A-Z Placa</option>
+        <option value="tipo">A-Z Tipo</option>
+        <option value="capacidad">Capacidad</option>
+      </select>
+    </div>
+    <div class="list-container" id="trailerList"></div>
+    <button class="add-btn" onclick="openAddTrailer()">➕ Agregar tráiler</button>
+  </div>
+</div>
+
+<!-- TRAILER DETAIL -->
+<div id="trailerDetail" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('trailersList');renderTrailerList()">← Lista</button>
+    <span class="bar-title">Tráiler</span>
+  </div>
+  <div class="screen-content pb-safe" id="trailerDetailContent"></div>
+</div>
+
+<!-- TRAILER MODAL -->
+<div class="modal-overlay" id="trailerModal">
+  <div class="modal">
+    <div class="modal-title"><span id="trailerModalTitle">Agregar Tráiler</span><button class="modal-close" onclick="closeModal('trailerModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Placa *</label><input class="form-input" id="tr_placa" placeholder="ABC-123" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Tipo de carrocería</label>
+        <select class="form-select" id="tr_tipo">
+          <option value="">Seleccionar...</option>
+          <option>Seco / Estacas</option>
+          <option>Refrigerado / Isotérmico</option>
+          <option>Cisterna</option>
+          <option>Plataforma</option>
+          <option>Volcador / Tolva</option>
+          <option>Tanque</option>
+          <option>Portacontenedor</option>
+          <option>Lowboy / Cama baja</option>
+          <option>Furgón cerrado</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Marca / Fabricante</label><input class="form-input" id="tr_marca" placeholder="Marca"></div>
+      <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="tr_modelo" placeholder="2024"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="tr_color" placeholder="Color"></div>
+      <div class="form-group"><label class="form-label">Capacidad (ton)</label><input class="form-input" id="tr_capacidad" placeholder="Ej: 34" type="number" min="0" step="0.5"></div>
+      <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="tr_propietario" placeholder="Propietario"></div>
+      <div class="form-group"><label class="form-label">N° de ejes</label><input class="form-input" id="tr_ejes" placeholder="Ej: 3" type="number" min="1" max="10"></div>
+      <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza Todo Riesgo</div>
+      <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="tr_poliza_ini"></div>
+      <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="tr_poliza_fin"></div>
+    </div>
+    <button class="save-btn" onclick="saveTrailer()">💾 Guardar tráiler</button>
+    <button class="del-btn" id="tr_del_btn" onclick="deleteTrailer()" style="display:none">🗑️ Eliminar tráiler</button>
+  </div>
+</div>
+
+<!-- VEHICLE DETAIL -->
+<div id="vehicleDetail" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goToVehiclesList()">← Lista</button>
+    <span class="bar-title">Vehículo</span>
+  </div>
+  <div class="screen-content pb-safe" id="vehicleDetailContent"></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="settings" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="goHome()">← Inicio</button>
+    <span class="bar-title">Personalización</span>
+  </div>
+  <div class="screen-content pb-safe">
+    <div class="settings-section">
+      <h3>🏠 Títulos</h3>
+      <div class="setting-row"><label class="setting-label">Título principal</label><input class="setting-input" id="s_appTitle" value="GESTIÓN EMPRESARIAL"></div>
+      <div class="setting-row"><label class="setting-label">Subtítulo</label><input class="setting-input" id="s_appSubtitle" value="Sistema de Control de Personal y Vehículos"></div>
+    </div>
+    <div class="settings-section">
+      <h3>🏢 Nombres</h3>
+      <div class="setting-row"><label class="setting-label">Empresa 1</label><input class="setting-input" id="s_company1" value="Empresa 1"></div>
+      <div class="setting-row"><label class="setting-label">Empresa 2</label><input class="setting-input" id="s_company2" value="Empresa 2"></div>
+      <div class="setting-row"><label class="setting-label">Empresa 3</label><input class="setting-input" id="s_company3" value="Empresa 3"></div>
+      <div class="setting-row"><label class="setting-label">Botón Vehículos</label><input class="setting-input" id="s_vehicles" value="Vehículos"></div>
+    </div>
+    <div class="settings-section">
+      <h3>😊 Emojis</h3>
+      <div class="setting-row"><label class="setting-label">Empresa 1</label><input class="emoji-input" id="s_emoji1" value="🏢"></div>
+      <div class="setting-row"><label class="setting-label">Empresa 2</label><input class="emoji-input" id="s_emoji2" value="🏭"></div>
+      <div class="setting-row"><label class="setting-label">Empresa 3</label><input class="emoji-input" id="s_emoji3" value="🏗️"></div>
+      <div class="setting-row"><label class="setting-label">Vehículos</label><input class="emoji-input" id="s_emoji4" value="🚗"></div>
+    </div>
+    <div class="settings-section">
+      <h3>🎨 Colores de Botones</h3>
+      <div class="setting-row"><label class="setting-label">Empresa 1 – fondo</label><input type="color" class="color-input" id="s_btn1bg" value="#5b8df6"></div>
+      <div class="setting-row"><label class="setting-label">Empresa 1 – texto</label><input type="color" class="color-input" id="s_btn1text" value="#ffffff"></div>
+      <div class="setting-row"><label class="setting-label" style="opacity:.4">Empresa 2 – (no usado)</label><input type="color" class="color-input" id="s_btn2bg" value="#a78bfa"></div>
+      <div class="setting-row"><label class="setting-label" style="opacity:.4">Empresa 2 – (no usado)</label><input type="color" class="color-input" id="s_btn2text" value="#ffffff"></div>
+      <div class="setting-row"><label class="setting-label" style="opacity:.4">Empresa 3 – (no usado)</label><input type="color" class="color-input" id="s_btn3bg" value="#34d399"></div>
+      <div class="setting-row"><label class="setting-label" style="opacity:.4">Empresa 3 – (no usado)</label><input type="color" class="color-input" id="s_btn3text" value="#ffffff"></div>
+      <div class="setting-row"><label class="setting-label">Vehículos – fondo</label><input type="color" class="color-input" id="s_btn4bg" value="#fb923c"></div>
+      <div class="setting-row"><label class="setting-label">Vehículos – texto</label><input type="color" class="color-input" id="s_btn4text" value="#ffffff"></div>
+      <div class="setting-row"><label class="setting-label">Excel – fondo</label><input type="color" class="color-input" id="s_btn5bg" value="#16a34a"></div>
+      <div class="setting-row"><label class="setting-label">Excel – texto</label><input type="color" class="color-input" id="s_btn5text" value="#ffffff"></div>
+    </div>
+    <div class="settings-section">
+      <h3>🖥️ Fondo y Texto</h3>
+      <div class="setting-row"><label class="setting-label">Color de fondo</label><input type="color" class="color-input" id="s_homeBg" value="#0f1117"></div>
+      <div class="setting-row"><label class="setting-label">Color título</label><input type="color" class="color-input" id="s_titleColor" value="#e8ecf4"></div>
+      <div class="setting-row"><label class="setting-label">Color subtítulo</label><input type="color" class="color-input" id="s_subtitleColor" value="#8b92a9"></div>
+    </div>
+    <button class="save-btn" onclick="applySettings()">💾 Guardar cambios</button>
+    <button class="del-btn" onclick="resetSettings()">↺ Restablecer valores</button>
+  </div>
+</div>
+
+<button class="settings-fab" onclick="openSettings()" id="settingsFab">⚙️</button>
+<button id="usersFab" onclick="openUserMgmt()" style="position:fixed;bottom:24px;right:84px;width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:1.2rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:100;transition:background .2s,color .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);" onmouseover="this.style.background='#5b8df6';this.style.color='#fff'" onmouseout="this.style.background='var(--surface2)';this.style.color='var(--text2)'">👥</button>
+<div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px">
+    <span id="currentUserName"></span>
+    <span id="currentUserRole" style="color:var(--accent1)"></span>
+    <button onclick="doLogout()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.75rem;padding:0 0 0 4px;font-family:var(--font)">Salir</button>
+  </div>
+</div>
+
+<!-- EMPLOYEE MODAL -->
+<div class="modal-overlay" id="employeeModal">
+  <div class="modal">
+    <div class="modal-title"><span id="empModalTitle">Agregar Empleado</span><button class="modal-close" onclick="closeModal('employeeModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Nombres *</label><input class="form-input" id="emp_nombres" placeholder="Nombres"></div>
+      <div class="form-group"><label class="form-label">Apellidos *</label><input class="form-input" id="emp_apellidos" placeholder="Apellidos"></div>
+      <div class="form-group"><label class="form-label">Cédula *</label><input class="form-input" id="emp_cedula" placeholder="Número de cédula"></div>
+      <div class="form-group"><label class="form-label">Tipo de sangre</label>
+        <select class="form-select" id="emp_sangre">
+          <option value="">Seleccionar...</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Sexo</label>
+        <select class="form-select" id="emp_sexo">
+          <option value="">Seleccionar...</option>
+          <option>Masculino</option><option>Femenino</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha expedición cédula</label><input type="date" class="form-input" id="emp_fechaExp"></div>
+      <div class="form-group"><label class="form-label">Ciudad expedición</label><input class="form-input" id="emp_ciudadExp" placeholder="Ciudad"></div>
+      <div class="form-group"><label class="form-label">Fecha de nacimiento</label><input type="date" class="form-input" id="emp_fechaNac"></div>
+      <div class="form-group"><label class="form-label">Ciudad de nacimiento</label><input class="form-input" id="emp_ciudadNac" placeholder="Ciudad"></div>
+      <div class="form-group full"><label class="form-label">Dirección de residencia</label><input class="form-input" id="emp_direccion" placeholder="Dirección completa"></div>
+      <div class="form-group"><label class="form-label">Barrio</label><input class="form-input" id="emp_barrio" placeholder="Barrio"></div>
+      <div class="form-group"><label class="form-label">Ciudad de residencia</label><input class="form-input" id="emp_ciudad" placeholder="Ciudad"></div>
+      <div class="form-group"><label class="form-label">Celular</label><input class="form-input" id="emp_celular" placeholder="3xx xxx xxxx"></div>
+      <div class="form-group"><label class="form-label">Correo electrónico</label><input type="email" class="form-input" id="emp_correo" placeholder="correo@email.com"></div>
+      <div class="form-group full"><label class="form-label">Cargo</label>
+        <select class="form-select" id="emp_cargo" onchange="toggleConductorFields()">
+          <option value="">— Seleccionar cargo —</option>
+          <option value="Auxiliar SGSST">Auxiliar SGSST</option>
+          <option value="Auxiliar Contable">Auxiliar Contable</option>
+          <option value="Auxiliar de Bodega">Auxiliar de Bodega</option>
+          <option value="Auxiliar Logístico">Auxiliar Logístico</option>
+          <option value="Auxiliar Administrativo">Auxiliar Administrativo</option>
+          <option value="Auxiliar Comercial">Auxiliar Comercial</option>
+          <option value="Auxiliar de Ventas">Auxiliar de Ventas</option>
+          <option value="Auxiliar de RRHH">Auxiliar de RRHH</option>
+          <option value="Auxiliar Operativo">Auxiliar Operativo</option>
+          <option value="Asesor Comercial Interno">Asesor Comercial Interno</option>
+          <option value="Asesor Comercial Externo">Asesor Comercial Externo</option>
+          <option value="Despachador">Despachador</option>
+          <option value="Operador de Maquinaria">Operador de Maquinaria</option>
+          <option value="Operador de Montacargas">Operador de Montacargas</option>
+          <option value="Ayudante">Ayudante</option>
+          <option value="Oficial">Oficial</option>
+          <option value="Supervisor">Supervisor</option>
+          <option value="Lider Comercial">Lider Comercial</option>
+          <option value="Conductor de TM">Conductor de TM</option>
+          <option value="Conductor de SC/DT">Conductor de SC/DT</option>
+          <option value="Conductor de Turbo">Conductor de Turbo</option>
+          <option value="Auditor de Inventario">Auditor de Inventario</option>
+          <option value="Administrador de Punto">Administrador de Punto</option>
+          <option value="Administrador de Bodega">Administrador de Bodega</option>
+          <option value="Jefe de Bodega">Jefe de Bodega</option>
+          <option value="Aprendiz SENA">Aprendiz SENA</option>
+          <option value="Practicante">Practicante</option>
+          <option value="Coordinador Contable">Coordinador Contable</option>
+          <option value="Coordinador Logistico">Coordinador Logistico</option>
+          <option value="Coordinador Comercial">Coordinador Comercial</option>
+          <option value="Coordinador de proyectos">Coordinador de proyectos</option>
+          <option value="Coordinador de RRHH">Coordinador de RRHH</option>
+          <option value="Coordinador de Ventas">Coordinador de Ventas</option>
+          <option value="Coordinador SGSST">Coordinador SGSST</option>
+          <option value="Coordinador Administrativo">Coordinador Administrativo</option>
+          <option value="Coordinador de Operación">Coordinador de Operación</option>
+          <option value="Jefe Logistico">Jefe Logistico</option>
+          <option value="Jefe de Ventas">Jefe de Ventas</option>
+          <option value="Contador">Contador</option>
+          <option value="Revisor Fiscal">Revisor Fiscal</option>
+          <option value="__otro__">Otro (escribir)</option>
+        </select>
+      </div>
+      <div class="form-group full" id="grupo_cargo_otro" style="display:none">
+        <label class="form-label">Especificar cargo</label>
+        <input class="form-input" id="emp_cargo_otro" placeholder="Escribe el cargo">
+      </div>
+      <div id="grupo_conductor" style="display:none;grid-column:1/-1;display:none">
+        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:2px 0 10px;grid-column:1/-1">🚗 Información de Conductor</div>
+        <div class="form-grid" style="margin:0;padding:0;background:none;border:none">
+          <div class="form-group"><label class="form-label">Tipo de licencia</label>
+            <select class="form-select" id="emp_tipoLicencia">
+              <option value="">— Seleccionar —</option>
+              <option value="A1">A1 - Motocicletas hasta 125cc</option>
+              <option value="A2">A2 - Motocicletas más de 125cc</option>
+              <option value="B1">B1 - Automóviles y camperos</option>
+              <option value="B2">B2 - Camionetas y microbuses</option>
+              <option value="B3">B3 - Ambulancias y similares</option>
+              <option value="C1">C1 - Camiones rígidos</option>
+              <option value="C2">C2 - Tractocamiones</option>
+              <option value="C3">C3 - Vehículos articulados</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Vencimiento licencia</label>
+            <input type="date" class="form-input" id="emp_vencLicencia">
+          </div>
+          <div class="form-group full"><label class="form-label">Vehículo asignado</label>
+            <select class="form-select" id="emp_vehiculoAsignado">
+              <option value="">— Sin asignar —</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha de ingreso</label><input type="date" class="form-input" id="emp_fechaIngreso"></div>
+      <div class="form-group"><label class="form-label">Tipo de contrato</label>
+        <select class="form-select" id="emp_tipoContrato" onchange="toggleDuracion()">
+          <option value="">Seleccionar...</option>
+          <option>Indefinido</option><option>Fijo</option><option>Prestación de servicios</option>
+          <option>Aprendizaje</option><option>Temporal</option><option>Obra o labor</option>
+        </select>
+      </div>
+      <div class="form-group" id="grupo_duracion" style="display:none"><label class="form-label">Duración contrato (meses)</label><input type="number" class="form-input" id="emp_duracion" placeholder="Ej: 6" min="1"></div>
+      <div class="form-group"><label class="form-label">Salario mensual</label><input class="form-input" id="emp_salario" placeholder="Ej: 2.500.000"></div>
+      <div class="form-group"><label class="form-label">EPS</label><input class="form-input" id="emp_eps" placeholder="Nombre de EPS"></div>
+      <div class="form-group"><label class="form-label">ARL</label><input class="form-input" id="emp_arl" placeholder="Nombre de ARL"></div>
+      <div class="form-group"><label class="form-label">Fondo de pensión</label><input class="form-input" id="emp_pension" placeholder="Fondo de pensión"></div>
+      <div class="form-group"><label class="form-label">Caja de compensación</label><input class="form-input" id="emp_caja" placeholder="Caja de compensación"></div>
+    </div>
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);font-weight:600;margin:8px 0 10px;grid-column:1/-1">🆘 Contacto de Emergencia</div>
+      <div class="form-group"><label class="form-label">Nombre contacto</label><input class="form-input" id="emp_emergNombre" placeholder="Nombre completo"></div>
+      <div class="form-group"><label class="form-label">Parentesco</label>
+        <select class="form-select" id="emp_emergParentesco">
+          <option value="">— Seleccionar —</option>
+          <option>Cónyuge / Pareja</option><option>Madre</option><option>Padre</option>
+          <option>Hijo/a</option><option>Hermano/a</option><option>Tío/a</option>
+          <option>Abuelo/a</option><option>Amigo/a</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Celular contacto</label><input class="form-input" id="emp_emergCelular" placeholder="3XX XXX XXXX" type="tel"></div>
+      <div class="form-group"><label class="form-label">Dirección contacto</label><input class="form-input" id="emp_emergDireccion" placeholder="Dirección (opcional)"></div>
+    <button class="save-btn" onclick="saveEmployee()">💾 Guardar empleado</button>
+  </div>
+</div>
+
+<!-- VEHICLE MODAL -->
+<div class="modal-overlay" id="vehicleModal">
+  <div class="modal">
+    <div class="modal-title"><span id="vehModalTitle">Agregar Vehículo</span><button class="modal-close" onclick="closeModal('vehicleModal')">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Placa *</label><input class="form-input" id="veh_placa" placeholder="ABC-123" style="text-transform:uppercase"></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select class="form-select" id="veh_tipo" onchange="toggleTrailerField()">
+          <option value="">Seleccionar...</option>
+          <option>Automóvil</option><option>Camioneta</option><option>Camión</option>
+          <option>Motocicleta</option><option>Bus</option><option>Furgón</option>
+          <option>Tractocamión / Tractomula</option><option>Volqueta</option>
+        </select>
+      </div>
+      <div class="form-group full" id="grupo_trailer_asignado" style="display:none">
+        <label class="form-label">🚛 Tráiler enganchado</label>
+        <select class="form-select" id="veh_trailerAsignado">
+          <option value="">— Sin tráiler —</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="veh_marca" placeholder="Marca"></div>
+      <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="veh_modelo" placeholder="2024"></div>
+      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="veh_color" placeholder="Color"></div>
+      <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="veh_propietario" placeholder="Propietario"></div>
+      <div class="form-group full" style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+        <input type="checkbox" id="veh_leasing" onchange="toggleLeasing()" style="width:18px;height:18px;accent-color:#5b8df6;cursor:pointer;flex-shrink:0">
+        <label for="veh_leasing" style="font-size:.9rem;font-weight:600;cursor:pointer;margin:0">¿Está en leasing?</label>
+      </div>
+      <div class="form-group full" id="grupo_leasing" style="display:none">
+        <label class="form-label">Banco / Entidad financiera</label>
+        <input class="form-input" id="veh_leasingEntidad" placeholder="Ej: Bancolombia, Davivienda...">
+      </div>
+      <div class="form-group"><label class="form-label">SOAT – Inicio</label><input type="date" class="form-input" id="veh_soat_ini"></div>
+      <div class="form-group"><label class="form-label">SOAT – Fin</label><input type="date" class="form-input" id="veh_soat_fin"></div>
+      <div class="form-group"><label class="form-label">RTM – Inicio</label><input type="date" class="form-input" id="veh_rtm_ini"></div>
+      <div class="form-group"><label class="form-label">RTM – Fin</label><input type="date" class="form-input" id="veh_rtm_fin"></div>
+      <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="veh_poliza_ini"></div>
+      <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="veh_poliza_fin"></div>
+    </div>
+    <button class="save-btn" onclick="saveVehicle()">💾 Guardar vehículo</button>
+  </div>
+</div>
+
+<!-- RETIRO MODAL -->
+<div class="modal-overlay" id="retiroModal">
+  <div class="modal">
+    <div class="modal-title"><span id="retiroTitle">Marcar como Inactivo</span><button class="modal-close" onclick="closeModal('retiroModal')">✕</button></div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label class="form-label">Fecha de retiro</label>
+      <input type="date" class="form-input" id="retiro_fecha">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo (opcional)</label>
+      <input class="form-input" id="retiro_motivo" placeholder="Motivo de retiro">
+    </div>
+    <button class="save-btn" onclick="confirmRetiro()">Confirmar retiro</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== SUPABASE =====================
+const SUPABASE_URL = 'https://bojvfhmiribpkpwgtoek.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvanZmaG1pcmlicGtwd2d0b2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzMzg3MzAsImV4cCI6MjA4ODkxNDczMH0.qh1ts-xWsXnySo4UsPvZpbCY-WUYLNLbBw0ivn4OhiU';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===================== STATE =====================
+let state = { employees:[], vehicles:[], trailers:[], empresas:[], settings:{} };
+let currentCompany = 0;
+let currentEmployeeId = null;
+let currentVehicleId = null;
+let editingEmployee = false;
+let editingVehicle = false;
+let syncTimeout = null;
+let empFilter = 'todos';
+let vehFilter = 'todos';
+let retiroTarget = null; // {type:'emp'|'veh', id}
+let chartInstances = {};
+
+// ===================== STORAGE =====================
+function persistData() { save(); updateNotifBadge(); }
+function saveLocal() { try { localStorage.setItem('gestion_state', JSON.stringify(state)); } catch(e){} }
+function loadLocal() { try { const d=localStorage.getItem('gestion_state'); if(d) state=JSON.parse(d); } catch(e){} }
+
+async function syncToCloud() {
+  try {
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    showSyncStatus('✅ Sincronizado');
+  } catch(e) { showSyncStatus('⚠️ Sin conexión (guardado local)'); }
+}
+async function loadFromCloud() {
+  try {
+    showSyncStatus('🔄 Sincronizando...');
+    const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
+    if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings; saveLocal(); showSyncStatus('✅ Sincronizado'); return true; }
+  } catch(e) { showSyncStatus('⚠️ Sin conexión (datos locales)'); }
+  return false;
+}
+async function saveSettings() {
+  try { await sb.from('gestion_data').upsert({key:'settings',value:JSON.stringify(state.settings),updated_at:new Date().toISOString()},{onConflict:'key'}); } catch(e){}
+  saveLocal();
+}
+async function loadSettings() {
+  try { const {data}=await sb.from('gestion_data').select('value').eq('key','settings').single(); if(data?.value){state.settings=JSON.parse(data.value);return;} } catch(e){}
+  loadLocal();
+}
+function save() { saveLocal(); clearTimeout(syncTimeout); syncTimeout=setTimeout(()=>syncToCloud(),1500); updateNotifBadge(); }
+
+function showSyncStatus(msg) {
+  let el=document.getElementById('sync-status');
+  if(!el){el=document.createElement('div');el.id='sync-status';el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:500;text-align:center;font-size:.72rem;padding:3px 8px;font-family:var(--font);transition:opacity .5s;background:rgba(15,17,23,.9);color:var(--text2);';document.body.appendChild(el);}
+  el.textContent=msg; el.style.opacity='1';
+  if(msg.startsWith('✅')) setTimeout(()=>{el.style.opacity='0';},2500);
+}
+
+// ===================== SETTINGS =====================
+const settingFields = { appTitle:'s_appTitle',appSubtitle:'s_appSubtitle',company1:'s_company1',company2:'s_company2',company3:'s_company3',vehicles:'s_vehicles',emoji1:'s_emoji1',emoji2:'s_emoji2',emoji3:'s_emoji3',emoji4:'s_emoji4',btn1bg:'s_btn1bg',btn1text:'s_btn1text',btn2bg:'s_btn2bg',btn2text:'s_btn2text',btn3bg:'s_btn3bg',btn3text:'s_btn3text',btn4bg:'s_btn4bg',btn4text:'s_btn4text',btn5bg:'s_btn5bg',btn5text:'s_btn5text',homeBg:'s_homeBg',titleColor:'s_titleColor',subtitleColor:'s_subtitleColor' };
+const settingDefaults = { appTitle:'GESTIÓN EMPRESARIAL',appSubtitle:'Sistema de Control de Personal y Vehículos',company1:'Empresa 1',company2:'Empresa 2',company3:'Empresa 3',vehicles:'Vehículos',emoji1:'🏢',emoji2:'🏭',emoji3:'🏗️',emoji4:'🚗',btn1bg:'#5b8df6',btn1text:'#ffffff',btn2bg:'#a78bfa',btn2text:'#ffffff',btn3bg:'#34d399',btn3text:'#ffffff',btn4bg:'#fb923c',btn4text:'#ffffff',btn5bg:'#16a34a',btn5text:'#ffffff',homeBg:'#0f1117',titleColor:'#e8ecf4',subtitleColor:'#8b92a9' };
+
+function applySettingsToDom(s) {
+  const r=document.documentElement.style;
+  const titleEl=document.getElementById('appTitleEl'); if(titleEl) titleEl.textContent=s.appTitle||settingDefaults.appTitle;
+  const subEl=document.getElementById('appSubtitleEl'); if(subEl) subEl.textContent=s.appSubtitle||settingDefaults.appSubtitle;
+  const vehBtn=document.getElementById('vehiclesBtn'); if(vehBtn) vehBtn.textContent=s.vehicles||settingDefaults.vehicles;
+  const e4=document.getElementById('emoji4'); if(e4) e4.textContent=s.emoji4||settingDefaults.emoji4;
+  // Update empresa names in state if settings have them
+  if(state.empresas) {
+    if(s.company1 && state.empresas[0]) state.empresas[0].nombre=s.company1;
+    if(s.company2 && state.empresas[1]) state.empresas[1].nombre=s.company2;
+    if(s.company3 && state.empresas[2]) state.empresas[2].nombre=s.company3;
+  }
+  // Button colors — apply directly to CSS vars and also inline to elements
+  const btnMap = {
+    'btn1bg':'--btn1-bg','btn1text':'--btn1-text',
+    'btn2bg':'--btn2-bg','btn2text':'--btn2-text',
+    'btn3bg':'--btn3-bg','btn3text':'--btn3-text',
+    'btn4bg':'--btn4-bg','btn4text':'--btn4-text'
+  };
+  Object.entries(btnMap).forEach(([k,cssVar])=>{
+    const val = s[k] || settingDefaults[k];
+    r.setProperty(cssVar, val);
+  });
+  // Also apply inline to the buttons directly (fixes iOS/Safari CSS var cache issue)
+  const btns = document.querySelectorAll('.main-btn');
+  const btnKeys = [['btn1bg','btn1text'],['btn2bg','btn2text'],['btn3bg','btn3text'],['btn4bg','btn4text'],['btn5bg','btn5text']];
+  btns.forEach((btn,i)=>{
+    if(btnKeys[i]) {
+      btn.style.background = s[btnKeys[i][0]] || settingDefaults[btnKeys[i][0]];
+      btn.style.color = s[btnKeys[i][1]] || settingDefaults[btnKeys[i][1]];
+    }
+  });
+  r.setProperty('--home-bg', s.homeBg||settingDefaults.homeBg);
+  r.setProperty('--title-text', s.titleColor||settingDefaults.titleColor);
+  r.setProperty('--subtitle-text', s.subtitleColor||settingDefaults.subtitleColor);
+  // Apply background directly to home screen too
+  const homeEl = document.getElementById('home');
+  if(homeEl) homeEl.style.background = s.homeBg||settingDefaults.homeBg;
+  const titleEl2 = document.getElementById('appTitleEl');
+  if(titleEl2) titleEl2.style.color = s.titleColor||settingDefaults.titleColor;
+  const subtitleEl = document.getElementById('appSubtitleEl');
+  if(subtitleEl) subtitleEl.style.color = s.subtitleColor||settingDefaults.subtitleColor;
+}
+function applySettings() {
+  const s={};
+  for(const [k,id] of Object.entries(settingFields)) s[k]=document.getElementById(id).value;
+  state.settings=s; applySettingsToDom(s); saveSettings(); toast('✅ Cambios guardados');
+}
+function loadSettingsToForm(s) { for(const [k,id] of Object.entries(settingFields)) document.getElementById(id).value=s[k]||settingDefaults[k]; }
+function resetSettings() {
+  if(!confirm('¿Restablecer configuración?')) return;
+  state.settings={...settingDefaults}; applySettingsToDom(state.settings); loadSettingsToForm(state.settings); saveSettings(); toast('↺ Restablecido');
+}
+
+// ===================== NAVIGATION =====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Always hide FABs on settings screen
+  const onSettings = id === 'settings';
+  if(onSettings) {
+    document.getElementById('settingsFab').style.display = 'none';
+    const usersFab = document.getElementById('usersFab');
+    if(usersFab) usersFab.style.display = 'none';
+  } else {
+    // Re-apply permissions for current user role
+    applyUserPermissions();
+  }
+}
+// ── EMPRESAS NAVIGATION ──────────────────────────────────────────────────────
+let currentEmpresaIdx = null; // index into state.empresas array
+
+function openEmpresasScreen() {
+  renderEmpresasList();
+  showScreen('empresasScreen');
+  // Only show add button for admin/editor
+  const btn = document.getElementById('addEmpresaBtn');
+  if(btn) btn.style.display = canEdit() ? '' : 'none';
+}
+
+function renderEmpresasList() {
+  const list = document.getElementById('empresasList');
+  if(!list) return;
+  const empresas = state.empresas || buildDefaultEmpresas();
+  if(!state.empresas) state.empresas = empresas;
+  if(!empresas.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">No hay empresas.<br>Toca ➕ para agregar.</div></div>`;
+    return;
+  }
+  list.innerHTML = empresas.map((em, i) => {
+    const empCount = getEmployees(i).length;
+    const active = getEmployees(i).filter(e=>e.activo!==false).length;
+    return `<div class="list-item" onclick="openEmpresaModule(${i})" style="border-left:4px solid ${em.color||'#5b8df6'}">
+      <div class="list-avatar" style="background:${em.color||'#5b8df6'};font-size:1.4rem">${em.emoji||'🏢'}</div>
+      <div class="list-info">
+        <div class="list-name">${em.nombre||'Empresa '+(i+1)}</div>
+        <div class="list-sub">👥 ${empCount} empleados · ${active} activos</div>
+      </div>
+      ${canEdit()?`<button class="action-btn" onclick="event.stopPropagation();openEditEmpresa(${i})" style="margin-right:4px">✏️</button>`:''}
+      <span class="list-arrow">›</span>
+    </div>`;
+  }).join('');
+}
+
+function buildDefaultEmpresas() {
+  const s = state.settings || {};
+  return [
+    { id:'emp_0', nombre: s.company1||'Empresa 1', emoji: s.emoji1||'🏢', color:'#5b8df6' },
+    { id:'emp_1', nombre: s.company2||'Empresa 2', emoji: s.emoji2||'🏭', color:'#a78bfa' },
+    { id:'emp_2', nombre: s.company3||'Empresa 3', emoji: s.emoji3||'🏗️', color:'#34d399' },
+  ];
+}
+
+function openEmpresaModule(idx) {
+  currentEmpresaIdx = idx;
+  currentCompany = idx; // keep compat
+  const empresas = state.empresas || buildDefaultEmpresas();
+  const em = empresas[idx] || {};
+  document.getElementById('empresaModuleTitle').textContent = em.nombre || 'Empresa '+(idx+1);
+  // Render module buttons
+  const btns = document.getElementById('empresaModuleBtns');
+  btns.innerHTML = `
+    <button class="main-btn" style="background:${em.color||'#5b8df6'};color:#fff;font-size:1.1rem;padding:22px 20px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start"
+      onclick="openCompanyWorkers(${idx})">
+      <span style="font-size:1.8rem">👥</span>
+      <div style="text-align:left"><div>Trabajadores</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">${getEmployees(idx).length} empleados registrados</div></div>
+      <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+    </button>
+    <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
+      <span style="font-size:1.8rem">📅</span>
+      <div style="text-align:left"><div>Permisos y Ausencias</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
+      <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+    </button>
+    <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
+      <span style="font-size:1.8rem">💰</span>
+      <div style="text-align:left"><div>Nómina</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
+      <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+    </button>
+    <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
+      <span style="font-size:1.8rem">🗂️</span>
+      <div style="text-align:left"><div>Organigrama</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
+      <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
+    </button>`;
+  showScreen('empresaModuleScreen');
+}
+
+function openCompanyWorkers(idx) {
+  currentCompany = idx;
+  const empresas = state.empresas || buildDefaultEmpresas();
+  const em = empresas[idx] || {};
+  document.getElementById('companyListTitle').textContent = (em.nombre||'Empresa '+(idx+1)) + ' · Personal';
+  switchTab('lista');
+  renderEmployeeList();
+  showScreen('companyList');
+}
+
+function backToEmpresaModule() {
+  if(currentEmpresaIdx !== null) openEmpresaModule(currentEmpresaIdx);
+  else { renderEmpresasList(); showScreen('empresasScreen'); }
+}
+
+// ── EMPRESA CRUD ──────────────────────────────────────────────────────────────
+let editingEmpresaIdx = null;
+
+function openAddEmpresa() {
+  editingEmpresaIdx = null;
+  document.getElementById('empresaModalTitle').textContent = 'Nueva Empresa';
+  document.getElementById('em_nombre').value = '';
+  document.getElementById('em_emoji').value = '🏢';
+  document.getElementById('em_color').value = '#5b8df6';
+  document.getElementById('em_del_btn').style.display = 'none';
+  openModal('empresaModal');
+}
+
+function openEditEmpresa(idx) {
+  editingEmpresaIdx = idx;
+  const em = (state.empresas||[])[idx] || {};
+  document.getElementById('empresaModalTitle').textContent = 'Editar Empresa';
+  document.getElementById('em_nombre').value = em.nombre||'';
+  document.getElementById('em_emoji').value = em.emoji||'🏢';
+  document.getElementById('em_color').value = em.color||'#5b8df6';
+  document.getElementById('em_del_btn').style.display = '';
+  openModal('empresaModal');
+}
+
+function saveEmpresa() {
+  const nombre = document.getElementById('em_nombre').value.trim();
+  if(!nombre) { alert('El nombre es obligatorio.'); return; }
+  if(!state.empresas) state.empresas = buildDefaultEmpresas();
+  const em = { id: 'emp_'+(editingEmpresaIdx!==null?(state.empresas[editingEmpresaIdx]?.id||Date.now()):Date.now()), nombre, emoji: document.getElementById('em_emoji').value||'🏢', color: document.getElementById('em_color').value||'#5b8df6' };
+  if(editingEmpresaIdx !== null) state.empresas[editingEmpresaIdx] = em;
+  else state.empresas.push(em);
+  persistData();
+  closeModal('empresaModal');
+  renderEmpresasList();
+  toast(editingEmpresaIdx!==null ? '✅ Empresa actualizada' : '✅ Empresa agregada');
+}
+
+function deleteEmpresa() {
+  const idx = editingEmpresaIdx;
+  const empCount = getEmployees(idx).length;
+  if(empCount > 0) { alert(`Esta empresa tiene ${empCount} empleados registrados. No se puede eliminar.`); return; }
+  if(!confirm('¿Eliminar esta empresa?')) return;
+  state.empresas.splice(idx, 1);
+  persistData();
+  closeModal('empresaModal');
+  renderEmpresasList();
+  toast('🗑️ Empresa eliminada');
+}
+
+function goHome() { closeGlobalSearch(); updateNotifBadge(); showScreen('home'); }
+function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings'); }
+function getCompanyName(idx) { const em=(state.empresas||buildDefaultEmpresas())[idx]; return em?em.nombre:('Empresa '+(idx+1)); }
+
+// ===================== TABS =====================
+let currentTab = 'lista';
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-lista').classList.toggle('active', tab==='lista');
+  document.getElementById('tab-stats').classList.toggle('active', tab==='stats');
+  document.getElementById('panel-lista').style.display = tab==='lista'?'':'none';
+  document.getElementById('panel-stats').style.display = tab==='stats'?'':'none';
+  if(tab==='stats') renderStats();
+}
+
+// ===================== FILTERS =====================
+function setFilter(f) {
+  empFilter=f;
+  ['todos','activos','inactivos'].forEach(x=>document.getElementById('filter-'+x).classList.toggle('active',x===f));
+  renderEmployeeList();
+}
+function setVFilter(f) {
+  vehFilter=f;
+  ['todos','activos','inactivos'].forEach(x=>document.getElementById('vfilter-'+x).classList.toggle('active',x===f));
+  renderVehicleList();
+}
+
+// ===================== EMPLOYEES =====================
+function getEmployees(companyIdx) { return state.employees.filter(e=>e.companyIdx===companyIdx); }
+
+function renderEmployeeList() {
+  const list=document.getElementById('employeeList');
+  const q=(document.getElementById('employeeSearch').value||'').toLowerCase();
+  const sortEl=document.getElementById('emp_sort');
+  const sortBy=sortEl?sortEl.value:'nombre';
+  let emps=getEmployees(currentCompany);
+  if(q) emps=emps.filter(e=>(e.nombre||'').toLowerCase().includes(q)||(e.apellidos||'').toLowerCase().includes(q)||(e.cedula||'').includes(q));
+  if(empFilter==='activos') emps=emps.filter(e=>e.activo!==false);
+  if(empFilter==='inactivos') emps=emps.filter(e=>e.activo===false);
+  // Sort
+  emps.sort((a,b)=>{
+    if(sortBy==='apellido') return (a.apellidos||a.nombre||'').localeCompare(b.apellidos||b.nombre||'');
+    if(sortBy==='antiguedad') return (a.fechaIngreso||'9999') < (b.fechaIngreso||'9999') ? -1 : 1;
+    if(sortBy==='cedula') return (a.cedula||'').localeCompare(b.cedula||'');
+    if(sortBy==='nacimiento') return (a.fechaNac||'9999').localeCompare(b.fechaNac||'9999');
+    return (a.nombres||a.nombre||'').localeCompare(b.nombres||b.nombre||'');
+  });
+  // Hide add button for non-editors
+  const addEmpBtn = document.querySelector('#panel-lista .add-btn');
+  if(addEmpBtn) addEmpBtn.style.display = canEdit() ? '' : 'none';
+  if(!emps.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">No hay empleados.${canEdit()?'<br>Toca ➕ para agregar.':''}</div></div>`;return;}
+  list.innerHTML=emps.map(e=>{
+    const apellidos=e.apellidos||'';
+    const nombres=e.nombres||e.nombre||'?';
+    const init=(apellidos||nombres)[0].toUpperCase();
+    const isInactive=e.activo===false;
+    const ant=e.fechaIngreso?calcAntiguedad(e.fechaIngreso):'';
+    return `<div class="list-item${isInactive?' inactive':''}" onclick="openEmployee('${e.id}')">
+      <div class="list-avatar${isInactive?' inactive-avatar':''}">${init}</div>
+      <div class="list-info">
+        <div class="list-name">${apellidos?apellidos+', '+nombres:nombres} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+        <div class="list-sub">${e.cargo||'Sin cargo'} · CC ${e.cedula||'—'}${ant?' · '+ant:''}${isInactive&&e.fechaRetiro?' · Retiro: '+fmtDate(e.fechaRetiro):''}</div>
+      </div>
+      <span class="list-arrow">›</span>
+    </div>`;
+  }).join('');
+}
+function filterEmployees() { renderEmployeeList(); }
+
+function calcAge(fechaNac) {
+  if(!fechaNac) return '—';
+  const d=new Date(fechaNac+'T00:00:00'), now=new Date();
+  let age=now.getFullYear()-d.getFullYear();
+  const m=now.getMonth()-d.getMonth();
+  if(m<0||(m===0&&now.getDate()<d.getDate())) age--;
+  return age+' años';
+}
+function fmtDate(d) { if(!d) return '—'; const [y,mo,da]=d.split('-'); return `${da}/${mo}/${y}`; }
+
+function openEmployee(id) {
+  currentEmployeeId=id;
+  const e=state.employees.find(x=>x.id===id);
+  if(!e) return;
+  const isInactive=e.activo===false;
+  document.getElementById('employeeDetailContent').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-avatar${isInactive?' inactive-avatar':''}">${(e.nombre||'?')[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="detail-name">${e.apellidos?e.apellidos+', '+e.nombres:e.nombre} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+        <div class="detail-cargo">${e.cargo||'Sin cargo'} · ${getCompanyName(e.companyIdx)}</div>
+        ${isInactive?`<div style="font-size:.78rem;color:var(--danger);margin-top:4px">Retiro: ${fmtDate(e.fechaRetiro)}${e.motivoRetiro?' · '+e.motivoRetiro:''}</div>`:''}
+        <div class="detail-actions">
+          ${canEdit()?`<button class="action-btn" onclick="openEditEmployee()">✏️ Editar</button>`:''}
+          ${isInactive
+            ? `<button class="action-btn success" onclick="toggleActivo('emp','${e.id}',true)">✅ Reactivar</button>`
+            : `<button class="action-btn" onclick="openRetiroModal('emp','${e.id}')">⛔ Dar de baja</button>`}
+          ${canDelete()?`<button class="action-btn danger" onclick="deleteEmployee()">🗑️ Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Identificación</div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-label">Cédula</div><div class="field-value">${e.cedula||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo de sangre</div><div class="field-value" style="color:var(--danger)">${e.sangre||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Sexo</div><div class="field-value">${e.sexo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fecha expedición</div><div class="field-value">${fmtDate(e.fechaExp)}</div></div>
+      <div class="field-card"><div class="field-label">Ciudad expedición</div><div class="field-value">${e.ciudadExp||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fecha de nacimiento</div><div class="field-value">${fmtDate(e.fechaNac)}</div></div>
+      <div class="field-card"><div class="field-label">Ciudad de nacimiento</div><div class="field-value">${e.ciudadNac||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Edad</div><div class="field-value" style="color:var(--accent3)">${calcAge(e.fechaNac)}</div></div>
+    </div>
+
+    <div class="section-title">Contacto y Residencia</div>
+    <div class="fields-grid">
+      <div class="field-card field-full"><div class="field-label">Dirección</div><div class="field-value">${e.direccion||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Barrio</div><div class="field-value">${e.barrio||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Ciudad</div><div class="field-value">${e.ciudad||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Celular</div><div class="field-value">${e.celular||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Correo</div><div class="field-value">${e.correo||'—'}</div></div>
+    </div>
+
+    <div class="section-title">Información Laboral</div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-label">Cargo</div><div class="field-value">${e.cargo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fecha de ingreso</div><div class="field-value">${fmtDate(e.fechaIngreso)}</div></div>
+      <div class="field-card"><div class="field-label">Antigüedad</div><div class="field-value" style="color:var(--accent2)">${e.fechaIngreso?calcAntiguedad(e.fechaIngreso):'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo de contrato</div><div class="field-value">${e.tipoContrato||'—'}</div></div>
+      ${e.tipoContrato==='Fijo'&&e.duracion?`<div class="field-card"><div class="field-label">Duración contrato</div><div class="field-value">${e.duracion} meses</div></div>`:''}
+      ${canSeeSalary()?`<div class="field-card"><div class="field-label">Salario mensual</div><div class="field-value" style="color:var(--accent3)">${e.salario?'$'+e.salario:'—'}</div></div>`:''}
+    </div>
+
+    <div class="section-title">Seguridad Social</div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-label">EPS</div><div class="field-value">${e.eps||'—'}</div></div>
+      ${(e.cargo||'').toLowerCase().includes('conductor')?`
+      <div class="section-title" style="margin-top:8px">🚗 Información de Conductor</div>
+      <div class="field-card"><div class="field-label">Tipo de licencia</div><div class="field-value">${e.tipoLicencia||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Vencimiento licencia</div><div class="field-value" style="color:${licVencColor(e.vencLicencia)}">${fmtDate(e.vencLicencia)||'—'}${licVencLabel(e.vencLicencia)}</div></div>
+      <div class="field-card"><div class="field-label">Vehículo asignado</div><div class="field-value">${getVehicleName(e.vehiculoAsignado)}</div></div>
+      `:''}
+      <div class="section-title" style="margin-top:8px">🆘 Contacto de Emergencia</div>
+      <div class="field-card"><div class="field-label">Nombre</div><div class="field-value">${e.emergNombre||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Parentesco</div><div class="field-value">${e.emergParentesco||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Celular</div><div class="field-value">${e.emergCelular?`<a href="tel:${e.emergCelular}" style="color:var(--accent1)">${e.emergCelular}</a>`:'—'}</div></div>
+      <div class="field-card"><div class="field-label">Dirección</div><div class="field-value">${e.emergDireccion||'—'}</div></div>
+      <div class="field-card"><div class="field-label">ARL</div><div class="field-value">${e.arl||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fondo de pensión</div><div class="field-value">${e.pension||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Caja de compensación</div><div class="field-value">${e.caja||'—'}</div></div>
+    </div>
+
+    <div class="section-title">Documentos</div>
+    <div class="upload-zone" onclick="document.getElementById('empFileInput').click()">
+      <input type="file" id="empFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleEmpFiles(this)">
+      <div class="upload-icon">📎</div>
+      <div class="upload-text">Toca para subir documentos<br><small>PDF, imágenes, Word</small></div>
+    </div>
+    <div class="doc-list" id="empDocList"></div>
+  `;
+  renderEmpDocs();
+  showScreen('employeeDetail');
+}
+
+function renderEmpDocs() {
+  const e=state.employees.find(x=>x.id===currentEmployeeId);
+  const list=document.getElementById('empDocList');
+  if(!list||!e) return;
+  if(!e.docs?.length){list.innerHTML='<div style="color:var(--text2);font-size:.82rem;padding:8px 0">Sin documentos adjuntos.</div>';return;}
+  list.innerHTML=e.docs.map((d,i)=>`<div class="doc-file"><span>${docIcon(d.name)}</span><span class="doc-fname">${d.name}</span><a href="${d.dataUrl}" download="${d.name}" style="color:var(--accent1);font-size:.85rem;text-decoration:none;padding:4px">⬇️</a><button class="doc-del" onclick="deleteEmpDoc(${i})">✕</button></div>`).join('');
+}
+
+function handleEmpFiles(input) {
+  const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
+  if(!e.docs) e.docs=[];
+  const files=Array.from(input.files); let loaded=0;
+  files.forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{e.docs.push({name:f.name,dataUrl:ev.target.result});loaded++;if(loaded===files.length){save();renderEmpDocs();toast('📎 Documentos adjuntados');}};
+    r.readAsDataURL(f);
+  });
+  input.value='';
+}
+function deleteEmpDoc(idx) { const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e?.docs) return; e.docs.splice(idx,1); save(); renderEmpDocs(); }
+
+function openAddEmployee() {
+  editingEmployee=false;
+  document.getElementById('empModalTitle').textContent='Agregar Empleado';
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','pension','caja','salario','duracion'].forEach(f=>document.getElementById('emp_'+f).value='');
+  document.getElementById('emp_tipoContrato').value='';
+  document.getElementById('emp_sangre').value='';
+  document.getElementById('emp_sexo').value='';
+  document.getElementById('grupo_duracion').style.display='none';
+  document.getElementById('grupo_conductor').style.display='none';
+  document.getElementById('grupo_cargo_otro').style.display='none';
+  document.getElementById('emp_emergParentesco').value='';
+  openModal('employeeModal');
+}
+
+function openEditEmployee() {
+  const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
+  editingEmployee=true;
+  document.getElementById('empModalTitle').textContent='Editar Empleado';
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','pension','caja','salario','duracion'].forEach(f=>document.getElementById('emp_'+f).value=e[f]||'');
+  document.getElementById('emp_tipoContrato').value=e.tipoContrato||'';
+  document.getElementById('emp_sangre').value=e.sangre||'';
+  document.getElementById('emp_sexo').value=e.sexo||'';
+  document.getElementById('grupo_duracion').style.display=e.tipoContrato==='Fijo'?'':'none';
+  // Handle cargo select vs otro
+  const cargoSel = document.getElementById('emp_cargo');
+  const knownCargos = Array.from(cargoSel.options).map(o=>o.value);
+  if(e.cargo && knownCargos.includes(e.cargo)) {
+    cargoSel.value = e.cargo;
+    document.getElementById('grupo_cargo_otro').style.display='none';
+  } else if(e.cargo) {
+    cargoSel.value = '__otro__';
+    document.getElementById('emp_cargo_otro').value = e.cargo;
+    document.getElementById('grupo_cargo_otro').style.display='';
+  }
+  const esConductor = (e.cargo||'').toLowerCase().includes('conductor');
+  document.getElementById('grupo_conductor').style.display = esConductor ? 'block' : 'none';
+  if(esConductor) populateVehicleSelect(e.vehiculoAsignado);
+  document.getElementById('emp_emergParentesco').value = e.emergParentesco||'';
+  openModal('employeeModal');
+}
+
+function saveEmployee() {
+  if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
+  const nombres=document.getElementById('emp_nombres').value.trim();
+  const apellidos=document.getElementById('emp_apellidos').value.trim();
+  if(!nombres){alert('El nombre es obligatorio.');return;}
+  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergCelular','emergDireccion'];
+  const data={};
+  fields.forEach(f=>data[f]=document.getElementById('emp_'+f).value.trim());
+  const cargoVal = document.getElementById('emp_cargo').value;
+  data.cargo = cargoVal === '__otro__' ? (document.getElementById('emp_cargo_otro').value.trim() || 'Otro') : cargoVal;
+  data.nombre=nombres+' '+apellidos; // keep full name for compat
+  data.vehiculoAsignado = document.getElementById('emp_vehiculoAsignado')?.value || '';
+  data.emergParentesco = document.getElementById('emp_emergParentesco').value;
+  data.tipoContrato=document.getElementById('emp_tipoContrato').value;
+  data.sangre=document.getElementById('emp_sangre').value;
+  data.sexo=document.getElementById('emp_sexo').value;
+  if(editingEmployee) {
+    const e=state.employees.find(x=>x.id===currentEmployeeId); if(e) Object.assign(e,data);
+    save(); closeModal('employeeModal'); openEmployee(currentEmployeeId); toast('✅ Empleado actualizado');
+  } else {
+    state.employees.push({id:'emp_'+Date.now(),companyIdx:currentCompany,docs:[],activo:true,...data});
+    save(); closeModal('employeeModal'); renderEmployeeList(); toast('✅ Empleado agregado');
+  }
+}
+
+function deleteEmployee() {
+  if(!confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return;
+  state.employees=state.employees.filter(x=>x.id!==currentEmployeeId);
+  save(); goToCompanyList(); toast('🗑️ Empleado eliminado');
+}
+
+// ===================== ACTIVO / INACTIVO =====================
+function openRetiroModal(type, id) {
+  retiroTarget={type,id};
+  document.getElementById('retiroTitle').textContent=type==='emp'?'Dar de Baja Empleado':'Dar de Baja Vehículo';
+  document.getElementById('retiro_fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('retiro_motivo').value='';
+  openModal('retiroModal');
+}
+
+function confirmRetiro() {
+  const fecha=document.getElementById('retiro_fecha').value;
+  const motivo=document.getElementById('retiro_motivo').value.trim();
+  if(!fecha){alert('Selecciona la fecha de retiro.');return;}
+  if(retiroTarget.type==='emp') {
+    const e=state.employees.find(x=>x.id===retiroTarget.id);
+    if(e){e.activo=false;e.fechaRetiro=fecha;e.motivoRetiro=motivo;}
+    save(); closeModal('retiroModal'); openEmployee(retiroTarget.id); toast('⛔ Empleado dado de baja');
+  } else {
+    const v=state.vehicles.find(x=>x.id===retiroTarget.id);
+    if(v){v.activo=false;v.fechaRetiro=fecha;v.motivoRetiro=motivo;}
+    save(); closeModal('retiroModal'); openVehicle(retiroTarget.id); toast('⛔ Vehículo dado de baja');
+  }
+}
+
+function toggleActivo(type, id, activo) {
+  if(type==='emp') {
+    const e=state.employees.find(x=>x.id===id);
+    if(e){e.activo=true;delete e.fechaRetiro;delete e.motivoRetiro;}
+    save(); openEmployee(id); toast('✅ Empleado reactivado');
+  } else {
+    const v=state.vehicles.find(x=>x.id===id);
+    if(v){v.activo=true;delete v.fechaRetiro;delete v.motivoRetiro;}
+    save(); openVehicle(id); toast('✅ Vehículo reactivado');
+  }
+}
+
+// ===================== STATISTICS / CHARTS =====================
+const CHART_COLORS = ['#5b8df6','#a78bfa','#34d399','#fb923c','#f87171','#fbbf24','#38bdf8','#e879f9','#4ade80','#f97316'];
+
+function renderStats() {
+  const emps = getEmployees(currentCompany);
+  const activos = emps.filter(e=>e.activo!==false).length;
+  const inactivos = emps.filter(e=>e.activo===false).length;
+
+  // Stats row
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent1)">${emps.length}</div><div class="stat-lbl">Total</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent3)">${activos}</div><div class="stat-lbl">Activos</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--danger)">${inactivos}</div><div class="stat-lbl">Inactivos</div></div>
+  `;
+
+  // Destroy previous charts
+  Object.values(chartInstances).forEach(c=>{try{c.destroy();}catch(e){}});
+  chartInstances={};
+
+  const chartsGrid=document.getElementById('chartsGrid');
+  chartsGrid.innerHTML='';
+
+  // Define charts
+  const charts=[
+    { id:'chartEdad', title:'Rangos de Edad', fn: ()=>groupBy(emps, e=>{
+        if(!e.fechaNac) return 'Sin dato';
+        const a=parseInt(calcAge(e.fechaNac));
+        if(a<25) return '< 25'; if(a<35) return '25-34'; if(a<45) return '35-44'; if(a<55) return '45-54'; return '55+';
+      })
+    },
+    { id:'chartContrato', title:'Tipo de Contrato', fn: ()=>groupBy(emps, e=>e.tipoContrato||'Sin dato') },
+    { id:'chartSangre', title:'Tipo de Sangre', fn: ()=>groupBy(emps, e=>e.sangre||'Sin dato') },
+    { id:'chartCiudad', title:'Ciudad de Residencia', fn: ()=>groupBy(emps, e=>e.ciudad||'Sin dato') },
+    { id:'chartEps', title:'EPS', fn: ()=>groupBy(emps, e=>e.eps||'Sin dato') },
+    { id:'chartSexo', title:'Sexo', fn: ()=>groupBy(emps, e=>e.sexo||'Sin dato') },
+    { id:'chartSalario', title:'Rango Salarial', fn: ()=>groupBy(emps, e=>{
+        if(!e.salario) return 'Sin dato';
+        const s=parseInt((e.salario||'0').replace(/\D/g,''));
+        if(s<1500000) return '< $1.5M';
+        if(s<2500000) return '$1.5M–$2.5M';
+        if(s<4000000) return '$2.5M–$4M';
+        if(s<7000000) return '$4M–$7M';
+        return '> $7M';
+      })
+    },
+    { id:'chartEstado', title:'Estado', fn: ()=>({'Activos':activos,'Inactivos':inactivos}) },
+  ];
+
+  charts.forEach(({id,title,fn})=>{
+    const data=fn();
+    const labels=Object.keys(data);
+    const values=Object.values(data);
+    if(labels.length===0||(labels.length===1&&labels[0]==='Sin dato'&&values[0]===emps.length)) return;
+    const card=document.createElement('div');
+    card.className='chart-card';
+    card.innerHTML=`<div class="chart-title">${title}</div><div class="chart-wrap"><canvas id="${id}"></canvas></div>`;
+    chartsGrid.appendChild(card);
+    const ctx=document.getElementById(id).getContext('2d');
+    chartInstances[id]=new Chart(ctx,{
+      type:'doughnut',
+      data:{ labels, datasets:[{ data:values, backgroundColor:CHART_COLORS.slice(0,labels.length), borderWidth:0, hoverOffset:6 }] },
+      options:{
+        responsive:true, maintainAspectRatio:false, cutout:'60%',
+        plugins:{ legend:{ position:'bottom', labels:{ color:'#8b92a9', font:{size:10,family:'Sora'}, padding:8, boxWidth:10 } } }
+      }
+    });
+  });
+
+  if(!chartsGrid.children.length) chartsGrid.innerHTML='<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Agrega empleados con datos completos<br>para ver estadísticas.</div></div>';
+}
+
+function groupBy(arr, fn) {
+  const result={};
+  arr.forEach(item=>{ const k=fn(item); result[k]=(result[k]||0)+1; });
+  return result;
+}
+
+// ===================== VEHICLES =====================
+function openCompany(idx) {
+  if(currentUser && !checkEmpresaAccess(idx)) { toast('⛔ Sin acceso a esta empresa'); return; }
+  currentEmpresaIdx=idx; currentCompany=idx;
+  document.getElementById('companyListTitle').textContent=getCompanyName(idx);
+  empFilter='todos';
+  ['todos','activos','inactivos'].forEach(x=>document.getElementById('filter-'+x).classList.toggle('active',x==='todos'));
+  // Supervisor only sees stats
+  const isSupervisor = currentUser?.role==='supervisor';
+  switchTab(isSupervisor ? 'stats' : 'lista');
+  if(!isSupervisor) renderEmployeeList();
+  showScreen('companyList');
+  // Hide tabs for supervisor
+  document.getElementById('tab-lista').style.display = isSupervisor ? 'none' : '';
+}
+function goToCompanyList() { switchTab('lista'); renderEmployeeList(); showScreen('companyList'); }
+
+function renderVehicleList() {
+  const list=document.getElementById('vehicleList');
+  const q=(document.getElementById('vehicleSearch').value||'').toLowerCase();
+  const sortEl=document.getElementById('veh_sort');
+  const sortBy=sortEl?sortEl.value:'placa';
+  let vehs=state.vehicles;
+  if(q) vehs=vehs.filter(v=>(v.placa||'').toLowerCase().includes(q)||(v.tipo||'').toLowerCase().includes(q)||(v.marca||'').toLowerCase().includes(q));
+  if(vehFilter==='activos') vehs=vehs.filter(v=>v.activo!==false);
+  if(vehFilter==='inactivos') vehs=vehs.filter(v=>v.activo===false);
+  vehs.sort((a,b)=>{
+    if(sortBy==='tipo') return (a.tipo||'').localeCompare(b.tipo||'');
+    if(sortBy==='marca') return (a.marca||'').localeCompare(b.marca||'');
+    if(sortBy==='antiguedad') return (a.id||'').localeCompare(b.id||'');
+    return (a.placa||'').localeCompare(b.placa||'');
+  });
+  const addVehBtn = document.querySelector('#vehiclesList .add-btn');
+  if(addVehBtn) addVehBtn.style.display = canEdit() ? '' : 'none';
+  if(!vehs.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🚗</div><div class="empty-text">No hay vehículos.${canEdit()?'<br>Toca ➕ para agregar.':''}</div></div>`;return;}
+  list.innerHTML=vehs.map(v=>{
+    const isInactive=v.activo===false;
+    return `<div class="list-item${isInactive?' inactive':''}" onclick="openVehicle('${v.id}')">
+      <span style="font-size:1.8rem">🚗</span>
+      <div class="list-info">
+        <div class="list-name"><span class="plate-badge">${v.placa||'SIN PLACA'}</span> <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+        <div class="list-sub">${v.tipo||''} ${v.marca||''} ${v.modelo||''}${isInactive&&v.fechaRetiro?' · Retiro: '+fmtDate(v.fechaRetiro):''}</div>
+      </div>
+      <span class="list-arrow">›</span>
+    </div>`;
+  }).join('');
+}
+function filterVehicles() { renderVehicleList(); }
+
+function docStatus(fin) {
+  if(!fin) return '<span class="badge" style="background:rgba(139,146,169,.1);color:var(--text2)">Sin fecha</span>';
+  const diff=(new Date(fin+'T00:00:00')-new Date())/(1000*60*60*24);
+  if(diff<0) return '<span class="badge badge-exp">⚠️ Vencido</span>';
+  if(diff<30) return '<span class="badge badge-warn">⏰ Por vencer</span>';
+  return '<span class="badge badge-ok">✅ Vigente</span>';
+}
+
+function openVehicle(id) {
+  currentVehicleId=id;
+  const v=state.vehicles.find(x=>x.id===id); if(!v) return;
+  const isInactive=v.activo===false;
+  document.getElementById('vehicleDetailContent').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-avatar${isInactive?' inactive-avatar':''}" style="font-size:1.6rem">🚗</div>
+      <div style="flex:1">
+        <div class="detail-name" style="font-family:var(--mono);letter-spacing:.1em">${v.placa||'SIN PLACA'} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+        <div class="detail-cargo">${v.tipo||''} · ${v.marca||''} ${v.modelo||''}</div>
+        ${isInactive?`<div style="font-size:.78rem;color:var(--danger);margin-top:4px">Retiro: ${fmtDate(v.fechaRetiro)}${v.motivoRetiro?' · '+v.motivoRetiro:''}</div>`:''}
+        <div class="detail-actions">
+          ${canEdit()?`<button class="action-btn" onclick="openEditVehicle()">✏️ Editar</button>`:''}
+          ${isInactive
+            ? `<button class="action-btn success" onclick="toggleActivo('veh','${v.id}',true)">✅ Reactivar</button>`
+            : `<button class="action-btn" onclick="openRetiroModal('veh','${v.id}')">⛔ Dar de baja</button>`}
+          ${canDelete()?`<button class="action-btn danger" onclick="deleteVehicle()">🗑️ Eliminar</button>`:''}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Información General</div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-label">Placa</div><div class="field-value" style="font-family:var(--mono)">${v.placa||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo</div><div class="field-value">${v.tipo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Marca</div><div class="field-value">${v.marca||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Modelo / Año</div><div class="field-value">${v.modelo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Color</div><div class="field-value">${v.color||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${v.propietario||'—'}</div></div>
+      ${v.leasing?`<div class="field-card"><div class="field-label">Leasing</div><div class="field-value" style="color:var(--accent1)">✅ Sí · ${v.leasingEntidad||'Entidad no especificada'}</div></div>`:''}
+      ${(v.tipo||'').toLowerCase().includes('tractoc')||(v.tipo||'').toLowerCase().includes('tractom')?`<div class="field-card"><div class="field-label">🚛 Tráiler enganchado</div><div class="field-value" style="color:${v.trailerAsignado?'var(--accent3)':'var(--text2)'}">${getTrailerName(v.trailerAsignado)}</div></div>`:''}
+    </div>
+
+    <div class="section-title">Documentos del Vehículo</div>
+    <div class="doc-card">
+      <div class="doc-row"><div class="doc-name">📄 SOAT</div>${docStatus(v.soat_fin)}</div>
+      <div class="doc-dates">
+        <div class="date-group"><div class="date-label">Inicio</div><div class="field-value">${fmtDate(v.soat_ini)}</div></div>
+        <div class="date-group"><div class="date-label">Fin</div><div class="field-value">${fmtDate(v.soat_fin)}</div></div>
+      </div>
+    </div>
+    <div class="doc-card">
+      <div class="doc-row"><div class="doc-name">🔧 Revisión Técnico Mecánica</div>${docStatus(v.rtm_fin)}</div>
+      <div class="doc-dates">
+        <div class="date-group"><div class="date-label">Inicio</div><div class="field-value">${fmtDate(v.rtm_ini)}</div></div>
+        <div class="date-group"><div class="date-label">Fin</div><div class="field-value">${fmtDate(v.rtm_fin)}</div></div>
+      </div>
+    </div>
+    <div class="doc-card">
+      <div class="doc-row"><div class="doc-name">🛡️ Póliza Todo Riesgo</div>${docStatus(v.poliza_fin)}</div>
+      <div class="doc-dates">
+        <div class="date-group"><div class="date-label">Inicio</div><div class="field-value">${fmtDate(v.poliza_ini)}</div></div>
+        <div class="date-group"><div class="date-label">Fin</div><div class="field-value">${fmtDate(v.poliza_fin)}</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Archivos Adjuntos</div>
+    <div class="upload-zone" onclick="document.getElementById('vehFileInput').click()">
+      <input type="file" id="vehFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleVehFiles(this)">
+      <div class="upload-icon">📎</div>
+      <div class="upload-text">Toca para subir documentos</div>
+    </div>
+    <div class="doc-list" id="vehDocList"></div>
+  `;
+  renderVehDocs();
+  showScreen('vehicleDetail');
+}
+
+function renderVehDocs() {
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);
+  const list=document.getElementById('vehDocList');
+  if(!list||!v) return;
+  if(!v.docs?.length){list.innerHTML='<div style="color:var(--text2);font-size:.82rem;padding:8px 0">Sin documentos adjuntos.</div>';return;}
+  list.innerHTML=v.docs.map((d,i)=>`<div class="doc-file"><span>${docIcon(d.name)}</span><span class="doc-fname">${d.name}</span><a href="${d.dataUrl}" download="${d.name}" style="color:var(--accent1);font-size:.85rem;text-decoration:none;padding:4px">⬇️</a><button class="doc-del" onclick="deleteVehDoc(${i})">✕</button></div>`).join('');
+}
+function handleVehFiles(input) {
+  const v=state.vehicles.find(x=>x.id===currentVehicleId); if(!v) return;
+  if(!v.docs) v.docs=[];
+  const files=Array.from(input.files); let loaded=0;
+  files.forEach(f=>{const r=new FileReader();r.onload=ev=>{v.docs.push({name:f.name,dataUrl:ev.target.result});loaded++;if(loaded===files.length){save();renderVehDocs();toast('📎 Documentos adjuntados');}};r.readAsDataURL(f);});
+  input.value='';
+}
+function deleteVehDoc(idx){const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v?.docs)return;v.docs.splice(idx,1);save();renderVehDocs();}
+
+function openAddVehicle(){document.getElementById('veh_leasing').checked=false;document.getElementById('grupo_leasing').style.display='none';document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
+
+function openEditVehicle(){
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
+  editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  document.getElementById('veh_tipo').value=v.tipo||'';
+  document.getElementById('veh_leasing').checked=v.leasing||false;
+  document.getElementById('grupo_leasing').style.display=v.leasing?'':'none';
+  document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
+  const esTractomula=(v.tipo||'').toLowerCase().includes('tractoc')||(v.tipo||'').toLowerCase().includes('tractom');
+  document.getElementById('grupo_trailer_asignado').style.display=esTractomula?'':'none';
+  if(esTractomula) populateTrailerSelect(v.trailerAsignado);
+  openModal('vehicleModal');
+}
+
+function saveVehicle(){
+  if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
+  const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
+  if(!placa){alert('La placa es obligatoria.');return;}
+  const fields=['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'];
+  const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
+  data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
+  if(editingVehicle){
+    const v=state.vehicles.find(x=>x.id===currentVehicleId);if(v)Object.assign(v,data);
+    save();closeModal('vehicleModal');openVehicle(currentVehicleId);toast('✅ Vehículo actualizado');
+  } else {
+    state.vehicles.push({id:'veh_'+Date.now(),docs:[],activo:true,...data});
+    save();closeModal('vehicleModal');renderVehicleList();toast('✅ Vehículo agregado');
+  }
+}
+
+function deleteVehicle(){
+  if(!confirm('¿Eliminar este vehículo?')) return;
+  state.vehicles=state.vehicles.filter(x=>x.id!==currentVehicleId);
+  save();goToVehiclesList();toast('🗑️ Vehículo eliminado');
+}
+
+function openVehicles(){
+  if(currentUser && !checkVehiculosAccess()){toast('⛔ Sin acceso a vehículos');return;}
+  updateVehModuleCounts();
+  showScreen('vehiclesModule');
+}
+function openVehiclesList() {
+  vehFilter='todos';
+  ['todos','activos','inactivos'].forEach(x=>{const b=document.getElementById('vfilter-'+x);if(b)b.classList.toggle('active',x==='todos');});
+  renderVehicleList();
+  showScreen('vehiclesList');
+}
+function openTrailersList() {
+  trailerFilter='todos';
+  ['todos','activos','inactivos'].forEach(x=>{const b=document.getElementById('tfilter-'+x);if(b)b.classList.toggle('active',x==='todos');});
+  renderTrailerList();
+  showScreen('trailersList');
+}
+function updateVehModuleCounts() {
+  const vTotal=(state.vehicles||[]).length;
+  const tTotal=(state.trailers||[]).length;
+  const vc=document.getElementById('vehModuleCount');
+  const tc=document.getElementById('trailerModuleCount');
+  if(vc) vc.textContent=vTotal+' registrado'+(vTotal!==1?'s':'');
+  if(tc) tc.textContent=tTotal+' registrado'+(tTotal!==1?'s':'');
+}
+function goToVehiclesList(){renderVehicleList();showScreen('vehiclesList');}
+
+// ===================== HELPERS =====================
+function toggleConductorFields() {
+  const cargo = document.getElementById('emp_cargo').value;
+  const esConductor = cargo.toLowerCase().includes('conductor');
+  const esOtro = cargo === '__otro__';
+  const gc = document.getElementById('grupo_conductor');
+  const go = document.getElementById('grupo_cargo_otro');
+  gc.style.display = esConductor ? 'block' : 'none';
+  go.style.display = esOtro ? '' : 'none';
+  if(esConductor) populateVehicleSelect();
+}
+
+function populateVehicleSelect(selectedId) {
+  const sel = document.getElementById('emp_vehiculoAsignado');
+  if(!sel) return;
+  const vehs = (state.vehicles||[]).filter(v=>v.activo!==false);
+  sel.innerHTML = '<option value="">— Sin asignar —</option>' +
+    vehs.map(v=>`<option value="${v.id}" ${selectedId===v.id?'selected':''}>${v.placa||'?'} · ${v.marca||''} ${v.modelo||''} · ${v.tipo||''}</option>`).join('');
+}
+
+function calcAntiguedad(fechaIngreso) {
+  if(!fechaIngreso) return '—';
+  const ini=new Date(fechaIngreso+'T00:00:00'), now=new Date();
+  let y=now.getFullYear()-ini.getFullYear();
+  let m=now.getMonth()-ini.getMonth();
+  if(m<0){y--;m+=12;}
+  const parts=[];
+  if(y>0) parts.push(y===1?'1 año':y+' años');
+  if(m>0) parts.push(m===1?'1 mes':m+' meses');
+  return parts.length?parts.join(' y '):'Recién ingresado';
+}
+
+function licVencColor(fecha) {
+  if(!fecha) return 'var(--text1)';
+  const diff = (new Date(fecha+' 00:00:00') - new Date()) / (1000*60*60*24);
+  if(diff < 0) return 'var(--danger)';
+  if(diff < 60) return '#fbbf24';
+  return 'var(--accent3)';
+}
+function licVencLabel(fecha) {
+  if(!fecha) return '';
+  const diff = Math.ceil((new Date(fecha+' 00:00:00') - new Date()) / (1000*60*60*24));
+  if(diff < 0) return ' ⚠️ VENCIDA';
+  if(diff < 60) return ` ⏰ Vence en ${diff}d`;
+  return ' ✅';
+}
+function getVehicleName(vid) {
+  if(!vid) return '— Sin asignar';
+  const v = (state.vehicles||[]).find(v=>v.id===vid);
+  if(!v) return '— Sin asignar';
+  return `${v.placa||'?'} · ${v.marca||''} ${v.modelo||''} ${v.tipo?'('+v.tipo+')':''}`.trim();
+}
+// ── TRAILER SYSTEM ───────────────────────────────────────────────────────────
+let trailerFilter = 'todos';
+let currentTrailerId = null;
+let editingTrailerId = null;
+
+function setTFilter(f) {
+  trailerFilter = f;
+  ['todos','activos','inactivos'].forEach(x=>{
+    const b=document.getElementById('tfilter-'+x);
+    if(b) b.classList.toggle('active',x===f);
+  });
+  renderTrailerList();
+}
+
+function renderTrailerList() {
+  const list = document.getElementById('trailerList');
+  if(!list) return;
+  const q = (document.getElementById('trailerSearch')?.value||'').toLowerCase();
+  const sortBy = document.getElementById('trailer_sort')?.value||'placa';
+  let items = state.trailers||[];
+  if(q) items = items.filter(t=>(t.placa||'').toLowerCase().includes(q)||(t.tipo||'').toLowerCase().includes(q));
+  if(trailerFilter==='activos') items=items.filter(t=>t.activo!==false);
+  if(trailerFilter==='inactivos') items=items.filter(t=>t.activo===false);
+  items.sort((a,b)=>{
+    if(sortBy==='tipo') return (a.tipo||'').localeCompare(b.tipo||'');
+    if(sortBy==='capacidad') return parseFloat(b.capacidad||0)-parseFloat(a.capacidad||0);
+    return (a.placa||'').localeCompare(b.placa||'');
+  });
+  if(!items.length) {
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">🚛</div><div class="empty-text">No hay tráileres.<br>Toca ➕ para agregar.</div></div>`;
+    return;
+  }
+  list.innerHTML = items.map(t=>{
+    const isInactive=t.activo===false;
+    const docs=[docStatus(t.poliza_fin)];
+    const hasWarn=docs.some(d=>d && (d.includes('⚠️')||d.includes('⏰')));
+    return `<div class="list-item${isInactive?' inactive':''}" onclick="openTrailerDetail('${t.id}')">
+      <div class="list-avatar${isInactive?' inactive-avatar':''}" style="background:#64748b;font-size:1.3rem">🚛</div>
+      <div class="list-info">
+        <div class="list-name">${t.placa||'Sin placa'} ${hasWarn?'⚠️':''} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+        <div class="list-sub">${t.tipo||'Sin tipo'} · ${t.marca||'—'}${t.capacidad?' · '+t.capacidad+'t':''}</div>
+      </div>
+      <span class="list-arrow">›</span>
+    </div>`;
+  }).join('');
+}
+
+function openTrailerDetail(id) {
+  currentTrailerId = id;
+  const t = (state.trailers||[]).find(t=>t.id===id);
+  if(!t) return;
+  const isInactive=t.activo===false;
+  const docs=[docStatus(t.poliza_fin)];
+  // Find vehicle using this trailer
+  const veh=(state.vehicles||[]).find(v=>v.trailerAsignado===id);
+  document.getElementById('trailerDetailContent').innerHTML=`
+    <div class="detail-header">
+      <div class="detail-avatar" style="background:#64748b;font-size:2rem">🚛</div>
+      <div class="detail-name">${t.placa||'Sin placa'} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
+      <div class="detail-cargo">${t.tipo||'Sin tipo'}${t.capacidad?' · '+t.capacidad+' ton':''}</div>
+    </div>
+    <div class="detail-section">
+      <div class="section-title">📋 Datos del Tráiler</div>
+      <div class="field-card"><div class="field-label">Placa</div><div class="field-value">${t.placa||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo de carrocería</div><div class="field-value">${t.tipo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Marca</div><div class="field-value">${t.marca||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Modelo (año)</div><div class="field-value">${t.modelo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Color</div><div class="field-value">${t.color||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Capacidad</div><div class="field-value">${t.capacidad?t.capacidad+' toneladas':'—'}</div></div>
+      <div class="field-card"><div class="field-label">N° de ejes</div><div class="field-value">${t.ejes||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${t.propietario||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Vehículo enganchado</div><div class="field-value" style="color:${veh?'var(--accent3)':'var(--text2)'}">${veh?'🚛 '+veh.placa+' · '+(veh.marca||''):'— Sin enganchar'}</div></div>
+      <div class="section-title">📄 Documentos</div>
+      ${docs.map(d=>`<div class="field-card"><div class="field-label">${d.label}</div><div class="field-value" style="color:${d.color}">${d.text} ${d.icon}</div></div>`).join('')}
+      ${isInactive?`<div class="section-title">⛔ Retiro</div><div class="field-card"><div class="field-label">Fecha de retiro</div><div class="field-value">${fmtDate(t.fechaRetiro)||'—'}</div></div><div class="field-card"><div class="field-label">Motivo</div><div class="field-value">${t.motivoRetiro||'—'}</div></div>`:''}
+    </div>
+    <div class="detail-actions">
+      ${canEdit()?`<button class="action-btn" onclick="openEditTrailer()">✏️ Editar</button>`:''}
+      ${!isInactive&&canEdit()?`<button class="action-btn" onclick="retireTrailer()">⛔ Dar de baja</button>`:''}
+      ${isInactive&&canEdit()?`<button class="action-btn" onclick="reactivateTrailer()">✅ Reactivar</button>`:''}
+      ${canDelete()?`<button class="action-btn danger" onclick="deleteTrailer()">🗑️ Eliminar</button>`:''}
+    </div>`;
+  showScreen('trailerDetail');
+}
+
+function openAddTrailer() {
+  editingTrailerId = null;
+  document.getElementById('trailerModalTitle').textContent='Agregar Tráiler';
+  ['tr_placa','tr_marca','tr_modelo','tr_color','tr_propietario'].forEach(id=>document.getElementById(id).value='');
+  ['tr_capacidad','tr_ejes'].forEach(id=>document.getElementById(id).value='');
+  ['tr_poliza_ini','tr_poliza_fin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('tr_tipo').value='';
+  document.getElementById('tr_del_btn').style.display='none';
+  openModal('trailerModal');
+}
+
+function openEditTrailer() {
+  const t=(state.trailers||[]).find(t=>t.id===currentTrailerId);
+  if(!t) return;
+  editingTrailerId=t.id;
+  document.getElementById('trailerModalTitle').textContent='Editar Tráiler';
+  document.getElementById('tr_del_btn').style.display='';
+  ['placa','marca','modelo','color','propietario'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
+  ['capacidad','ejes'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
+  document.getElementById('tr_tipo').value=t.tipo||'';
+  ['poliza_ini','poliza_fin'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
+  openModal('trailerModal');
+}
+
+function saveTrailer() {
+  const placa=document.getElementById('tr_placa').value.trim().toUpperCase();
+  if(!placa){alert('La placa es obligatoria.');return;}
+  if(!state.trailers) state.trailers=[];
+  const data={
+    id: editingTrailerId||('tr_'+Date.now()),
+    placa, tipo:document.getElementById('tr_tipo').value,
+    marca:document.getElementById('tr_marca').value.trim(),
+    modelo:document.getElementById('tr_modelo').value.trim(),
+    color:document.getElementById('tr_color').value.trim(),
+    capacidad:document.getElementById('tr_capacidad').value,
+    ejes:document.getElementById('tr_ejes').value,
+    propietario:document.getElementById('tr_propietario').value.trim(),
+    poliza_ini:document.getElementById('tr_poliza_ini').value,
+    poliza_fin:document.getElementById('tr_poliza_fin').value,
+    activo:true
+  };
+  if(editingTrailerId) {
+    const idx=state.trailers.findIndex(t=>t.id===editingTrailerId);
+    if(idx>=0){data.activo=state.trailers[idx].activo;state.trailers[idx]=data;}
+  } else {
+    state.trailers.push(data);
+  }
+  persistData(); closeModal('trailerModal'); renderTrailerList();
+  toast(editingTrailerId?'✅ Tráiler actualizado':'✅ Tráiler agregado');
+  if(editingTrailerId) openTrailerDetail(data.id);
+}
+
+function deleteTrailer() {
+  if(!confirm('¿Eliminar este tráiler?')) return;
+  state.trailers=(state.trailers||[]).filter(t=>t.id!==currentTrailerId);
+  // Unassign from any vehicle
+  (state.vehicles||[]).forEach(v=>{if(v.trailerAsignado===currentTrailerId)v.trailerAsignado='';});
+  persistData(); showScreen('trailersList'); renderTrailerList();
+  toast('🗑️ Tráiler eliminado');
+}
+
+function retireTrailer() {
+  const fecha=prompt('Fecha de retiro (YYYY-MM-DD):',new Date().toISOString().split('T')[0]);
+  if(!fecha) return;
+  const motivo=prompt('Motivo (opcional):','');
+  const t=(state.trailers||[]).find(t=>t.id===currentTrailerId);
+  if(t){t.activo=false;t.fechaRetiro=fecha;t.motivoRetiro=motivo||'';}
+  persistData(); openTrailerDetail(currentTrailerId); toast('⛔ Tráiler dado de baja');
+}
+
+function reactivateTrailer() {
+  const t=(state.trailers||[]).find(t=>t.id===currentTrailerId);
+  if(t){t.activo=true;delete t.fechaRetiro;delete t.motivoRetiro;}
+  persistData(); openTrailerDetail(currentTrailerId); toast('✅ Tráiler reactivado');
+}
+
+// Toggle trailer field on vehicle form
+function toggleLeasing() {
+  const checked = document.getElementById('veh_leasing').checked;
+  document.getElementById('grupo_leasing').style.display = checked ? '' : 'none';
+  if(!checked) document.getElementById('veh_leasingEntidad').value = '';
+}
+function toggleTrailerField() {
+  const tipo=document.getElementById('veh_tipo').value;
+  const esTractomula=tipo.toLowerCase().includes('tractoc') || tipo.toLowerCase().includes('tractom');
+  const grp=document.getElementById('grupo_trailer_asignado');
+  grp.style.display=esTractomula?'':'none';
+  if(esTractomula) populateTrailerSelect();
+}
+
+function populateTrailerSelect(selectedId) {
+  const sel=document.getElementById('veh_trailerAsignado');
+  if(!sel) return;
+  const trailers=(state.trailers||[]).filter(t=>t.activo!==false);
+  sel.innerHTML='<option value="">— Sin tráiler —</option>'+
+    trailers.map(t=>`<option value="${t.id}" ${selectedId===t.id?'selected':''}>${t.placa||'?'} · ${t.tipo||''} ${t.capacidad?'('+t.capacidad+'t)':''}</option>`).join('');
+}
+
+function getTrailerName(tid) {
+  if(!tid) return '— Sin tráiler';
+  const t=(state.trailers||[]).find(t=>t.id===tid);
+  return t?(t.placa||'?')+' · '+(t.tipo||'')+(t.capacidad?' ('+t.capacidad+'t)':''):'— Sin tráiler';
+}
+
+function toggleDuracion() {
+  const t=document.getElementById('emp_tipoContrato').value;
+  document.getElementById('grupo_duracion').style.display=t==='Fijo'?'':'none';
+}
+
+function docIcon(name){if(name.endsWith('.pdf'))return'📄';if(name.match(/\.(jpg|jpeg|png|gif|webp)$/i))return'🖼️';if(name.match(/\.(doc|docx)$/i))return'📝';return'📎';}
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active');}));
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+document.addEventListener('focusin',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))setTimeout(()=>e.target.scrollIntoView({block:'center',behavior:'smooth'}),300);});
+
+// ===================== iOS BANNER =====================
+(function(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(isIOS&&!window.navigator.standalone&&!localStorage.getItem('install_dismissed')){
+    const b=document.createElement('div');
+    b.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:999;background:#1a1d27;border-top:1px solid #2e3347;padding:16px 20px calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:14px;font-family:Sora,sans-serif;box-shadow:0 -8px 32px rgba(0,0,0,.5);';
+    b.innerHTML='<span style="font-size:2rem">📲</span><div style="flex:1"><div style="font-weight:700;font-size:.9rem;color:#e8ecf4">Instalar como app</div><div style="font-size:.78rem;color:#8b92a9;margin-top:2px">Toca <strong style="color:#e8ecf4">⎙ Compartir</strong> → <strong style="color:#e8ecf4">Agregar a pantalla de inicio</strong></div></div><button onclick="this.parentElement.remove();localStorage.setItem(\'install_dismissed\',\'1\')" style="background:#2e3347;border:none;color:#8b92a9;width:28px;height:28px;border-radius:50%;font-size:1rem;cursor:pointer;">✕</button>';
+    document.body.appendChild(b);
+    const fab=document.getElementById('settingsFab');
+    if(fab)fab.style.bottom='calc(90px + env(safe-area-inset-bottom))';
+  }
+})();
+
+
+// ===================== AUTH SYSTEM =====================
+let currentUser = null; // {id, username, role, empresas:[], puede_ver_salarios, is_admin}
+let editingUserId = null;
+
+// Simple hash (SHA-256 via subtle crypto)
+async function hashPassword(pwd) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(pwd + 'gestion_salt_2025'));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login_user').value.trim();
+  const password = document.getElementById('login_pass').value;
+  const errEl = document.getElementById('login_error');
+  const btn = document.getElementById('loginBtn');
+  errEl.style.display = 'none';
+  if(!username || !password) { showLoginError('Completa usuario y contraseña'); return; }
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  try {
+    const hash = await hashPassword(password);
+    const { data, error } = await sb.from('gestion_users').select('*').eq('username', username).eq('password_hash', hash).single();
+    if(error || !data) { showLoginError('Usuario o contraseña incorrectos'); btn.textContent='Ingresar'; btn.disabled=false; return; }
+    currentUser = data;
+    currentUser.empresas = Array.isArray(data.empresas) ? data.empresas : (typeof data.empresas === 'string' ? JSON.parse(data.empresas) : []);
+    localStorage.setItem('gestion_session', JSON.stringify({id:data.id, username:data.username, role:data.role, empresas:currentUser.empresas, puede_ver_salarios:data.puede_ver_salarios}));
+    onLoginSuccess();
+  } catch(e) { showLoginError('Error de conexión. Intenta de nuevo.'); btn.textContent='Ingresar'; btn.disabled=false; }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login_error');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('loginBtn').textContent = 'Ingresar';
+  document.getElementById('loginBtn').disabled = false;
+}
+
+function onLoginSuccess() {
+  document.getElementById('loginScreen').style.display = 'none';
+  applyUserPermissions();
+  const nameEl = document.getElementById('currentUserName');
+  const roleEl = document.getElementById('currentUserRole');
+  const badge = document.getElementById('currentUserBadge');
+  if(nameEl) nameEl.textContent = currentUser.username;
+  if(roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
+  if(badge) badge.style.display = 'flex';
+  // Show users fab only for admin
+  const fab = document.getElementById('usersFab');
+  if(fab) fab.style.display = currentUser.role==='admin' ? 'flex' : 'none';
+}
+
+function doLogout() {
+  if(!confirm('¿Cerrar sesión?')) return;
+  currentUser = null;
+  localStorage.removeItem('gestion_session');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('currentUserBadge').style.display = 'none';
+  document.getElementById('usersFab').style.display = 'none';
+  document.getElementById('login_user').value = '';
+  document.getElementById('login_pass').value = '';
+  document.getElementById('login_error').style.display = 'none';
+  document.getElementById('loginBtn').textContent = 'Ingresar';
+  document.getElementById('loginBtn').disabled = false;
+  goHome();
+}
+
+const roleLabels = { admin:'Admin', editor:'Editor', readonly:'Solo lectura', supervisor:'Supervisor' };
+
+function applyUserPermissions() {
+  if(!currentUser) return;
+  const role = currentUser.role;
+  const isAdmin = role === 'admin';
+  const isEditor = role === 'editor';
+  const isReadonly = role === 'readonly';
+  const isSupervisor = role === 'supervisor';
+  const empresas = currentUser.empresas || [];
+
+  // ── Show/hide home buttons based on access ──────────────
+  // btn1 = Empresas, btn4 = Vehículos (only 2 remain in new home)
+  const empBtn = document.querySelector('.btn1');
+  if(empBtn) {
+    const hasAnyEmpresa = isAdmin || empresas.some(e=>e.startsWith('empresa'));
+    empBtn.style.display = hasAnyEmpresa ? 'flex' : 'none';
+  }
+  const vehBtn2 = document.querySelector('.btn4');
+  if(vehBtn2) {
+    vehBtn2.style.display = (isAdmin || empresas.includes('vehiculos')) ? 'flex' : 'none';
+  }
+
+  // ── Settings FAB: only admin and editor ─────────────────────────
+  const fab = document.getElementById('settingsFab');
+  if(fab) fab.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
+
+  // ── Users FAB: only admin ────────────────────────────────────────
+  const usersFab = document.getElementById('usersFab');
+  if(usersFab) usersFab.style.display = isAdmin ? 'flex' : 'none';
+
+  // ── Add/Edit buttons: admin and editor only ──────────────────────
+  const showAdd = isAdmin || isEditor;
+  document.querySelectorAll('.add-btn').forEach(el => el.style.display = showAdd ? '' : 'none');
+  const addEmp = document.getElementById('addEmpTopBtn');
+  const addVeh = document.getElementById('addVehTopBtn');
+  if(addEmp) addEmp.style.display = showAdd ? '' : 'none';
+  if(addVeh) addVeh.style.display = showAdd ? '' : 'none';
+}
+
+function canEdit() { return currentUser && (currentUser.role==='admin' || currentUser.role==='editor'); }
+function canDelete() { return currentUser && currentUser.role==='admin'; }
+function canSeeSalary() { return currentUser && (currentUser.role==='admin' || currentUser.puede_ver_salarios); }
+function hasAccess(module) {
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  const empresas = currentUser.empresas || [];
+  return empresas.includes(module);
+}
+
+// Access check helpers (called at top of openCompany / openVehicles)
+function checkEmpresaAccess(idx) {
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  return (currentUser.empresas||[]).includes('empresa'+idx);
+}
+function checkVehiculosAccess() {
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  return (currentUser.empresas||[]).includes('vehiculos');
+}
+
+function togglePassVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if(inp.type==='password') { inp.type='text'; btn.textContent='🔒'; } 
+  else { inp.type='password'; btn.textContent='👁'; }
+}
+
+// ===================== USER MANAGEMENT =====================
+async function openUserMgmt() {
+  if(currentUser?.role !== 'admin') return;
+  // Update company name labels
+  const s = state.settings || {};
+  document.getElementById('ue_acc0_lbl').textContent = s.company1 || 'Empresa 1';
+  document.getElementById('ue_acc1_lbl').textContent = s.company2 || 'Empresa 2';
+  document.getElementById('ue_acc2_lbl').textContent = s.company3 || 'Empresa 3';
+  await renderUserList();
+  openModal('userMgmtModal');
+}
+
+async function renderUserList() {
+  const listEl = document.getElementById('userList');
+  listEl.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:8px">Cargando...</div>';
+  try {
+    const { data } = await sb.from('gestion_users').select('id,username,role,empresas,puede_ver_salarios').order('created_at');
+    if(!data?.length) { listEl.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:8px">No hay usuarios.</div>'; return; }
+    const roleColors = { admin:'var(--accent1)', editor:'var(--accent3)', readonly:'var(--text2)', supervisor:'var(--accent2)' };
+    listEl.innerHTML = data.map(u => {
+      const empresas = Array.isArray(u.empresas) ? u.empresas : (typeof u.empresas==='string'?JSON.parse(u.empresas||'[]'):[]);
+      const accesos = empresas.length ? empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?'E1':e==='empresa1'?'E2':e==='empresa2'?'E3':e).join(' ') : (u.role==='admin'?'Todo':'Ninguno');
+      return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:.92rem">${u.username} ${u.id===currentUser?.id?'<span style="font-size:.7rem;color:var(--accent3)">(tú)</span>':''}</div>
+          <div style="font-size:.75rem;color:var(--text2);margin-top:2px"><span style="color:${roleColors[u.role]||'var(--text2)'};font-weight:600">${roleLabels[u.role]||u.role}</span> · Acceso: ${accesos}${u.puede_ver_salarios?' · 💰':''}
+          </div>
+        </div>
+        <button class="action-btn" onclick="openEditUser('${u.id}')">✏️</button>
+      </div>`;
+    }).join('');
+  } catch(e) { listEl.innerHTML='<div style="color:var(--danger);font-size:.85rem">Error cargando usuarios.</div>'; }
+}
+
+function openAddUser() {
+  editingUserId = null;
+  document.getElementById('userEditTitle').textContent = 'Agregar Usuario';
+  document.getElementById('ue_username').value = '';
+  document.getElementById('ue_password').value = '';
+  document.getElementById('ue_role').value = 'editor';
+  document.getElementById('ue_del_btn').style.display = 'none';
+  ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios'].forEach(id=>document.getElementById(id).checked=false);
+  toggleUserPerms();
+  refreshPermVisuals();
+  openModal('userEditModal');
+}
+
+async function openEditUser(id) {
+  editingUserId = id;
+  document.getElementById('userEditTitle').textContent = 'Editar Usuario';
+  document.getElementById('ue_del_btn').style.display = id===currentUser?.id ? 'none' : '';
+  try {
+    const { data } = await sb.from('gestion_users').select('*').eq('id',id).single();
+    if(!data) return;
+    document.getElementById('ue_username').value = data.username;
+    document.getElementById('ue_password').value = '';
+    document.getElementById('ue_role').value = data.role;
+    const empresas = Array.isArray(data.empresas)?data.empresas:(typeof data.empresas==='string'?JSON.parse(data.empresas||'[]'):[]);
+    document.getElementById('ue_acc0').checked = data.role==='admin' || empresas.includes('empresa0');
+    document.getElementById('ue_acc1').checked = data.role==='admin' || empresas.includes('empresa1');
+    document.getElementById('ue_acc2').checked = data.role==='admin' || empresas.includes('empresa2');
+    document.getElementById('ue_acc3').checked = data.role==='admin' || empresas.includes('vehiculos');
+    document.getElementById('ue_salarios').checked = data.puede_ver_salarios || data.role==='admin';
+    toggleUserPerms();
+    refreshPermVisuals();
+    openModal('userEditModal');
+  } catch(e) {}
+}
+
+function togglePermLabel(checkId, labelId, color) {
+  const cb = document.getElementById(checkId);
+  const lbl = document.getElementById(labelId);
+  const icon = document.getElementById(checkId+'_icon');
+  cb.checked = !cb.checked;
+  if(cb.checked) {
+    lbl.style.background = color+'22';
+    lbl.style.borderColor = color;
+    lbl.style.color = color;
+    if(icon) { icon.textContent = '✓'; icon.style.opacity='1'; icon.style.color=color; }
+  } else {
+    lbl.style.background = 'var(--surface2)';
+    lbl.style.borderColor = 'var(--border)';
+    lbl.style.color = 'var(--text1)';
+    if(icon) { icon.textContent = '○'; icon.style.opacity='.3'; icon.style.color=''; }
+  }
+}
+
+function refreshPermVisuals() {
+  const map = [
+    ['ue_acc0','lbl_acc0','#5b8df6'],
+    ['ue_acc1','lbl_acc1','#a78bfa'],
+    ['ue_acc2','lbl_acc2','#34d399'],
+    ['ue_acc3','lbl_acc3','#fb923c'],
+    ['ue_salarios','lbl_salarios','#fbbf24'],
+  ];
+  map.forEach(([checkId, labelId, color]) => {
+    const cb = document.getElementById(checkId);
+    const lbl = document.getElementById(labelId);
+    const icon = document.getElementById(checkId+'_icon');
+    if(!cb||!lbl) return;
+    if(cb.checked) {
+      lbl.style.background = color+'22';
+      lbl.style.borderColor = color;
+      lbl.style.color = color;
+      if(icon) { icon.textContent='✓'; icon.style.opacity='1'; icon.style.color=color; }
+    } else {
+      lbl.style.background='var(--surface2)';
+      lbl.style.borderColor='var(--border)';
+      lbl.style.color='var(--text1)';
+      if(icon) { icon.textContent='○'; icon.style.opacity='.3'; icon.style.color=''; }
+    }
+  });
+}
+
+function toggleUserPerms() {
+  const role = document.getElementById('ue_role').value;
+  const permsDiv = document.getElementById('ue_perms');
+  permsDiv.style.display = role==='admin' ? 'none' : '';
+  // Only auto-check ALL when admin selected — never auto-uncheck for other roles
+  if(role==='admin') {
+    ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios'].forEach(id=>document.getElementById(id).checked=true);
+  }
+  refreshPermVisuals();
+  // For non-admin: leave checkboxes as-is so user can freely toggle them
+}
+
+async function saveUser() {
+  const username = document.getElementById('ue_username').value.trim();
+  const password = document.getElementById('ue_password').value;
+  const role = document.getElementById('ue_role').value;
+  if(!username) { alert('El nombre de usuario es obligatorio.'); return; }
+  if(!editingUserId && !password) { alert('La contraseña es obligatoria para nuevos usuarios.'); return; }
+  const empresas = [];
+  if(document.getElementById('ue_acc0').checked) empresas.push('empresa0');
+  if(document.getElementById('ue_acc1').checked) empresas.push('empresa1');
+  if(document.getElementById('ue_acc2').checked) empresas.push('empresa2');
+  if(document.getElementById('ue_acc3').checked) empresas.push('vehiculos');
+  const puede_ver_salarios = document.getElementById('ue_salarios').checked;
+  try {
+    const payload = { username, role, empresas: JSON.stringify(empresas), puede_ver_salarios };
+    if(password) payload.password_hash = await hashPassword(password);
+    if(editingUserId) {
+      await sb.from('gestion_users').update(payload).eq('id', editingUserId);
+    } else {
+      payload.id = 'usr_' + Date.now();
+      await sb.from('gestion_users').insert(payload);
+    }
+    closeModal('userEditModal');
+    await renderUserList();
+    toast(editingUserId ? '✅ Usuario actualizado' : '✅ Usuario creado');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function deleteUser() {
+  if(!confirm('¿Eliminar este usuario?')) return;
+  try {
+    await sb.from('gestion_users').delete().eq('id', editingUserId);
+    closeModal('userEditModal');
+    await renderUserList();
+    toast('🗑️ Usuario eliminado');
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+// Draw login icon
+function drawLoginIcon() {
+  try {
+    const sc = document.getElementById('loginIcon');
+    if(!sc) return;
+    const ctx = sc.getContext('2d');
+    const s = 90;
+    const grad = ctx.createLinearGradient(0,0,s,s);
+    grad.addColorStop(0,'#2a2d3a'); grad.addColorStop(1,'#1a1d27');
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.roundRect(0,0,s,s,16); ctx.fill();
+    ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
+    ctx.fillStyle='#e8dcc8'; ctx.beginPath(); ctx.roundRect(16,21,24,28,[4,0,0,4]); ctx.fill();
+    ctx.fillStyle='#f0e6d0'; ctx.beginPath(); ctx.roundRect(50,21,24,28,[0,4,4,0]); ctx.fill();
+    ctx.shadowColor='transparent';
+    const sg=ctx.createLinearGradient(41,0,49,0);
+    sg.addColorStop(0,'#5b8df6'); sg.addColorStop(0.5,'#7ba8ff'); sg.addColorStop(1,'#4a7ae0');
+    ctx.fillStyle=sg; ctx.beginPath(); ctx.roundRect(41,20,8,30,2); ctx.fill();
+    ctx.fillStyle='#fb923c'; ctx.beginPath();
+    ctx.moveTo(43,20); ctx.lineTo(47,20); ctx.lineTo(47,28); ctx.lineTo(45,26); ctx.lineTo(43,28);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(160,140,110,0.4)'; ctx.lineWidth=1.5; ctx.lineCap='round';
+    [29,34,39,44].forEach((ly,i)=>{
+      ctx.beginPath(); ctx.moveTo(19,ly); ctx.lineTo(i===3?32:39,ly); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(51,ly); ctx.lineTo(i===3?62:69,ly); ctx.stroke();
+    });
+  } catch(e){}
+}
+
+
+// ===================== NOTIFICATIONS =====================
+let notifFilter = 'todas';
+let readNotifs = new Set(JSON.parse(localStorage.getItem('gestion_read_notifs')||'[]'));
+
+function buildNotifications() {
+  const notifs = [];
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  function daysDiff(dateStr) {
+    if(!dateStr) return null;
+    return Math.ceil((new Date(dateStr+' 00:00:00') - now) / 86400000);
+  }
+
+  function addDocNotif(label, finDate, subject, subjectId, type) {
+    const d = daysDiff(finDate);
+    if(d === null) return;
+    if(d < 0) notifs.push({ id: type+'_'+subjectId+'_exp', type:'vencimientos', icon:'🔴', title:`${label} VENCIDO`, body:`${subject} · Venció hace ${Math.abs(d)} días`, days:d, date:finDate, urgent:true });
+    else if(d <= 30) notifs.push({ id: type+'_'+subjectId+'_warn', type:'vencimientos', icon:'🟡', title:`${label} por vencer`, body:`${subject} · Vence en ${d} días (${fmtDate(finDate)})`, days:d, date:finDate, urgent:d<=7 });
+  }
+
+  // Vehicle documents
+  (state.vehicles||[]).filter(v=>v.activo!==false).forEach(v=>{
+    const name = v.placa||'Vehículo';
+    addDocNotif('SOAT', v.soat_fin, name, v.id, 'soat');
+    addDocNotif('RTM', v.rtm_fin, name, v.id, 'rtm');
+    addDocNotif('Póliza', v.poliza_fin, name, v.id, 'poliza');
+  });
+
+  // Trailer poliza
+  (state.trailers||[]).filter(t=>t.activo!==false).forEach(t=>{
+    addDocNotif('Póliza tráiler', t.poliza_fin, t.placa||'Tráiler', t.id, 'tr_poliza');
+  });
+
+  // Driver licenses
+  const allEmps = (state.empresas||[]).flatMap((_,i)=>getEmployees(i));
+  allEmps.filter(e=>e.activo!==false && e.tipoLicencia && e.vencLicencia).forEach(e=>{
+    const name = (e.apellidos?e.apellidos+', ':''+(e.nombres||e.nombre||''));
+    addDocNotif('Licencia conductor', e.vencLicencia, name, e.id, 'lic');
+  });
+
+  // Fixed contracts ending
+  allEmps.filter(e=>e.activo!==false && e.tipoContrato==='Fijo' && e.fechaIngreso && e.duracion).forEach(e=>{
+    const ini = new Date(e.fechaIngreso+'T00:00:00');
+    const fin = new Date(ini);
+    fin.setMonth(fin.getMonth() + parseInt(e.duracion));
+    const finStr = fin.toISOString().split('T')[0];
+    const d = daysDiff(finStr);
+    const name = (e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||'');
+    if(d !== null && d <= 30) notifs.push({ id:'contrato_'+e.id, type:'vencimientos', icon: d<0?'🔴':'🟡', title: d<0?'Contrato vencido':'Contrato por vencer', body:`${name} · ${d<0?'Venció hace '+Math.abs(d)+' días':'Vence en '+d+' días'} (${fmtDate(finStr)})`, days:d, urgent:d<=7||d<0 });
+  });
+
+  // Birthdays this month + next 7 days
+  allEmps.filter(e=>e.activo!==false && e.fechaNac).forEach(e=>{
+    const parts = e.fechaNac.split('-');
+    if(parts.length<3) return;
+    const thisYear = now.getFullYear();
+    const bdThisYear = new Date(thisYear, parseInt(parts[1])-1, parseInt(parts[2]));
+    const diff = Math.ceil((bdThisYear - now) / 86400000);
+    const name = (e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||'');
+    const age = thisYear - parseInt(parts[0]);
+    if(diff === 0) notifs.push({ id:'bd_'+e.id, type:'cumple', icon:'🎂', title:'¡Cumpleaños hoy!', body:`${name} · ¡Cumple ${age} años hoy! 🎉`, days:0, urgent:true });
+    else if(diff > 0 && diff <= 7) notifs.push({ id:'bd_'+e.id, type:'cumple', icon:'🎁', title:`Cumpleaños en ${diff} día${diff!==1?'s':''}`, body:`${name} · Cumple ${age} años el ${fmtDate(e.fechaNac.slice(5)===today.slice(5)?e.fechaNac:thisYear+'-'+parts[1]+'-'+parts[2])}`, days:diff, urgent:false });
+  });
+
+  // Sort: urgent first, then by days
+  notifs.sort((a,b)=>(a.urgent&&!b.urgent?-1:!a.urgent&&b.urgent?1:a.days-b.days));
+  return notifs;
+}
+
+function updateNotifBadge() {
+  const notifs = buildNotifications();
+  const unread = notifs.filter(n=>!readNotifs.has(n.id));
+  const badge = document.getElementById('notifBadge');
+  if(!badge) return;
+  if(unread.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = unread.length > 9 ? '9+' : unread.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function openNotifCenter() {
+  notifFilter = 'todas';
+  ['todas','vencimientos','cumple'].forEach(f=>{
+    const b=document.getElementById('nf-'+f);
+    if(b) b.classList.toggle('active',f==='todas');
+  });
+  renderNotifList();
+  showScreen('notifScreen');
+}
+
+function setNotifFilter(f) {
+  notifFilter = f;
+  ['todas','vencimientos','cumple'].forEach(x=>{
+    const b=document.getElementById('nf-'+x);
+    if(b) b.classList.toggle('active',x===f);
+  });
+  renderNotifList();
+}
+
+function renderNotifList() {
+  const el = document.getElementById('notifList');
+  if(!el) return;
+  let notifs = buildNotifications();
+  if(notifFilter !== 'todas') notifs = notifs.filter(n=>n.type===notifFilter);
+  if(!notifs.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">${notifFilter==='cumple'?'🎂':'✅'}</div><div class="empty-text">${notifFilter==='cumple'?'No hay cumpleaños próximos':'Sin alertas pendientes'}</div></div>`;
+    return;
+  }
+  el.innerHTML = notifs.map(n=>{
+    const isRead = readNotifs.has(n.id);
+    return `<div onclick="readNotif('${n.id}')" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;margin-bottom:10px;cursor:pointer;border:1px solid ${n.urgent&&!isRead?'rgba(239,68,68,.4)':'var(--border)'};background:${isRead?'var(--surface2)':n.urgent?'rgba(239,68,68,.07)':'rgba(91,141,246,.07)'};transition:opacity .2s;opacity:${isRead?.6:1}">
+      <div style="font-size:1.6rem;flex-shrink:0;margin-top:2px">${n.icon}</div>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:.9rem;color:${isRead?'var(--text2)':n.urgent?'#ef4444':'var(--text1)'}">${n.title}</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:3px">${n.body}</div>
+      </div>
+      ${!isRead?'<div style="width:8px;height:8px;border-radius:50%;background:#5b8df6;flex-shrink:0;margin-top:6px"></div>':''}
+    </div>`;
+  }).join('');
+}
+
+function readNotif(id) {
+  readNotifs.add(id);
+  localStorage.setItem('gestion_read_notifs', JSON.stringify([...readNotifs]));
+  renderNotifList();
+  updateNotifBadge();
+}
+
+function markAllRead() {
+  buildNotifications().forEach(n=>readNotifs.add(n.id));
+  localStorage.setItem('gestion_read_notifs', JSON.stringify([...readNotifs]));
+  renderNotifList();
+  updateNotifBadge();
+}
+
+// ===================== GLOBAL SEARCH =====================
+function renderGlobalSearch() {
+  const q = (document.getElementById('globalSearch')?.value||'').toLowerCase().trim();
+  const res = document.getElementById('globalSearchResults');
+  if(!res) return;
+  if(!q || q.length < 2) { res.style.display='none'; return; }
+
+  const results = [];
+
+  // Search employees across all companies
+  const empresas = state.empresas || buildDefaultEmpresas();
+  empresas.forEach((em, i) => {
+    getEmployees(i).forEach(e=>{
+      const full = [(e.nombres||''),(e.apellidos||''),(e.nombre||''),(e.cedula||''),(e.cargo||''),(e.celular||'')].join(' ').toLowerCase();
+      if(full.includes(q)) results.push({ type:'emp', icon:'👤', title:(e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||''), sub: (e.cargo||'Sin cargo')+' · '+em.nombre, action:()=>{ currentCompany=i; currentEmpresaIdx=i; openEmployee(e.id); closeGlobalSearch(); } });
+    });
+  });
+
+  // Search vehicles
+  (state.vehicles||[]).forEach(v=>{
+    const txt = [(v.placa||''),(v.tipo||''),(v.marca||''),(v.propietario||'')].join(' ').toLowerCase();
+    if(txt.includes(q)) results.push({ type:'veh', icon:'🚗', title:v.placa||'Sin placa', sub:(v.tipo||'')+(v.marca?' · '+v.marca:''), action:()=>{ openVehiclesList(); setTimeout(()=>openVehicle(v.id),200); } });
+  });
+
+  // Search trailers
+  (state.trailers||[]).forEach(t=>{
+    const txt = [(t.placa||''),(t.tipo||''),(t.marca||'')].join(' ').toLowerCase();
+    if(txt.includes(q)) results.push({ type:'tr', icon:'🚛', title:t.placa||'Sin placa', sub:(t.tipo||'')+(t.capacidad?' · '+t.capacidad+'t':''), action:()=>{ openTrailersList(); setTimeout(()=>openTrailerDetail(t.id),200); } });
+  });
+
+  if(!results.length) {
+    res.style.display='block';
+    res.innerHTML=`<div style="padding:16px;text-align:center;color:var(--text2);font-size:.85rem">Sin resultados para "${q}"</div>`;
+    return;
+  }
+
+  res.style.display='block';
+  res.innerHTML = results.slice(0,12).map(r=>`
+    <div onclick="closeGlobalSearch();(${r.action.toString()})()" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+      <span style="font-size:1.3rem">${r.icon}</span>
+      <div><div style="font-weight:600;font-size:.88rem">${r.title}</div><div style="font-size:.75rem;color:var(--text2)">${r.sub}</div></div>
+    </div>`).join('');
+}
+
+function closeGlobalSearch() {
+  const el = document.getElementById('globalSearch');
+  const res = document.getElementById('globalSearchResults');
+  if(el) el.value='';
+  if(res) res.style.display='none';
+}
+
+// Close search on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#globalSearch') && !e.target.closest('#globalSearchResults')) {
+    const res=document.getElementById('globalSearchResults');
+    if(res) res.style.display='none';
+  }
+});
+
+// ===================== BIRTHDAYS =====================
+function openBirthdays() {
+  renderBirthdayCalendar();
+  showScreen('birthdayScreen');
+}
+
+function renderBirthdayCalendar() {
+  const calEl = document.getElementById('birthdayCalendar');
+  const listEl = document.getElementById('birthdayList');
+  if(!calEl||!listEl) return;
+
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+  const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  // Get all employees with birthdays
+  const allEmps = (state.empresas||[]).flatMap((_,i)=>getEmployees(i)).filter(e=>e.activo!==false && e.fechaNac);
+
+  // Group by day of month for current month
+  const bdByDay = {};
+  allEmps.forEach(e=>{
+    const parts = e.fechaNac.split('-');
+    if(parseInt(parts[1])-1 === month) {
+      const day = parseInt(parts[2]);
+      if(!bdByDay[day]) bdByDay[day]=[];
+      bdByDay[day].push(e);
+    }
+  });
+
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const today = now.getDate();
+
+  let cal = `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:20px">
+    <div style="background:linear-gradient(135deg,#ec4899,#f43f5e);padding:16px;text-align:center">
+      <div style="color:#fff;font-weight:800;font-size:1.1rem">${monthNames[month]} ${year}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:0">
+      ${dayNames.map(d=>`<div style="text-align:center;padding:8px 4px;font-size:.7rem;font-weight:600;color:var(--text2)">${d}</div>`).join('')}
+      ${Array(firstDay).fill('').map(()=>'<div></div>').join('')}
+      ${Array.from({length:daysInMonth},(_,i)=>{
+        const d=i+1;
+        const isToday=d===today;
+        const hasBd=bdByDay[d]?.length>0;
+        const names=bdByDay[d]?.map(e=>(e.apellidos||e.nombres||e.nombre||'').split(' ')[0]).join(', ')||'';
+        return `<div style="text-align:center;padding:6px 2px;position:relative;cursor:${hasBd?'pointer':'default'}" ${hasBd?`onclick="scrollToBirthday(${d})"`:''}}>
+          <div style="width:32px;height:32px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-weight:${isToday||hasBd?'800':'400'};font-size:.85rem;background:${isToday?'#5b8df6':hasBd?'rgba(236,72,153,.2)':'transparent'};color:${isToday?'#fff':hasBd?'#ec4899':'var(--text1)'}">
+            ${hasBd?'🎂':d}
+          </div>
+          ${hasBd&&!isToday?`<div style="font-size:.5rem;color:#ec4899;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40px;margin:0 auto">${names}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+  calEl.innerHTML = cal;
+
+  // Birthday list — all employees sorted by upcoming birthday
+  const allBd = allEmps.map(e=>{
+    const parts = e.fechaNac.split('-');
+    if(parts.length<3) return null;
+    const bdThisYear = new Date(year, parseInt(parts[1])-1, parseInt(parts[2]));
+    let diff = Math.ceil((bdThisYear - now) / 86400000);
+    if(diff < 0) diff += 365; // next year
+    const age = year - parseInt(parts[0]) + (diff < 0 ? 1 : 0);
+    const companyName = (state.empresas||[])[e.companyIdx]?.nombre || 'Empresa '+(e.companyIdx+1);
+    return { e, diff, age, month:parseInt(parts[1])-1, day:parseInt(parts[2]), companyName };
+  }).filter(Boolean).sort((a,b)=>a.diff-b.diff);
+
+  if(!allBd.length) {
+    listEl.innerHTML=`<div class="empty-state"><div class="empty-icon">🎂</div><div class="empty-text">No hay empleados con fecha de nacimiento registrada.</div></div>`;
+    return;
+  }
+
+  // Group by month
+  const byMonth = {};
+  allBd.forEach(item=>{
+    if(!byMonth[item.month]) byMonth[item.month]=[];
+    byMonth[item.month].push(item);
+  });
+
+  listEl.innerHTML = `<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin-bottom:12px">Todos los cumpleaños</div>` +
+    Object.entries(byMonth).sort((a,b)=>{
+      const am=parseInt(a[0]), bm=parseInt(b[0]);
+      const adj=m=>(m<month?m+12:m);
+      return adj(am)-adj(bm);
+    }).map(([m, items])=>`
+      <div style="margin-bottom:16px">
+        <div style="font-size:.8rem;font-weight:700;color:#ec4899;margin-bottom:8px;padding:4px 10px;background:rgba(236,72,153,.1);border-radius:8px;display:inline-block">${monthNames[parseInt(m)]}</div>
+        ${items.map(({e,diff,age,day})=>{
+          const isToday=diff===0;
+          const name=(e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||'');
+          return `<div id="bd_day_${day}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;margin-bottom:8px;background:${isToday?'rgba(236,72,153,.12)':'var(--surface2)'};border:1px solid ${isToday?'#ec4899':'var(--border)'}">
+            <div style="font-size:1.8rem">${isToday?'🎂':'🎁'}</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:.9rem">${name} ${isToday?'🎉':''}</div>
+              <div style="font-size:.75rem;color:var(--text2)">${e.cargo||'Sin cargo'} · ${e.companyName||''}</div>
+              <div style="font-size:.75rem;color:${isToday?'#ec4899':'var(--text2)'}">
+                Día ${day} · ${isToday?'¡Hoy!':diff===1?'Mañana':diff+' días'} · Cumple ${age} años
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`).join('');
+}
+
+function scrollToBirthday(day) {
+  const el = document.getElementById('bd_day_'+day);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+// ===================== EXCEL EXPORT =====================
+function exportExcel() {
+  const empresas = state.empresas || buildDefaultEmpresas();
+  let csv = '﻿'; // BOM for Excel UTF-8
+
+  // Sheet: Employees
+  csv += 'EMPLEADOS\n';
+  csv += 'Empresa,Apellidos,Nombres,Cédula,Cargo,Tipo Contrato,Salario,Fecha Ingreso,Antigüedad,Estado,EPS,ARL,Pensión,Caja,Celular,Correo,Ciudad,Tipo Sangre,Sexo,Fecha Nac,Edad,Contacto Emergencia,Tel Emergencia\n';
+  empresas.forEach((em,i)=>{
+    getEmployees(i).forEach(e=>{
+      const ant = e.fechaIngreso ? calcAntiguedad(e.fechaIngreso) : '';
+      const age = e.fechaNac ? calcEdad(e.fechaNac) : '';
+      const row = [
+        em.nombre, e.apellidos||'', e.nombres||e.nombre||'', e.cedula||'',
+        e.cargo||'', e.tipoContrato||'', e.salario||'',
+        e.fechaIngreso||'', ant, e.activo===false?'Inactivo':'Activo',
+        e.eps||'', e.arl||'', e.pension||'', e.caja||'',
+        e.celular||'', e.correo||'', e.ciudad||'',
+        e.sangre||'', e.sexo||'', e.fechaNac||'', age,
+        e.emergNombre||'', e.emergCelular||''
+      ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
+      csv += row.join(',') + '\n';
+    });
+  });
+
+  csv += '\nVEHÍCULOS\n';
+  csv += 'Placa,Tipo,Marca,Modelo,Color,Propietario,Leasing,Entidad Leasing,Tráiler,Estado,SOAT Fin,RTM Fin,Póliza Fin\n';
+  (state.vehicles||[]).forEach(v=>{
+    const row = [
+      v.placa||'', v.tipo||'', v.marca||'', v.modelo||'', v.color||'',
+      v.propietario||'', v.leasing?'Sí':'No', v.leasingEntidad||'',
+      getTrailerName(v.trailerAsignado),
+      v.activo===false?'Inactivo':'Activo',
+      v.soat_fin||'', v.rtm_fin||'', v.poliza_fin||''
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
+    csv += row.join(',') + '\n';
+  });
+
+  csv += '\nTRÁILERES\n';
+  csv += 'Placa,Tipo Carrocería,Marca,Modelo,Color,Capacidad(t),Ejes,Propietario,Estado,Póliza Fin\n';
+  (state.trailers||[]).forEach(t=>{
+    const row = [
+      t.placa||'', t.tipo||'', t.marca||'', t.modelo||'', t.color||'',
+      t.capacidad||'', t.ejes||'', t.propietario||'',
+      t.activo===false?'Inactivo':'Activo', t.poliza_fin||''
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
+    csv += row.join(',') + '\n';
+  });
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'gestion_empresarial_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📊 Excel descargado correctamente');
+}
+
+function calcEdad(fechaNac) {
+  if(!fechaNac) return '';
+  const d=new Date(fechaNac+'T00:00:00'), now=new Date();
+  let age=now.getFullYear()-d.getFullYear();
+  if(now.getMonth()<d.getMonth()||(now.getMonth()===d.getMonth()&&now.getDate()<d.getDate())) age--;
+  return age+' años';
+}
+
+// ===================== INIT =====================
+(async function init(){
+  // Draw icons
+  drawLoginIcon();
+
+  // Check saved session
+  try {
+    const saved = localStorage.getItem('gestion_session');
+    if(saved) {
+      const sess = JSON.parse(saved);
+      // Verify session still valid in DB
+      const { data } = await sb.from('gestion_users').select('*').eq('id', sess.id).single();
+      if(data) {
+        currentUser = data;
+        currentUser.empresas = Array.isArray(data.empresas)?data.empresas:(typeof data.empresas==='string'?JSON.parse(data.empresas||'[]'):[]);
+        onLoginSuccess();
+      } else {
+        localStorage.removeItem('gestion_session');
+      }
+    }
+  } catch(e) {}
+
+  // If still no user - check if any admin exists, if not create default
+  if(!currentUser) {
+    try {
+      const { data: users } = await sb.from('gestion_users').select('id').eq('role','admin').limit(1);
+      if(!users || users.length === 0) {
+        // Create default admin
+        const hash = await hashPassword('admin123');
+        await sb.from('gestion_users').insert({
+          id: 'usr_admin_default',
+          username: 'admin',
+          password_hash: hash,
+          role: 'admin',
+          empresas: JSON.stringify([]),
+          puede_ver_salarios: true
+        }).select();
+      }
+    } catch(e) {}
+  }
+
+  // Draw splash icon
+  try {
+    const sc = document.getElementById('splashCanvas');
+    if(sc) {
+      const sctx = sc.getContext('2d');
+      const grad = sctx.createLinearGradient(0,0,120,120);
+      grad.addColorStop(0,'#2a2d3a'); grad.addColorStop(1,'#1a1d27');
+      sctx.fillStyle=grad; sctx.beginPath(); sctx.roundRect(0,0,120,120,22); sctx.fill();
+      const g2=sctx.createRadialGradient(60,48,0,60,48,60);
+      g2.addColorStop(0,'rgba(91,141,246,0.2)'); g2.addColorStop(1,'rgba(91,141,246,0)');
+      sctx.fillStyle=g2; sctx.beginPath(); sctx.roundRect(0,0,120,120,22); sctx.fill();
+      // book body
+      sctx.shadowColor='rgba(0,0,0,0.5)'; sctx.shadowBlur=8; sctx.shadowOffsetY=4;
+      sctx.fillStyle='#e8dcc8'; sctx.beginPath(); sctx.roundRect(22,28,33,38,[6,0,0,6]); sctx.fill();
+      sctx.fillStyle='#f0e6d0'; sctx.beginPath(); sctx.roundRect(65,28,33,38,[0,6,6,0]); sctx.fill();
+      sctx.shadowColor='transparent';
+      const sg=sctx.createLinearGradient(56,0,64,0);
+      sg.addColorStop(0,'#5b8df6'); sg.addColorStop(0.5,'#7ba8ff'); sg.addColorStop(1,'#4a7ae0');
+      sctx.fillStyle=sg; sctx.beginPath(); sctx.roundRect(55,27,10,40,3); sctx.fill();
+      sctx.fillStyle='#fb923c'; sctx.beginPath();
+      sctx.moveTo(57,27); sctx.lineTo(63,27); sctx.lineTo(63,38); sctx.lineTo(60,35); sctx.lineTo(57,38);
+      sctx.closePath(); sctx.fill();
+      sctx.strokeStyle='rgba(160,140,110,0.5)'; sctx.lineWidth=2; sctx.lineCap='round';
+      [35,42,49,56].forEach((ly,i)=>{
+        sctx.beginPath(); sctx.moveTo(26,ly); sctx.lineTo(i===3?46:53,ly); sctx.stroke();
+        sctx.beginPath(); sctx.moveTo(67,ly); sctx.lineTo(i===3?84:94,ly); sctx.stroke();
+      });
+    }
+  } catch(e){}
+
+  loadLocal();
+  // Migrate: ensure state arrays exist
+  if(!state.trailers) state.trailers=[];
+  if(!state.empresas || !state.empresas.length) state.empresas = buildDefaultEmpresas();
+  await loadSettings();
+  applySettingsToDom(state.settings||{});
+  await loadFromCloud();
+  // After cloud sync, re-apply settings and ensure arrays
+  if(!state.trailers) state.trailers=[];
+  if(!state.empresas || !state.empresas.length) state.empresas = buildDefaultEmpresas();
+  applySettingsToDom(state.settings||{});
+
+  updateNotifBadge();
+  // Hide splash
+  setTimeout(()=>{
+    const s=document.getElementById('splash');
+    if(s){s.classList.add('hide');setTimeout(()=>s.remove(),500);}
+  }, 800);
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'gestion-v1';
+const ASSETS = ['.'];
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
+self.addEventListener('fetch', e => e.respondWith(
+  caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('.')))
+));
+self.addEventListener('activate', e => e.waitUntil(
+  caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))
+));`;
+  const blob = new Blob([swCode], {type:'text/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+</script>
+</body>
+</html>
