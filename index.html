@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<!-- v2.1 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestión Empresarial</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -482,7 +483,7 @@
     <div class="main-buttons">
       <button class="main-btn btn1" onclick="openEmpresasScreen()"><span class="btn-emoji">🏢</span><span>EMPRESAS</span></button>
       <button class="main-btn btn4" onclick="openVehicles()"><span class="btn-emoji" id="emoji4">🚗</span><span id="vehiclesBtn">VEHÍCULOS</span></button>
-      <button class="main-btn btn5" onclick="canExcel()?exportExcel():toast('⛔ Sin permiso para exportar Excel')" id="excelBtn"><span class="btn-emoji">📊</span><span>EXPORTAR EXCEL</span></button>
+      
     </div>
   </div>
 </div>
@@ -808,6 +809,10 @@
 <div id="fabContainer" style="position:fixed;bottom:24px;right:20px;z-index:200;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
   <!-- Sub-buttons (hidden by default) -->
   <div id="fabSubBtns" style="display:none;flex-direction:column;align-items:flex-end;gap:8px;margin-bottom:4px">
+    <div id="fabExportBtn" style="display:flex;align-items:center;gap:8px">
+      <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Exportar</span>
+      <button onclick="closeFabMenu();openExportModal()" style="width:46px;height:46px;border-radius:50%;background:#16a34a;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(22,163,74,.4);display:flex;align-items:center;justify-content:center">📥</button>
+    </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
       <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
@@ -827,6 +832,68 @@
   </div>
   <!-- Main FAB toggle button - always visible -->
   <button id="fabToggleBtn" onclick="toggleFabMenu()" style="width:54px;height:54px;border-radius:50%;background:#5b8df6;border:none;color:#fff;font-size:1.5rem;cursor:pointer;box-shadow:0 4px 24px rgba(91,141,246,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s">➕</button>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">
+      <span id="exportModalTitle">📥 Exportar</span>
+      <button class="modal-close" onclick="closeModal('exportModal')">✕</button>
+    </div>
+
+    <!-- Filters -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Filtros</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <!-- Estado -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:.82rem;color:var(--text2);min-width:70px">Estado:</span>
+          <div style="display:flex;gap:6px">
+            <button id="exp_f_todos" onclick="setExportFilter('estado','todos')" class="filter-btn active" style="font-size:.78rem;padding:4px 10px">Todos</button>
+            <button id="exp_f_activos" onclick="setExportFilter('estado','activos')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Activos</button>
+            <button id="exp_f_inactivos" onclick="setExportFilter('estado','inactivos')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Inactivos</button>
+          </div>
+        </div>
+        <!-- Empresa (solo empleados) -->
+        <div id="exp_empresa_row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:.82rem;color:var(--text2);min-width:70px">Empresa:</span>
+          <select id="exp_empresa" class="form-select" style="flex:1;min-width:140px;font-size:.82rem;padding:6px 10px">
+            <option value="todas">Todas las empresas</option>
+          </select>
+        </div>
+        <!-- Cargo (solo empleados) -->
+        <div id="exp_cargo_row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:.82rem;color:var(--text2);min-width:70px">Cargo:</span>
+          <select id="exp_cargo" class="form-select" style="flex:1;min-width:140px;font-size:.82rem;padding:6px 10px">
+            <option value="todos">Todos los cargos</option>
+          </select>
+        </div>
+        <!-- Salario (solo empleados) -->
+        <div id="exp_salario_row" style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.82rem;color:var(--text2);min-width:70px">Salario:</span>
+          <div style="display:flex;gap:6px">
+            <button id="exp_f_consalario" onclick="setExportFilter('salario','con')" class="filter-btn active" style="font-size:.78rem;padding:4px 10px">Con salario</button>
+            <button id="exp_f_sinsalario" onclick="setExportFilter('salario','sin')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Sin salario</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Columns -->
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700">Columnas a incluir</span>
+        <div style="display:flex;gap:6px">
+          <button onclick="selectAllExportCols(true)" style="font-size:.75rem;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text2);cursor:pointer">Todo</button>
+          <button onclick="selectAllExportCols(false)" style="font-size:.75rem;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text2);cursor:pointer">Nada</button>
+        </div>
+      </div>
+      <div id="exportColsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:240px;overflow-y:auto"></div>
+    </div>
+
+    <button class="save-btn" onclick="runExport()" style="background:#16a34a">📥 Descargar CSV</button>
+  </div>
 </div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
@@ -1166,7 +1233,6 @@ function applySettingsToDom(s) {
   const btnClassMap = {
     'btn1': ['btn1bg','btn1text'],
     'btn4': ['btn4bg','btn4text'],
-    'btn5': ['btn5bg','btn5text'],
   };
   Object.entries(btnClassMap).forEach(([cls,[bgKey,textKey]])=>{
     const el = document.querySelector('.main-btn.'+cls);
@@ -2307,9 +2373,9 @@ function applyUserPermissions() {
   const fabSett = document.getElementById('fabSettingsBtn');
   if(fabSett) fabSett.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
 
-  // ── Excel button ────────────────────────────────────────────────────
-  const excelBtn = document.getElementById('excelBtn');
-  if(excelBtn) excelBtn.style.opacity = canExcel() ? '1' : '0.4';
+  // ── Export button ────────────────────────────────────────────────────
+  const fabExport = document.getElementById('fabExportBtn');
+  if(fabExport) fabExport.style.display = canExcel() ? 'flex' : 'none';
 
   // ── Add/Edit buttons: admin and editor only ──────────────────────
   const showAdd = isAdmin || isEditor;
@@ -2894,6 +2960,227 @@ function scrollToBirthday(day) {
 }
 
 // ===================== EXCEL EXPORT =====================
+
+// ===================== EXPORT SYSTEM =====================
+let exportMode = 'employees'; // 'employees' | 'vehicles' | 'trailers'
+let exportFilters = { estado: 'todos', salario: 'con', empresa: 'todas', cargo: 'todos' };
+
+const EMP_COLS = [
+  {id:'nombres',       label:'Nombres'},
+  {id:'apellidos',     label:'Apellidos'},
+  {id:'cedula',        label:'Cédula'},
+  {id:'cargo',         label:'Cargo'},
+  {id:'estadoCivil',   label:'Estado Civil'},
+  {id:'sexo',          label:'Sexo'},
+  {id:'sangre',        label:'Tipo Sangre'},
+  {id:'fechaNac',      label:'Fecha Nac.'},
+  {id:'edad',          label:'Edad', computed: e => calcEdad(e.fechaNac)},
+  {id:'ciudadNac',     label:'Ciudad Nac.'},
+  {id:'fechaExp',      label:'F. Exp. Cédula'},
+  {id:'ciudadExp',     label:'Ciudad Exp.'},
+  {id:'direccion',     label:'Dirección'},
+  {id:'barrio',        label:'Barrio'},
+  {id:'ciudad',        label:'Ciudad Res.'},
+  {id:'celular',       label:'Celular'},
+  {id:'correo',        label:'Correo'},
+  {id:'empresa',       label:'Empresa', computed: e => getCompanyName(e.companyIdx)},
+  {id:'fechaIngreso',  label:'Fecha Ingreso'},
+  {id:'antiguedad',    label:'Antigüedad', computed: e => calcAntiguedad(e.fechaIngreso)},
+  {id:'tipoContrato',  label:'Tipo Contrato'},
+  {id:'duracion',      label:'Duración (meses)'},
+  {id:'salario',       label:'Salario'},
+  {id:'eps',           label:'EPS'},
+  {id:'arl',           label:'ARL'},
+  {id:'nivelArl',      label:'Nivel ARL'},
+  {id:'pension',       label:'Pensión'},
+  {id:'caja',          label:'Caja Compensación'},
+  {id:'tipoLicencia',  label:'Tipo Licencia'},
+  {id:'vencLicencia',  label:'Venc. Licencia'},
+  {id:'vehiculo',      label:'Vehículo Asignado', computed: e => getVehicleName(e.vehiculoAsignado)},
+  {id:'emergNombre',   label:'Contacto Emergencia'},
+  {id:'emergParentesco',label:'Parentesco'},
+  {id:'emergCelular',  label:'Tel. Emergencia'},
+  {id:'estado',        label:'Estado', computed: e => e.activo===false?'Inactivo':'Activo'},
+];
+
+const VEH_COLS = [
+  {id:'placa',        label:'Placa'},
+  {id:'tipo',         label:'Tipo'},
+  {id:'marca',        label:'Marca'},
+  {id:'modelo',       label:'Modelo'},
+  {id:'color',        label:'Color'},
+  {id:'propietario',  label:'Propietario'},
+  {id:'tipoIdPropietario', label:'Tipo ID'},
+  {id:'noIdPropietario',   label:'No. ID'},
+  {id:'leasing',      label:'Leasing', computed: v => v.leasing?'Sí':'No'},
+  {id:'leasingEntidad',label:'Entidad Leasing'},
+  {id:'trailer',      label:'Tráiler', computed: v => getTrailerName(v.trailerAsignado)},
+  {id:'soat_ini',     label:'SOAT Inicio'},
+  {id:'soat_fin',     label:'SOAT Fin'},
+  {id:'rtm_ini',      label:'RTM Inicio'},
+  {id:'rtm_fin',      label:'RTM Fin'},
+  {id:'poliza_ini',   label:'Póliza Inicio'},
+  {id:'poliza_fin',   label:'Póliza Fin'},
+  {id:'estado',       label:'Estado', computed: v => v.activo===false?'Inactivo':'Activo'},
+];
+
+const TR_COLS = [
+  {id:'placa',        label:'Placa'},
+  {id:'tipo',         label:'Tipo Carrocería'},
+  {id:'marca',        label:'Marca'},
+  {id:'modelo',       label:'Modelo'},
+  {id:'color',        label:'Color'},
+  {id:'capacidad',    label:'Capacidad (t)'},
+  {id:'ejes',         label:'Ejes'},
+  {id:'propietario',  label:'Propietario'},
+  {id:'tipoIdPropietario', label:'Tipo ID'},
+  {id:'noIdPropietario',   label:'No. ID'},
+  {id:'poliza_ini',   label:'Póliza Inicio'},
+  {id:'poliza_fin',   label:'Póliza Fin'},
+  {id:'estado',       label:'Estado', computed: t => t.activo===false?'Inactivo':'Activo'},
+];
+
+let exportSelectedCols = new Set();
+
+function openExportModal() {
+  // Determine mode based on current screen
+  const activeScreen = document.querySelector('.screen.active')?.id || '';
+  if(activeScreen === 'trailersList' || activeScreen === 'trailerDetail') {
+    exportMode = 'trailers';
+  } else if(activeScreen === 'vehiclesList' || activeScreen === 'vehicleDetail' || activeScreen === 'vehiclesModule') {
+    exportMode = 'vehicles';
+  } else {
+    exportMode = 'employees';
+  }
+
+  const isEmp = exportMode === 'employees';
+  document.getElementById('exportModalTitle').textContent =
+    exportMode === 'employees' ? '📥 Exportar Empleados' :
+    exportMode === 'vehicles'  ? '📥 Exportar Vehículos' : '📥 Exportar Tráileres';
+
+  // Show/hide employee-only filters
+  document.getElementById('exp_empresa_row').style.display = isEmp ? 'flex' : 'none';
+  document.getElementById('exp_cargo_row').style.display   = isEmp ? 'flex' : 'none';
+  document.getElementById('exp_salario_row').style.display = isEmp ? 'flex' : 'none';
+
+  // Reset filters
+  exportFilters = { estado: 'todos', salario: 'con', empresa: 'todas', cargo: 'todos' };
+  ['todos','activos','inactivos'].forEach(f => {
+    const b = document.getElementById('exp_f_'+f);
+    if(b) b.classList.toggle('active', f === 'todos');
+  });
+  ['consalario','sinsalario'].forEach(f => {
+    const b = document.getElementById('exp_f_'+f);
+    if(b) b.classList.toggle('active', f === 'consalario');
+  });
+
+  // Populate empresa dropdown
+  const empSel = document.getElementById('exp_empresa');
+  empSel.innerHTML = '<option value="todas">Todas las empresas</option>';
+  (state.empresas||[]).forEach((em,i) => {
+    empSel.innerHTML += `<option value="${i}">${em.nombre||'Empresa '+(i+1)}</option>`;
+  });
+  empSel.onchange = () => { exportFilters.empresa = empSel.value; };
+
+  // Populate cargo dropdown
+  const cargoSel = document.getElementById('exp_cargo');
+  cargoSel.innerHTML = '<option value="todos">Todos los cargos</option>';
+  if(isEmp) {
+    const cargos = [...new Set(state.employees.map(e=>e.cargo).filter(Boolean))].sort();
+    cargos.forEach(c => { cargoSel.innerHTML += `<option value="${c}">${c}</option>`; });
+  }
+  cargoSel.onchange = () => { exportFilters.cargo = cargoSel.value; };
+
+  // Render columns checkboxes
+  const cols = exportMode === 'employees' ? EMP_COLS : exportMode === 'vehicles' ? VEH_COLS : TR_COLS;
+  exportSelectedCols = new Set(cols.map(c=>c.id)); // all selected by default
+  renderExportCols(cols);
+
+  openModal('exportModal');
+}
+
+function renderExportCols(cols) {
+  const grid = document.getElementById('exportColsGrid');
+  grid.innerHTML = cols.map(col => `
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border-radius:8px;border:1.5px solid ${exportSelectedCols.has(col.id)?'var(--accent1)':'var(--border)'};background:${exportSelectedCols.has(col.id)?'rgba(91,141,246,.08)':'transparent'};transition:all .15s;font-size:.82rem;font-weight:500;user-select:none" onclick="toggleExportCol('${col.id}',this)">
+      <span style="font-size:1rem">${exportSelectedCols.has(col.id)?'☑':'☐'}</span>
+      ${col.label}
+    </label>
+  `).join('');
+}
+
+function toggleExportCol(id, lbl) {
+  if(exportSelectedCols.has(id)) exportSelectedCols.delete(id);
+  else exportSelectedCols.add(id);
+  const selected = exportSelectedCols.has(id);
+  lbl.style.borderColor = selected ? 'var(--accent1)' : 'var(--border)';
+  lbl.style.background  = selected ? 'rgba(91,141,246,.08)' : 'transparent';
+  lbl.querySelector('span').textContent = selected ? '☑' : '☐';
+}
+
+function selectAllExportCols(val) {
+  const cols = exportMode === 'employees' ? EMP_COLS : exportMode === 'vehicles' ? VEH_COLS : TR_COLS;
+  if(val) cols.forEach(c => exportSelectedCols.add(c.id));
+  else exportSelectedCols.clear();
+  renderExportCols(cols);
+}
+
+function setExportFilter(type, val) {
+  exportFilters[type] = val;
+  if(type === 'estado') {
+    ['todos','activos','inactivos'].forEach(f => {
+      const b = document.getElementById('exp_f_'+f);
+      if(b) b.classList.toggle('active', f === val);
+    });
+  } else if(type === 'salario') {
+    ['consalario','sinsalario'].forEach(f => {
+      const b = document.getElementById('exp_f_'+f);
+      if(b) b.classList.toggle('active', f === val);
+    });
+  }
+}
+
+function runExport() {
+  if(exportSelectedCols.size === 0) { toast('⚠️ Selecciona al menos una columna'); return; }
+  const cols = (exportMode === 'employees' ? EMP_COLS : exportMode === 'vehicles' ? VEH_COLS : TR_COLS)
+    .filter(c => exportSelectedCols.has(c.id));
+
+  let rows = [];
+  if(exportMode === 'employees') {
+    let emps = (state.empresas||[]).flatMap((_,i) => getEmployees(i).map(e => ({...e, _companyIdx:i})));
+    if(exportFilters.estado === 'activos')   emps = emps.filter(e => e.activo !== false);
+    if(exportFilters.estado === 'inactivos') emps = emps.filter(e => e.activo === false);
+    if(exportFilters.empresa !== 'todas')    emps = emps.filter(e => String(e.companyIdx) === exportFilters.empresa);
+    if(exportFilters.cargo !== 'todos')      emps = emps.filter(e => e.cargo === exportFilters.cargo);
+    rows = emps.map(e => cols.map(c => c.computed ? c.computed(e) : (e[c.id]||'')));
+  } else if(exportMode === 'vehicles') {
+    let vehs = state.vehicles || [];
+    if(exportFilters.estado === 'activos')   vehs = vehs.filter(v => v.activo !== false);
+    if(exportFilters.estado === 'inactivos') vehs = vehs.filter(v => v.activo === false);
+    rows = vehs.map(v => cols.map(c => c.computed ? c.computed(v) : (v[c.id]||'')));
+  } else {
+    let trs = state.trailers || [];
+    if(exportFilters.estado === 'activos')   trs = trs.filter(t => t.activo !== false);
+    if(exportFilters.estado === 'inactivos') trs = trs.filter(t => t.activo === false);
+    rows = trs.map(t => cols.map(c => c.computed ? c.computed(t) : (t[c.id]||'')));
+  }
+
+  // Build CSV
+  const header = cols.map(c => '"'+c.label+'"').join(',');
+  const body = rows.map(row => row.map(v => '"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const csv = '\ufeff' + header + '\n' + body;
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const mode = exportMode === 'employees' ? 'empleados' : exportMode === 'vehicles' ? 'vehiculos' : 'trailers';
+  a.download = `${mode}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  closeModal('exportModal');
+  toast('📥 CSV descargado');
+}
+
 function exportExcel() {
   const empresas = state.empresas || buildDefaultEmpresas();
   let csv = '﻿'; // BOM for Excel UTF-8
