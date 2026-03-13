@@ -1490,11 +1490,13 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Vencimiento licencia</div><div class="field-value" style="color:${licVencColor(e.vencLicencia)}">${fmtDate(e.vencLicencia)||'—'}${licVencLabel(e.vencLicencia)}</div></div>
       <div class="field-card"><div class="field-label">Vehículo asignado</div><div class="field-value">${getVehicleName(e.vehiculoAsignado)}</div></div>
       `:''}
-      <div class="section-title" style="margin-top:8px">🆘 Contacto de Emergencia</div>
+    </div>
+
+    <div class="section-title">🆘 Contacto de Emergencia</div>
+    <div class="fields-grid">
       <div class="field-card"><div class="field-label">Nombre</div><div class="field-value">${e.emergNombre||'—'}</div></div>
       <div class="field-card"><div class="field-label">Parentesco</div><div class="field-value">${e.emergParentesco||'—'}</div></div>
       <div class="field-card"><div class="field-label">Celular</div><div class="field-value">${e.emergCelular?`<a href="tel:${e.emergCelular}" style="color:var(--accent1)">${e.emergCelular}</a>`:'—'}</div></div>
-      <div class="field-card"><div class="field-label">Dirección</div><div class="field-value">${e.emergDireccion||'—'}</div></div>
     </div>
 
     <div class="section-title">Documentos</div>
