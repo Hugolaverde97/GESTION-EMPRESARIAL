@@ -1528,14 +1528,16 @@ function deleteEmpDoc(idx) { const e=state.employees.find(x=>x.id===currentEmplo
 function openAddEmployee() {
   editingEmployee=false;
   document.getElementById('empModalTitle').textContent='Agregar Empleado';
-  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','pension','caja','salario','duracion'].forEach(f=>document.getElementById('emp_'+f).value='');
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value='';});
   document.getElementById('emp_tipoContrato').value='';
   document.getElementById('emp_sangre').value='';
   document.getElementById('emp_sexo').value='';
+  document.getElementById('emp_estadoCivil').value='';
+  document.getElementById('emp_grupo_duracion') && (document.getElementById('grupo_duracion').style.display='none');
   document.getElementById('grupo_duracion').style.display='none';
   document.getElementById('grupo_conductor').style.display='none';
   document.getElementById('grupo_cargo_otro').style.display='none';
-  document.getElementById('emp_emergParentesco').value='';
+  setLeasing(false);
   openModal('employeeModal');
 }
 
@@ -1543,7 +1545,7 @@ function openEditEmployee() {
   const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
   editingEmployee=true;
   document.getElementById('empModalTitle').textContent='Editar Empleado';
-  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','pension','caja','salario','duracion'].forEach(f=>document.getElementById('emp_'+f).value=e[f]||'');
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value=e[f]||'';});
   document.getElementById('emp_tipoContrato').value=e.tipoContrato||'';
   document.getElementById('emp_sangre').value=e.sangre||'';
   document.getElementById('emp_sexo').value=e.sexo||'';
@@ -1562,7 +1564,7 @@ function openEditEmployee() {
   const esConductor = (e.cargo||'').toLowerCase().includes('conductor');
   document.getElementById('grupo_conductor').style.display = esConductor ? 'block' : 'none';
   if(esConductor) populateVehicleSelect(e.vehiculoAsignado);
-  document.getElementById('emp_emergParentesco').value = e.emergParentesco||'';
+  document.getElementById('emp_estadoCivil').value = e.estadoCivil||'';
   openModal('employeeModal');
 }
 
@@ -1571,7 +1573,7 @@ function saveEmployee() {
   const nombres=document.getElementById('emp_nombres').value.trim();
   const apellidos=document.getElementById('emp_apellidos').value.trim();
   if(!nombres){alert('El nombre es obligatorio.');return;}
-  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergCelular','emergDireccion','estadoCivil'];
+  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','ciudadNac','fechaNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','estadoCivil'];
   const data={};
   fields.forEach(f=>data[f]=document.getElementById('emp_'+f).value.trim());
   const cargoVal = document.getElementById('emp_cargo').value;
