@@ -857,6 +857,17 @@
           <option>Masculino</option><option>Femenino</option><option>Otro</option>
         </select>
       </div>
+      <div class="form-group"><label class="form-label">Estado Civil</label>
+        <select class="form-select" id="emp_estadoCivil">
+          <option value="">Seleccionar...</option>
+          <option>Soltero/a</option>
+          <option>Casado/a</option>
+          <option>Unión libre</option>
+          <option>Divorciado/a</option>
+          <option>Viudo/a</option>
+          <option>Separado/a</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Fecha expedición cédula</label><input type="date" class="form-input" id="emp_fechaExp"></div>
       <div class="form-group"><label class="form-label">Ciudad expedición</label><input class="form-input" id="emp_ciudadExp" placeholder="Ciudad"></div>
       <div class="form-group"><label class="form-label">Fecha de nacimiento</label><input type="date" class="form-input" id="emp_fechaNac"></div>
@@ -954,6 +965,7 @@
       <div class="form-group"><label class="form-label">Salario mensual</label><input class="form-input" id="emp_salario" placeholder="Ej: 2.500.000"></div>
       <div class="form-group"><label class="form-label">EPS</label><input class="form-input" id="emp_eps" placeholder="Nombre de EPS"></div>
       <div class="form-group"><label class="form-label">ARL</label><input class="form-input" id="emp_arl" placeholder="Nombre de ARL"></div>
+      <div class="form-group"><label class="form-label">Nivel de Riesgo ARL</label><select class="form-select" id="emp_nivelArl"><option value="">Seleccionar...</option><option value="I">Nivel I – Mínimo</option><option value="II">Nivel II – Bajo</option><option value="III">Nivel III – Medio</option><option value="IV">Nivel IV – Alto</option><option value="V">Nivel V – Máximo</option></select></div>
       <div class="form-group"><label class="form-label">Fondo de pensión</label><input class="form-input" id="emp_pension" placeholder="Fondo de pensión"></div>
       <div class="form-group"><label class="form-label">Caja de compensación</label><input class="form-input" id="emp_caja" placeholder="Caja de compensación"></div>
     </div>
@@ -1462,6 +1474,7 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Celular</div><div class="field-value">${e.emergCelular?`<a href="tel:${e.emergCelular}" style="color:var(--accent1)">${e.emergCelular}</a>`:'—'}</div></div>
       <div class="field-card"><div class="field-label">Dirección</div><div class="field-value">${e.emergDireccion||'—'}</div></div>
       <div class="field-card"><div class="field-label">ARL</div><div class="field-value">${e.arl||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Nivel Riesgo ARL</div><div class="field-value">${e.nivelArl?'Nivel '+e.nivelArl:'—'}</div></div>
       <div class="field-card"><div class="field-label">Fondo de pensión</div><div class="field-value">${e.pension||'—'}</div></div>
       <div class="field-card"><div class="field-label">Caja de compensación</div><div class="field-value">${e.caja||'—'}</div></div>
     </div>
@@ -1545,7 +1558,7 @@ function saveEmployee() {
   const nombres=document.getElementById('emp_nombres').value.trim();
   const apellidos=document.getElementById('emp_apellidos').value.trim();
   if(!nombres){alert('El nombre es obligatorio.');return;}
-  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergCelular','emergDireccion'];
+  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergCelular','emergDireccion','estadoCivil'];
   const data={};
   fields.forEach(f=>data[f]=document.getElementById('emp_'+f).value.trim());
   const cargoVal = document.getElementById('emp_cargo').value;
@@ -1652,6 +1665,8 @@ function renderStats() {
         return '> $7M';
       })
     },
+    { id:'chartNivelArl', title:'Nivel de Riesgo ARL', fn: ()=>groupBy(emps, e=>e.nivelArl?'Nivel '+e.nivelArl:'Sin dato') },
+    { id:'chartEstadoCivil', title:'Estado Civil', fn: ()=>groupBy(emps, e=>e.estadoCivil||'Sin dato') },
     { id:'chartEstado', title:'Estado', fn: ()=>({'Activos':activos,'Inactivos':inactivos}) },
   ];
 
