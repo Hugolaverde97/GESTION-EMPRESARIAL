@@ -954,9 +954,9 @@
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:.82rem;color:var(--text2);min-width:70px">Estado:</span>
           <div style="display:flex;gap:6px">
-            <button id="exp_f_todos" onclick="setExportFilter('estado','todos')" class="filter-btn active" style="font-size:.78rem;padding:4px 10px">Todos</button>
-            <button id="exp_f_activos" onclick="setExportFilter('estado','activos')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Activos</button>
-            <button id="exp_f_inactivos" onclick="setExportFilter('estado','inactivos')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Inactivos</button>
+            <button id="exp_f_todos" onclick="setExportFilter('estado','todos')" class="filter-btn active">Todos</button>
+            <button id="exp_f_activos" onclick="setExportFilter('estado','activos')" class="filter-btn">Activos</button>
+            <button id="exp_f_inactivos" onclick="setExportFilter('estado','inactivos')" class="filter-btn">Inactivos</button>
           </div>
         </div>
         <!-- Empresa (solo empleados) -->
@@ -977,8 +977,8 @@
         <div id="exp_salario_row" style="display:flex;align-items:center;gap:8px">
           <span style="font-size:.82rem;color:var(--text2);min-width:70px">Salario:</span>
           <div style="display:flex;gap:6px">
-            <button id="exp_f_consalario" onclick="setExportFilter('salario','con')" class="filter-btn active" style="font-size:.78rem;padding:4px 10px">Con salario</button>
-            <button id="exp_f_sinsalario" onclick="setExportFilter('salario','sin')" class="filter-btn" style="font-size:.78rem;padding:4px 10px">Sin salario</button>
+            <button id="exp_f_consalario" onclick="setExportFilter('salario','con')" class="filter-btn active">Con salario</button>
+            <button id="exp_f_sinsalario" onclick="setExportFilter('salario','sin')" class="filter-btn">Sin salario</button>
           </div>
         </div>
       </div>
@@ -2696,6 +2696,19 @@ function togglePermLabel(checkId, labelId, color) {
   // Show/hide sub-perms
   const subDiv = document.getElementById('subperm_'+checkId);
   if(subDiv) subDiv.style.display = cb.checked ? 'flex' : 'none';
+  // Show/hide grouped sub-perms for parent perms (acc0/1/2/3)
+  const subMap = {
+    'ue_acc0': ['subperm_ue_baja_emp0','subperm_ue_del_emp0','subperm_ue_stats0'],
+    'ue_acc1': ['subperm_ue_baja_emp1','subperm_ue_del_emp1','subperm_ue_stats1'],
+    'ue_acc2': ['subperm_ue_baja_emp2','subperm_ue_del_emp2','subperm_ue_stats2'],
+    'ue_acc3': ['subperm_ue_baja_veh','subperm_ue_del_veh','subperm_ue_baja_tr','subperm_ue_del_tr'],
+  };
+  if(subMap[checkId]) {
+    subMap[checkId].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.display = cb.checked ? 'flex' : 'none';
+    });
+  }
 }
 
 function refreshPermVisuals() {
@@ -3352,6 +3365,7 @@ function runExport() {
     if(exportFilters.estado === 'inactivos') emps = emps.filter(e => e.activo === false);
     if(exportFilters.empresa !== 'todas')    emps = emps.filter(e => String(e.companyIdx) === exportFilters.empresa);
     if(exportFilters.cargo !== 'todos')      emps = emps.filter(e => e.cargo === exportFilters.cargo);
+    if(exportFilters.salario === 'sin') emps = emps.map(e => ({...e, salario:''})); // strip salario
     rows = emps.map(e => cols.map(c => c.computed ? c.computed(e) : (e[c.id]||'')));
   } else if(exportMode === 'vehicles') {
     let vehs = state.vehicles || [];
