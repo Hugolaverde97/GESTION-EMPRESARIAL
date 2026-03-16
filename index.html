@@ -1032,6 +1032,77 @@
     <button class="save-btn" onclick="saveRenewal()">💾 Guardar renovación</button>
   </div>
 </div>
+
+<!-- ORGANIGRAMA SCREEN -->
+<div id="organigramaScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
+    <span class="bar-title" id="orgTitle">Organigrama</span>
+    <div class="bar-actions" style="display:flex;gap:6px">
+      <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:var(--font)">✏️ Editar</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe" style="padding:0;overflow:hidden;position:relative">
+    <!-- Canvas for connections -->
+    <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
+    <!-- Nodes container -->
+    <div id="orgNodes" style="position:relative;z-index:1;min-height:100%;overflow:auto;padding:20px"></div>
+    <!-- Empty state -->
+    <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2)">
+      <div style="font-size:3rem;margin-bottom:12px">🗂️</div>
+      <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Sin estructura aún</div>
+      <div style="font-size:.85rem;margin-bottom:20px">Crea el primer nodo para empezar</div>
+      <button onclick="addOrgNode(null)" class="save-btn" style="width:auto;padding:12px 24px">➕ Agregar nodo raíz</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORGANIGRAMA NODE MODAL -->
+<div class="modal-overlay" id="orgNodeModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">
+      <span id="orgNodeModalTitle">Nuevo Nodo</span>
+      <button class="modal-close" onclick="closeModal('orgNodeModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Cargo / Posición</label>
+        <input class="form-input" id="orgn_cargo" placeholder="Ej: Gerente General">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Puestos previstos</label>
+        <input type="number" class="form-input" id="orgn_puestos" placeholder="1" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Color del nodo</label>
+        <input type="color" class="form-input" id="orgn_color" value="#5b8df6" style="padding:4px;height:40px">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Empleados asignados</label>
+        <div id="orgn_emp_list" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="save-btn" onclick="saveOrgNode()" style="flex:1">💾 Guardar</button>
+      <button id="orgn_del_btn" onclick="deleteOrgNode()" class="del-btn" style="flex:0 0 auto;width:auto;padding:14px 16px;margin-top:0">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORGANIGRAMA NODE DETAIL PANEL -->
+<div id="orgDetailPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--surface);border-top:2px solid var(--border);border-radius:20px 20px 0 0;padding:20px;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.4)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <div id="odp_cargo" style="font-size:1.1rem;font-weight:800;color:var(--text1)"></div>
+      <div id="odp_stats" style="font-size:.82rem;color:var(--text2);margin-top:2px"></div>
+    </div>
+    <button onclick="closeOrgDetail()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem">✕</button>
+  </div>
+  <div id="odp_emps" style="display:flex;flex-direction:column;gap:8px"></div>
+  <div id="odp_vacantes" style="margin-top:12px"></div>
+  <div id="odp_actions" style="display:flex;gap:8px;margin-top:16px"></div>
+</div>
+<div id="orgDetailBg" onclick="closeOrgDetail()" style="display:none;position:fixed;inset:0;z-index:149;background:rgba(0,0,0,.3)"></div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
 <div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
@@ -1283,7 +1354,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===================== STATE =====================
-let state = { employees:[], vehicles:[], trailers:[], empresas:[], settings:{} };
+let state = { employees:[], vehicles:[], trailers:[], empresas:[], settings:{}, organigramas:{} };
 let currentCompany = 0;
 let currentEmployeeId = null;
 let currentVehicleId = null;
@@ -1302,7 +1373,7 @@ function loadLocal() { try { const d=localStorage.getItem('gestion_state'); if(d
 
 async function syncToCloud() {
   try {
-    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
   } catch(e) { showSyncStatus('⚠️ Sin conexión (guardado local)'); }
 }
@@ -1311,7 +1382,8 @@ async function loadFromCloud() {
     showSyncStatus('🔄 Sincronizando...');
     // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
-    if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings; }
+    if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings;
+      if(c.organigramas) state.organigramas=c.organigramas; }
     // Also load settings separately (saved by saveSettings)
     try {
       const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
@@ -1476,11 +1548,15 @@ function openEmpresaModule(idx) {
       <div style="text-align:left"><div>Nómina</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
       <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
     </button>
-    <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
+    <button class="main-btn" style="background:linear-gradient(135deg,#7c3aed,#5b8df6);color:#fff;font-size:1.1rem;padding:22px 20px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start"
+      onclick="openOrganigrama(${idx})">
       <span style="font-size:1.8rem">🗂️</span>
-      <div style="text-align:left"><div>Organigrama</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
+      <div style="text-align:left">
+        <div>Organigrama</div>
+        <div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Ver estructura</div>
+      </div>
       <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
-    </button>`;
+    </button>\`;
   showScreen('empresaModuleScreen');
 }
 
@@ -3290,6 +3366,313 @@ function scrollToBirthday(day) {
 
 // ===================== EXCEL EXPORT =====================
 
+
+
+// ===================== ORGANIGRAMA =====================
+let orgCompanyIdx = 0;
+let orgEditMode = false;
+let editingNodeId = null;
+let orgDragState = null;
+
+function getOrg(idx) {
+  if(!state.organigramas) state.organigramas = {};
+  if(!state.organigramas[idx]) state.organigramas[idx] = { nodes: [], edges: [] };
+  return state.organigramas[idx];
+}
+
+function openOrganigrama(idx) {
+  orgCompanyIdx = idx;
+  orgEditMode = false;
+  const em = (state.empresas||[])[idx] || {};
+  document.getElementById('orgTitle').textContent = (em.nombre||'Empresa') + ' · Organigrama';
+  document.getElementById('orgEditBtn').textContent = '✏️ Editar';
+  document.getElementById('orgEditBtn').style.background = '';
+  document.getElementById('orgEditBtn').style.color = '';
+  renderOrganigrama();
+  showScreen('organigramaScreen');
+}
+
+function toggleOrgEdit() {
+  orgEditMode = !orgEditMode;
+  const btn = document.getElementById('orgEditBtn');
+  btn.textContent = orgEditMode ? '✅ Listo' : '✏️ Editar';
+  btn.style.background = orgEditMode ? '#22c55e' : '';
+  btn.style.color = orgEditMode ? '#fff' : '';
+  btn.style.borderColor = orgEditMode ? '#22c55e' : '';
+  renderOrganigrama();
+}
+
+function renderOrganigrama() {
+  const org = getOrg(orgCompanyIdx);
+  const container = document.getElementById('orgNodes');
+  const empty = document.getElementById('orgEmpty');
+  const canvas = document.getElementById('orgCanvas');
+
+  if(!org.nodes.length) {
+    empty.style.display = 'block';
+    container.innerHTML = '';
+    canvas.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  // Build tree layout
+  const nodeMap = {};
+  org.nodes.forEach(n => nodeMap[n.id] = { ...n, children: [] });
+  const roots = [];
+  org.nodes.forEach(n => {
+    if(n.parentId && nodeMap[n.parentId]) nodeMap[n.parentId].children.push(nodeMap[n.id]);
+    else roots.push(nodeMap[n.id]);
+  });
+
+  // Calculate positions
+  const NODE_W = 160, NODE_H = 80, H_GAP = 20, V_GAP = 60;
+  let positions = {};
+  function calcWidth(node) {
+    if(!node.children.length) return NODE_W;
+    return Math.max(NODE_W, node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP));
+  }
+  function assignPos(node, x, y) {
+    positions[node.id] = { x, y };
+    if(!node.children.length) return;
+    const totalW = node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP);
+    let cx = x + NODE_W/2 - totalW/2;
+    node.children.forEach(child => {
+      const cw = calcWidth(child);
+      assignPos(child, cx, y + NODE_H + V_GAP);
+      cx += cw + H_GAP;
+    });
+  }
+  let startX = 20;
+  roots.forEach(root => {
+    assignPos(root, startX, 20);
+    startX += calcWidth(root) + H_GAP + 40;
+  });
+
+  // Get canvas/container size
+  const maxX = Math.max(...Object.values(positions).map(p => p.x)) + NODE_W + 20;
+  const maxY = Math.max(...Object.values(positions).map(p => p.y)) + NODE_H + 20;
+  container.style.width = maxX + 'px';
+  container.style.height = maxY + 'px';
+  canvas.width = maxX;
+  canvas.height = maxY;
+
+  // Draw connections on canvas
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, maxX, maxY);
+  ctx.strokeStyle = 'rgba(139,146,169,0.35)';
+  ctx.lineWidth = 2;
+  org.edges.forEach(e => {
+    const fp = positions[e.from], tp = positions[e.to];
+    if(!fp || !tp) return;
+    const fx = fp.x + NODE_W/2, fy = fp.y + NODE_H;
+    const tx = tp.x + NODE_W/2, ty = tp.y;
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.bezierCurveTo(fx, fy + V_GAP/2, tx, ty - V_GAP/2, tx, ty);
+    ctx.stroke();
+  });
+
+  // Render node divs
+  const allEmps = getEmployees(orgCompanyIdx);
+  container.innerHTML = org.nodes.map(node => {
+    const pos = positions[node.id];
+    if(!pos) return '';
+    const assigned = (node.employees||[]).map(eid => allEmps.find(e=>e.id===eid)).filter(Boolean);
+    const puestos = node.puestos || 1;
+    const ocupados = assigned.length;
+    const pct = ocupados/puestos;
+    const statusColor = ocupados===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
+    const statusBg = ocupados===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
+    const avatars = assigned.slice(0,3).map(e=>{
+      const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
+      return `<div style="width:22px;height:22px;border-radius:50%;background:${node.color||'#5b8df6'}33;border:1.5px solid ${node.color||'#5b8df6'};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:${node.color||'#5b8df6'};margin-right:-6px">${init}</div>`;
+    }).join('');
+
+    return `<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')"
+      style="position:absolute;left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;
+      background:var(--surface);border:2px solid ${node.color||'#5b8df6'};
+      border-radius:14px;padding:10px 12px;cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,.2);transition:transform .15s,box-shadow .15s;
+      user-select:none">
+      <div style="font-size:.78rem;font-weight:700;color:var(--text1);line-height:1.2;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${node.cargo||'Sin cargo'}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center">${avatars}${assigned.length>3?`<div style="font-size:.65rem;color:var(--text2);margin-left:10px">+${assigned.length-3}</div>`:''}</div>
+        <div style="background:${statusBg};color:${statusColor};font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:20px">${ocupados}/${puestos}</div>
+      </div>
+      ${orgEditMode ? `
+        <div style="display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <button onclick="event.stopPropagation();openOrgNodeModal('${node.id}')" style="flex:1;padding:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.7rem;color:var(--text2)">✏️</button>
+          <button onclick="event.stopPropagation();addOrgNode('${node.id}')" style="flex:1;padding:4px;background:#22c55e22;border:1px solid #22c55e;border-radius:6px;cursor:pointer;font-size:.7rem;color:#22c55e">+hijo</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Add root button in edit mode
+  if(orgEditMode) {
+    container.innerHTML += `<button onclick="addOrgNode(null)" style="position:absolute;left:${maxX - 50}px;top:16px;background:#5b8df622;border:1.5px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:.78rem;font-weight:600;font-family:var(--font)">➕ Nodo raíz</button>`;
+  }
+}
+
+function handleNodeClick(nodeId) {
+  if(orgEditMode) {
+    openOrgNodeModal(nodeId);
+  } else {
+    openOrgDetail(nodeId);
+  }
+}
+
+function openOrgDetail(nodeId) {
+  const org = getOrg(orgCompanyIdx);
+  const node = org.nodes.find(n=>n.id===nodeId);
+  if(!node) return;
+  const allEmps = getEmployees(orgCompanyIdx);
+  const assigned = (node.employees||[]).map(eid=>allEmps.find(e=>e.id===eid)).filter(Boolean);
+  const puestos = node.puestos||1;
+  const vacantes = puestos - assigned.length;
+
+  document.getElementById('odp_cargo').textContent = node.cargo||'Sin cargo';
+  document.getElementById('odp_stats').textContent = `${assigned.length} ocupado${assigned.length!==1?'s':''} · ${Math.max(0,vacantes)} vacante${vacantes!==1?'s':''} de ${puestos} puesto${puestos!==1?'s':''}`;
+
+  document.getElementById('odp_emps').innerHTML = assigned.length ? assigned.map(e => {
+    const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+    const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
+    const isInactive = e.activo===false;
+    return `<div onclick="closeOrgDetail();setTimeout(()=>openEmployee('${e.id}'),300)" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px;cursor:pointer;border:1px solid var(--border)">
+      <div style="width:36px;height:36px;border-radius:50%;background:${node.color||'#5b8df6'}22;border:2px solid ${node.color||'#5b8df6'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${node.color||'#5b8df6'};flex-shrink:0">${init}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:.88rem">${name}</div>
+        <div style="font-size:.75rem;color:var(--text2)">${e.cargo||'—'}</div>
+      </div>
+      <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span>
+      <span style="color:var(--text2)">›</span>
+    </div>`;
+  }).join('') : '<div style="color:var(--text2);font-size:.85rem;padding:8px 0">No hay empleados asignados.</div>';
+
+  document.getElementById('odp_vacantes').innerHTML = vacantes > 0
+    ? `<div style="padding:10px 14px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:10px;font-size:.82rem;color:#f59e0b;font-weight:600">⚠️ ${vacantes} vacante${vacantes!==1?'s':''} disponible${vacantes!==1?'s':''}</div>`
+    : '';
+
+  const actions = document.getElementById('odp_actions');
+  actions.innerHTML = canEdit() ? `<button onclick="closeOrgDetail();openOrgNodeModal('${nodeId}')" class="save-btn" style="flex:1">✏️ Editar nodo</button>` : '';
+
+  document.getElementById('orgDetailPanel').style.display = 'block';
+  document.getElementById('orgDetailBg').style.display = 'block';
+}
+
+function closeOrgDetail() {
+  document.getElementById('orgDetailPanel').style.display = 'none';
+  document.getElementById('orgDetailBg').style.display = 'none';
+}
+
+function addOrgNode(parentId) {
+  editingNodeId = null;
+  document.getElementById('orgNodeModalTitle').textContent = 'Nuevo Nodo';
+  document.getElementById('orgn_cargo').value = '';
+  document.getElementById('orgn_puestos').value = '1';
+  document.getElementById('orgn_color').value = '#5b8df6';
+  document.getElementById('orgn_del_btn').style.display = 'none';
+  // Store parentId temporarily
+  document.getElementById('orgNodeModal').dataset.parentId = parentId||'';
+  renderOrgEmpSelector(null, []);
+  openModal('orgNodeModal');
+}
+
+function openOrgNodeModal(nodeId) {
+  const org = getOrg(orgCompanyIdx);
+  const node = org.nodes.find(n=>n.id===nodeId);
+  if(!node) return;
+  editingNodeId = nodeId;
+  document.getElementById('orgNodeModalTitle').textContent = 'Editar Nodo';
+  document.getElementById('orgn_cargo').value = node.cargo||'';
+  document.getElementById('orgn_puestos').value = node.puestos||1;
+  document.getElementById('orgn_color').value = node.color||'#5b8df6';
+  document.getElementById('orgn_del_btn').style.display = '';
+  document.getElementById('orgNodeModal').dataset.parentId = node.parentId||'';
+  renderOrgEmpSelector(nodeId, node.employees||[]);
+  openModal('orgNodeModal');
+}
+
+function renderOrgEmpSelector(nodeId, selected) {
+  const allEmps = getEmployees(orgCompanyIdx).filter(e=>e.activo!==false);
+  const list = document.getElementById('orgn_emp_list');
+  if(!allEmps.length) {
+    list.innerHTML = '<div style="color:var(--text2);font-size:.82rem;padding:4px">No hay empleados activos en esta empresa.</div>';
+    return;
+  }
+  list.innerHTML = allEmps.map(e => {
+    const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+    const checked = selected.includes(e.id);
+    return `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 10px;border-radius:8px;border:1.5px solid ${checked?'var(--accent1)':'var(--border)'};background:${checked?'rgba(91,141,246,.08)':'transparent'};transition:all .15s" onclick="toggleOrgEmp(this,'${e.id}')">
+      <span style="font-size:.9rem">${checked?'☑':'☐'}</span>
+      <div style="flex:1">
+        <div style="font-size:.85rem;font-weight:600">${name}</div>
+        <div style="font-size:.75rem;color:var(--text2)">${e.cargo||'Sin cargo'}</div>
+      </div>
+    </label>`;
+  }).join('');
+}
+
+function toggleOrgEmp(lbl, empId) {
+  const checked = lbl.querySelector('span').textContent === '☑';
+  lbl.querySelector('span').textContent = checked ? '☐' : '☑';
+  lbl.style.borderColor = checked ? 'var(--border)' : 'var(--accent1)';
+  lbl.style.background = checked ? 'transparent' : 'rgba(91,141,246,.08)';
+}
+
+function saveOrgNode() {
+  const cargo = document.getElementById('orgn_cargo').value.trim();
+  if(!cargo) { alert('El cargo es obligatorio.'); return; }
+  const puestos = parseInt(document.getElementById('orgn_puestos').value)||1;
+  const color = document.getElementById('orgn_color').value;
+  const parentId = document.getElementById('orgNodeModal').dataset.parentId||null;
+
+  // Collect selected employees
+  const empLabels = document.getElementById('orgn_emp_list').querySelectorAll('label');
+  const employees = [];
+  empLabels.forEach((lbl, i) => {
+    if(lbl.querySelector('span').textContent === '☑') {
+      const allEmps = getEmployees(orgCompanyIdx).filter(e=>e.activo!==false);
+      if(allEmps[i]) employees.push(allEmps[i].id);
+    }
+  });
+
+  const org = getOrg(orgCompanyIdx);
+  if(editingNodeId) {
+    const node = org.nodes.find(n=>n.id===editingNodeId);
+    if(node) { node.cargo=cargo; node.puestos=puestos; node.color=color; node.employees=employees; }
+  } else {
+    const newId = 'node_'+Date.now();
+    org.nodes.push({ id:newId, cargo, puestos, color, parentId:parentId||null, employees });
+    if(parentId) org.edges.push({ from:parentId, to:newId });
+  }
+
+  save();
+  closeModal('orgNodeModal');
+  renderOrganigrama();
+  toast('✅ Nodo guardado');
+}
+
+function deleteOrgNode() {
+  if(!editingNodeId) return;
+  if(!confirm('¿Eliminar este nodo y todos sus nodos hijo?')) return;
+  const org = getOrg(orgCompanyIdx);
+
+  // Collect all descendant IDs
+  function getDescendants(id) {
+    const children = org.edges.filter(e=>e.from===id).map(e=>e.to);
+    return children.reduce((acc,cid) => [...acc, cid, ...getDescendants(cid)], []);
+  }
+  const toDelete = [editingNodeId, ...getDescendants(editingNodeId)];
+  org.nodes = org.nodes.filter(n => !toDelete.includes(n.id));
+  org.edges = org.edges.filter(e => !toDelete.includes(e.from) && !toDelete.includes(e.to));
+
+  save();
+  closeModal('orgNodeModal');
+  renderOrganigrama();
+  toast('🗑️ Nodo eliminado');
+}
 
 // ===================== CONTRACT RENEWALS =====================
 function calcTotalMeses(e) {
