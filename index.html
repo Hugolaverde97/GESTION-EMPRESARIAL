@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<!-- v2.1 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestión Empresarial</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -954,7 +953,7 @@
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           <span style="font-size:.82rem;color:var(--text2);min-width:70px">Estado:</span>
           <div style="display:flex;gap:6px">
-            <button id="exp_f_todos" onclick="setExportFilter('estado','todos')" class="filter-btn active">Todos</button>
+            <button id="exp_f_todos" onclick="setExportFilter('estado','todos')" class="filter-btn">Todos</button>
             <button id="exp_f_activos" onclick="setExportFilter('estado','activos')" class="filter-btn">Activos</button>
             <button id="exp_f_inactivos" onclick="setExportFilter('estado','inactivos')" class="filter-btn">Inactivos</button>
           </div>
@@ -977,7 +976,7 @@
         <div id="exp_salario_row" style="display:flex;align-items:center;gap:8px">
           <span style="font-size:.82rem;color:var(--text2);min-width:70px">Salario:</span>
           <div style="display:flex;gap:6px">
-            <button id="exp_f_consalario" onclick="setExportFilter('salario','con')" class="filter-btn active">Con salario</button>
+            <button id="exp_f_consalario" onclick="setExportFilter('salario','con')" class="filter-btn">Con salario</button>
             <button id="exp_f_sinsalario" onclick="setExportFilter('salario','sin')" class="filter-btn">Sin salario</button>
           </div>
         </div>
@@ -3278,14 +3277,8 @@ function openExportModal() {
 
   // Reset filters
   exportFilters = { estado: 'todos', salario: 'con', empresa: 'todas', cargo: 'todos' };
-  ['todos','activos','inactivos'].forEach(f => {
-    const b = document.getElementById('exp_f_'+f);
-    if(b) b.classList.toggle('active', f === 'todos');
-  });
-  ['consalario','sinsalario'].forEach(f => {
-    const b = document.getElementById('exp_f_'+f);
-    if(b) b.classList.toggle('active', f === 'consalario');
-  });
+  setExportFilter('estado', 'todos');
+  setExportFilter('salario', 'con');
 
   // Populate empresa dropdown
   const empSel = document.getElementById('exp_empresa');
@@ -3340,16 +3333,22 @@ function selectAllExportCols(val) {
 
 function setExportFilter(type, val) {
   exportFilters[type] = val;
+  function setActive(ids, activeId) {
+    ids.forEach(f => {
+      const b = document.getElementById('exp_f_'+f);
+      if(!b) return;
+      const on = f === activeId;
+      b.classList.toggle('active', on);
+      b.style.background = on ? '#5b8df6' : '';
+      b.style.color = on ? '#fff' : '';
+      b.style.borderColor = on ? '#5b8df6' : '';
+      b.style.fontWeight = on ? '700' : '';
+    });
+  }
   if(type === 'estado') {
-    ['todos','activos','inactivos'].forEach(f => {
-      const b = document.getElementById('exp_f_'+f);
-      if(b) b.classList.toggle('active', f === val);
-    });
+    setActive(['todos','activos','inactivos'], val);
   } else if(type === 'salario') {
-    ['consalario','sinsalario'].forEach(f => {
-      const b = document.getElementById('exp_f_'+f);
-      if(b) b.classList.toggle('active', f === val);
-    });
+    setActive(['consalario','sinsalario'], val);
   }
 }
 
