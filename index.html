@@ -2555,8 +2555,7 @@ function canDelete() { return currentUser && currentUser.role==='admin'; }
 
 function getSubPerms() {
   if(!currentUser) return {};
-  try { return typeof currentUser.sub_perms === 'string' ? JSON.parse(currentUser.sub_perms) : (currentUser.sub_perms||{}); }
-  catch(e) { return {}; }
+  return currentUser.sub_perms || {};
 }
 function canBajaEmp() {
   if(!currentUser) return false;
@@ -2604,7 +2603,7 @@ function canDelTr() {
 function canExcel() {
   if(!currentUser) return false;
   if(currentUser.role==='admin') return true;
-  return currentUser.puede_excel === true;
+  return currentUser.puede_excel === true || currentUser.role === 'editor';
 }
 function canSeeSalary() { return currentUser && (currentUser.role==='admin' || currentUser.puede_ver_salarios); }
 function hasAccess(module) {
@@ -2690,16 +2689,23 @@ async function openEditUser(id) {
     document.getElementById('ue_username').value = data.username;
     document.getElementById('ue_password').value = '';
     document.getElementById('ue_role').value = data.role;
-    const empresas = Array.isArray(data.empresas)?data.empresas:(typeof data.empresas==='string'?JSON.parse(data.empresas||'[]'):[]);
+    let empresas = [];
+    let editPuedeExcel = false;
+    let editSubPerms = {};
+    try {
+      const raw = typeof data.empresas==='string' ? JSON.parse(data.empresas||'[]') : (data.empresas||[]);
+      if(Array.isArray(raw)) { empresas = raw; }
+      else { empresas = raw.accesos||[]; editPuedeExcel = raw.puede_excel||false; editSubPerms = raw.sub_perms||{}; }
+    } catch(e2) { empresas = []; }
     document.getElementById('ue_acc0').checked = data.role==='admin' || empresas.includes('empresa0');
     document.getElementById('ue_acc1').checked = data.role==='admin' || empresas.includes('empresa1');
     document.getElementById('ue_acc2').checked = data.role==='admin' || empresas.includes('empresa2');
     document.getElementById('ue_acc3').checked = data.role==='admin' || empresas.includes('vehiculos');
     document.getElementById('ue_salarios').checked = data.puede_ver_salarios || data.role==='admin';
-    const excelEl = document.getElementById('ue_excel'); if(excelEl) excelEl.checked = data.puede_excel || data.role==='admin';
+    const excelEl = document.getElementById('ue_excel'); if(excelEl) excelEl.checked = editPuedeExcel || data.role==='admin';
     // Load sub_perms
     try {
-      const sp = typeof data.sub_perms==='string' ? JSON.parse(data.sub_perms||'{}') : (data.sub_perms||{});
+      const sp = editSubPerms;
       const isAdmin = data.role==='admin';
       ['baja_emp0','del_emp0','stats0','baja_emp1','del_emp1','stats1','baja_emp2','del_emp2','stats2',
        'baja_veh','del_veh','baja_tr','del_tr'].forEach(k=>{
@@ -2831,8 +2837,10 @@ async function saveUser() {
     baja_veh:getChk('ue_baja_veh'),del_veh:getChk('ue_del_veh'),
     baja_tr:getChk('ue_baja_tr'),del_tr:getChk('ue_del_tr'),
   };
+  // Store extra perms inside empresas JSON to avoid needing new DB columns
+  const permData = { accesos: empresas, puede_excel, sub_perms };
   try {
-    const payload = { username, role, empresas: JSON.stringify(empresas), puede_ver_salarios, puede_excel, sub_perms: JSON.stringify(sub_perms) };
+    const payload = { username, role, empresas: JSON.stringify(permData), puede_ver_salarios };
     if(password) payload.password_hash = await hashPassword(password);
     if(editingUserId) {
       await sb.from('gestion_users').update(payload).eq('id', editingUserId);
@@ -3676,7 +3684,16 @@ function calcEdad(fechaNac) {
       const { data } = await sb.from('gestion_users').select('*').eq('id', sess.id).single();
       if(data) {
         currentUser = data;
-        currentUser.empresas = Array.isArray(data.empresas)?data.empresas:(typeof data.empresas==='string'?JSON.parse(data.empresas||'[]'):[]);
+        try {
+        const raw = typeof data.empresas==='string' ? JSON.parse(data.empresas||'[]') : (data.empresas||[]);
+        if(Array.isArray(raw)) {
+          currentUser.empresas = raw; // old format
+        } else {
+          currentUser.empresas = raw.accesos || [];
+          currentUser.puede_excel = raw.puede_excel || false;
+          currentUser.sub_perms = raw.sub_perms || {};
+        }
+      } catch(e2) { currentUser.empresas = []; }
         onLoginSuccess();
       } else {
         localStorage.removeItem('gestion_session');
