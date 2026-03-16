@@ -998,6 +998,39 @@
     <button class="save-btn" onclick="runExport()" style="background:#16a34a">📥 Descargar CSV</button>
   </div>
 </div>
+
+<!-- RENEWAL MODAL -->
+<div class="modal-overlay" id="renewalModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">
+      <span>🔄 Registrar Renovación</span>
+      <button class="modal-close" onclick="closeModal('renewalModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Tipo de renovación</label>
+        <select class="form-select" id="ren_tipo" onchange="toggleRenewalMeses()">
+          <option value="automatica">Renovación automática (misma duración)</option>
+          <option value="prorroga">Prórroga (duración diferente)</option>
+          <option value="no_renueva">No se renueva</option>
+        </select>
+      </div>
+      <div class="form-group full" id="ren_meses_grupo">
+        <label class="form-label">Duración de esta renovación (meses)</label>
+        <input type="number" class="form-input" id="ren_meses" placeholder="Ej: 6" min="1">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Fecha de renovación</label>
+        <input type="date" class="form-input" id="ren_fecha">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Nota (opcional)</label>
+        <input class="form-input" id="ren_nota" placeholder="Observación...">
+      </div>
+    </div>
+    <button class="save-btn" onclick="saveRenewal()">💾 Guardar renovación</button>
+  </div>
+</div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
 <div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
@@ -1642,9 +1675,36 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Fecha de ingreso</div><div class="field-value">${fmtDate(e.fechaIngreso)}</div></div>
       <div class="field-card"><div class="field-label">Antigüedad</div><div class="field-value" style="color:var(--accent2)">${e.fechaIngreso?calcAntiguedad(e.fechaIngreso):'—'}</div></div>
       <div class="field-card"><div class="field-label">Tipo de contrato</div><div class="field-value">${e.tipoContrato||'—'}</div></div>
-      ${e.tipoContrato==='Fijo'&&e.duracion?`<div class="field-card"><div class="field-label">Duración contrato</div><div class="field-value">${e.duracion} meses</div></div>`:''}
+      ${e.tipoContrato==='Fijo'&&e.duracion?`<div class="field-card"><div class="field-label">Duración inicial</div><div class="field-value">${e.duracion} meses</div></div>`:''}
+      ${e.tipoContrato==='Fijo'&&e.fechaIngreso?`<div class="field-card"><div class="field-label">Vencimiento calculado</div><div class="field-value" style="color:${calcVencContrato(e)<7?'var(--danger)':calcVencContrato(e)<30?'var(--accent2)':'var(--accent3)'}">${fmtDate(calcFechaVencContrato(e))}${calcVencContrato(e)!==null?' · '+(calcVencContrato(e)<0?'⚠️ Vencido hace '+Math.abs(calcVencContrato(e))+' días':calcVencContrato(e)===0?'⚠️ Vence hoy':calcVencContrato(e)+' días restantes'):''}
+      </div></div>`:''}
       ${canSeeSalary()?`<div class="field-card"><div class="field-label">Salario mensual</div><div class="field-value" style="color:var(--accent3)">${e.salario?'$'+e.salario:'—'}</div></div>`:''}
     </div>
+    ${e.tipoContrato==='Fijo'?`
+    <div class="section-title">🔄 Renovaciones de Contrato</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      ${(e.renovaciones||[]).length===0?'<div style="color:var(--text2);font-size:.85rem;padding:8px 0">Sin renovaciones registradas.</div>':''}
+      ${(e.renovaciones||[]).map((r,i)=>`
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">
+          <div style="width:32px;height:32px;border-radius:50%;background:${r.tipo==='no_renueva'?'#ef444422':'#22c55e22'};display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${r.tipo==='no_renueva'?'⛔':r.tipo==='prorroga'?'📋':'🔄'}</div>
+          <div style="flex:1">
+            <div style="font-size:.88rem;font-weight:700;color:var(--text1)">${r.tipo==='automatica'?'Renovación automática':r.tipo==='prorroga'?'Prórroga especial':'No se renueva'}${r.meses?' · '+r.meses+' meses':''}</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${fmtDate(r.fecha)}${r.nota?' · '+r.nota:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="font-size:.75rem;color:var(--text2);font-weight:600">#${i+1}</div>
+            ${canEdit()?`<button onclick="deleteRenewal(${i})" style="background:none;border:none;cursor:pointer;color:var(--danger);font-size:.9rem;padding:4px;border-radius:6px" title="Eliminar">🗑️</button>`:''}
+          </div>
+        </div>
+      `).join('')}
+      ${(e.renovaciones||[]).length>0?`
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;gap:16px;flex-wrap:wrap">
+        <div style="font-size:.8rem;color:var(--text2)">📊 <strong style="color:var(--text1)">${(e.renovaciones||[]).length}</strong> renovación(es)</div>
+        <div style="font-size:.8rem;color:var(--text2)">⏱ Duración total: <strong style="color:var(--accent3)">${calcTotalMeses(e)} meses</strong></div>
+        <div style="font-size:.8rem;color:var(--text2)">📅 Vence: <strong style="color:${calcVencContrato(e)!==null&&calcVencContrato(e)<30?'var(--danger)':'var(--accent3)'}">${fmtDate(calcFechaVencContrato(e))}</strong></div>
+      </div>`:''}
+      ${canEdit()?`<button class="add-btn" onclick="openRenewalModal()" style="margin-top:4px">🔄 Registrar renovación</button>`:''}
+    </div>`:''}
 
     <div class="section-title">Seguridad Social</div>
     <div class="fields-grid">
@@ -1764,7 +1824,7 @@ function saveEmployee() {
     const e=state.employees.find(x=>x.id===currentEmployeeId); if(e) Object.assign(e,data);
     save(); closeModal('employeeModal'); openEmployee(currentEmployeeId); toast('✅ Empleado actualizado');
   } else {
-    state.employees.push({id:'emp_'+Date.now(),companyIdx:currentCompany,docs:[],activo:true,...data});
+    state.employees.push({id:'emp_'+Date.now(),companyIdx:currentCompany,docs:[],activo:true,renovaciones:[],...data});
     save(); closeModal('employeeModal'); renderEmployeeList(); toast('✅ Empleado agregado');
   }
 }
@@ -2867,10 +2927,12 @@ function buildNotifications() {
 
   // Fixed contracts ending
   allEmps.filter(e=>e.activo!==false && e.tipoContrato==='Fijo' && e.fechaIngreso && e.duracion).forEach(e=>{
-    const ini = new Date(e.fechaIngreso+'T00:00:00');
-    const fin = new Date(ini);
-    fin.setMonth(fin.getMonth() + parseInt(e.duracion));
-    const finStr = fin.toISOString().split('T')[0];
+    // Skip if marked as no_renueva and already handled, or if last renewal is no_renueva
+    const lastRen = (e.renovaciones||[]).slice(-1)[0];
+    if(lastRen && lastRen.tipo === 'no_renueva') return; // don't warn, it's expected
+    const finDate = calcFechaVencContrato(e);
+    if(!finDate) return;
+    const finStr = finDate;
     const d = daysDiff(finStr);
     const name = (e.apellidos?e.apellidos+', ':'')+(e.nombres||e.nombre||'');
     if(d !== null && d <= 30) notifs.push({ id:'contrato_'+e.id, type:'vencimientos', icon: d<0?'🔴':'🟡', title: d<0?'Contrato vencido':'Contrato por vencer', body:`${name} · ${d<0?'Venció hace '+Math.abs(d)+' días':'Vence en '+d+' días'} (${fmtDate(finStr)})`, days:d, urgent:d<=7||d<0 });
@@ -3173,6 +3235,97 @@ function scrollToBirthday(day) {
 
 // ===================== EXCEL EXPORT =====================
 
+
+// ===================== CONTRACT RENEWALS =====================
+function calcTotalMeses(e) {
+  // Total months = initial duration + all renewals that add time
+  let total = parseInt(e.duracion || 0);
+  (e.renovaciones || []).forEach(r => {
+    if(r.tipo !== 'no_renueva' && r.meses) total += parseInt(r.meses);
+    if(r.tipo === 'automatica' && !r.meses) total += parseInt(e.duracion || 0);
+  });
+  return total;
+}
+
+function calcFechaVencContrato(e) {
+  if(!e.fechaIngreso || !e.duracion) return null;
+  const ini = new Date(e.fechaIngreso + 'T00:00:00');
+  const totalMeses = calcTotalMeses(e);
+  const venc = new Date(ini);
+  venc.setMonth(venc.getMonth() + totalMeses);
+  return venc.toISOString().split('T')[0];
+}
+
+function calcVencContrato(e) {
+  const fecha = calcFechaVencContrato(e);
+  if(!fecha) return null;
+  return Math.ceil((new Date(fecha + 'T00:00:00') - new Date()) / 86400000);
+}
+
+function openRenewalModal() {
+  const e = state.employees.find(x => x.id === currentEmployeeId);
+  if(!e) return;
+  // Pre-fill meses with original duration for automatic renewal
+  document.getElementById('ren_tipo').value = 'automatica';
+  document.getElementById('ren_meses').value = e.duracion || '';
+  document.getElementById('ren_fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ren_nota').value = '';
+  toggleRenewalMeses();
+  openModal('renewalModal');
+}
+
+function toggleRenewalMeses() {
+  const tipo = document.getElementById('ren_tipo').value;
+  const grupo = document.getElementById('ren_meses_grupo');
+  const mesesInput = document.getElementById('ren_meses');
+  const e = state.employees.find(x => x.id === currentEmployeeId);
+  if(tipo === 'automatica') {
+    grupo.style.display = '';
+    if(e) mesesInput.value = e.duracion || '';
+    mesesInput.readOnly = true;
+    mesesInput.style.opacity = '0.6';
+  } else if(tipo === 'prorroga') {
+    grupo.style.display = '';
+    mesesInput.readOnly = false;
+    mesesInput.style.opacity = '1';
+  } else {
+    grupo.style.display = 'none';
+  }
+}
+
+function saveRenewal() {
+  const e = state.employees.find(x => x.id === currentEmployeeId);
+  if(!e) return;
+  const tipo = document.getElementById('ren_tipo').value;
+  const meses = document.getElementById('ren_meses').value;
+  const fecha = document.getElementById('ren_fecha').value;
+  const nota = document.getElementById('ren_nota').value.trim();
+  if(!fecha) { alert('Selecciona la fecha de renovación.'); return; }
+  if(tipo !== 'no_renueva' && !meses) { alert('Ingresa la duración en meses.'); return; }
+  if(!e.renovaciones) e.renovaciones = [];
+  e.renovaciones.push({
+    tipo,
+    meses: tipo !== 'no_renueva' ? parseInt(meses) : null,
+    fecha,
+    nota: nota || null,
+    createdAt: new Date().toISOString()
+  });
+  save();
+  closeModal('renewalModal');
+  openEmployee(currentEmployeeId);
+  toast('✅ Renovación registrada');
+}
+
+function deleteRenewal(idx) {
+  if(!confirm('¿Eliminar esta renovación?')) return;
+  const e = state.employees.find(x => x.id === currentEmployeeId);
+  if(!e || !e.renovaciones) return;
+  e.renovaciones.splice(idx, 1);
+  save();
+  openEmployee(currentEmployeeId);
+  toast('🗑️ Renovación eliminada');
+}
+
 // ===================== EXPORT SYSTEM =====================
 let exportMode = 'employees'; // 'employees' | 'vehicles' | 'trailers'
 let exportFilters = { estado: 'todos', salario: 'con', empresa: 'todas', cargo: 'todos' };
@@ -3213,6 +3366,8 @@ const EMP_COLS = [
   {id:'emergParentesco',label:'Parentesco'},
   {id:'emergCelular',  label:'Tel. Emergencia'},
   {id:'estado',        label:'Estado', computed: e => e.activo===false?'Inactivo':'Activo'},
+  {id:'venc_contrato',  label:'Venc. Contrato', computed: e => e.tipoContrato==='Fijo'?calcFechaVencContrato(e)||'':''},
+  {id:'num_renovaciones', label:'# Renovaciones', computed: e => (e.renovaciones||[]).length},
 ];
 
 const VEH_COLS = [
