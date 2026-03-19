@@ -3457,6 +3457,7 @@ let orgCompanyIdx = 0;
 let orgEditMode = false;
 let editingNodeId = null;
 let orgDragState = null;
+const ORG_NODE_W = 180;
 
 function getOrg(idx) {
   if(!state.organigramas) state.organigramas = {};
@@ -3491,15 +3492,17 @@ function centerOrganigrama() {
   const wrapper = document.getElementById('orgScrollWrapper');
   const org = getOrg(orgCompanyIdx);
   if(!wrapper || !org.nodes.length) return;
-  // Find all root node elements and their positions
+  // Use window.innerWidth as reliable fallback - NEVER use 0
+  const wW = Math.max(wrapper.offsetWidth, wrapper.clientWidth, window.innerWidth, 320);
+  // Find root nodes positions from DOM inline styles (set by renderOrganigrama)
   const rootNodes = org.nodes.filter(n => !n.parentId && n.tipo !== 'staff');
   const nodeEls = rootNodes.map(n => document.getElementById('orgnode_'+n.id)).filter(Boolean);
   if(!nodeEls.length) return;
   const lefts = nodeEls.map(el => parseInt(el.style.left)||0);
-  const rights = lefts.map((l,i) => l + (nodeEls[i].offsetWidth || 180));
+  const rights = lefts.map(l => l + ORG_NODE_W);
   const centerX = (Math.min(...lefts) + Math.max(...rights)) / 2;
-  const wW = wrapper.offsetWidth || window.innerWidth;
-  wrapper.scrollLeft = Math.max(0, centerX - wW/2);
+  const scrollTarget = Math.max(0, centerX - wW/2);
+  wrapper.scrollLeft = scrollTarget;
 }
 
 function toggleOrgEdit() {
@@ -3580,6 +3583,21 @@ function renderOrganigrama() {
     Object.keys(positions).forEach(id => { positions[id].x += s; });
   }
 
+  // Center roots group in viewport using window.innerWidth (always reliable)
+  const vW = window.innerWidth;
+  const rootXs = roots.map(r => (positions[r.id]?.x||0) + NODE_W/2);
+  if(rootXs.length) {
+    const rCenter = (Math.min(...rootXs) + Math.max(...rootXs)) / 2;
+    const treeWcheck = Math.max(...Object.values(positions).map(p=>p.x+NODE_W)) + 40;
+    if(treeWcheck < vW) {
+      // Tree fits: center it by shifting node positions
+      const shift = vW/2 - rCenter;
+      Object.keys(positions).forEach(id => { positions[id].x += shift; });
+    }
+    // Wide tree: starts at x=24 (leftmost node), user scrolls right
+    // The ⊙ button will scroll to center
+  }
+
   // Staff nodes to the right of their parent at same Y
   staffNodes.forEach(sn => {
     const par = positions[sn.parentId];
@@ -3589,22 +3607,11 @@ function renderOrganigrama() {
   });
 
   const allPos = Object.values(positions);
-  const treeRight = Math.max(...allPos.map(p=>p.x+NODE_W)) + 24;
+  const treeRight = Math.max(...allPos.map(p=>p.x+NODE_W)) + 40;
   const treeH = Math.max(...allPos.map(p=>p.y+NODE_H)) + 60;
 
-  // Get real viewport width NOW (wrapper must be visible for this to work)
-  const vW = wrapper ? (wrapper.offsetWidth||wrapper.clientWidth||window.innerWidth) : window.innerWidth;
-
-  // If tree fits in viewport: shift nodes to center the roots group visually
-  if(treeRight < vW) {
-    const rootXs = roots.map(r=>(positions[r.id]?.x||0)+NODE_W/2);
-    const rCenter = rootXs.length ? (Math.min(...rootXs)+Math.max(...rootXs))/2 : treeRight/2;
-    const shift = vW/2 - rCenter;
-    if(shift > 0) Object.keys(positions).forEach(id => { positions[id].x += shift; });
-  }
-
-  // Canvas/container size
-  const canvasW = Math.max(Math.max(...Object.values(positions).map(p=>p.x+NODE_W))+40, vW);
+  // Canvas/container size — always use tree size (no vW dependency)
+  const canvasW = treeRight + 40;
   const canvasH = treeH;
 
   const inner = document.getElementById('orgInner');
@@ -3675,20 +3682,8 @@ function renderOrganigrama() {
     html+=`<button onclick="addOrgNode(null)" style="position:absolute;left:${rEdge+H_GAP*2}px;top:24px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
   }
   container.innerHTML = html;
-
-  // Double rAF: set scroll AFTER browser finishes layout and paint
-  const rootXs = roots.map(r => (positions[r.id]?.x||0) + NODE_W/2);
-  const rootsCenter = rootXs.length
-    ? (Math.min(...rootXs) + Math.max(...rootXs)) / 2
-    : LPAD + NODE_W/2;
-  if(wrapper) {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
-        wrapper.scrollLeft = Math.max(0, rootsCenter - wW/2);
-      });
-    });
-  }
+  // Center after DOM paint using real positions
+  requestAnimationFrame(() => centerOrganigrama());
 }
 
 
