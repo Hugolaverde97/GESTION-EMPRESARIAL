@@ -363,6 +363,38 @@
   .pb-safe{padding-bottom:80px;}
   .settings-fab{position:fixed;bottom:24px;right:24px;width:52px;height:52px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:100;transition:background .2s,color .2s;box-shadow:0 4px 20px rgba(0,0,0,.4);}
   .settings-fab:hover{background:var(--accent1);color:#fff;}
+
+  /* ===== RESPONSIVE / DESKTOP ===== */
+  @media(min-width:768px) {
+    .home-inner { max-width: 600px; }
+    .main-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  }
+  @media(min-width:900px) {
+    .home-inner { max-width: 700px; }
+    .screen-content { max-width: 920px; padding: 24px 32px; }
+    .form-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .fields-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .list-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .top-bar { padding: 14px 32px; }
+    .modal { max-width: 620px; padding: 28px; }
+  }
+  @media(min-width:1200px) {
+    .home-inner { max-width: 820px; }
+    .screen-content { max-width: 1100px; padding: 28px 48px; }
+    .form-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .fields-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .list-container { grid-template-columns: 1fr 1fr 1fr; }
+    .main-buttons { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .modal { max-width: 700px; }
+  }
+  /* Organigrama always full width */
+  #organigramaScreen .screen-content,
+  #organigramaScreen > div:last-child {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
 </style>
 </head>
 <body>
@@ -1044,13 +1076,15 @@
       <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s">✏️ Editar</button>
     </div>
   </div>
-  <div style="flex:1;padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column">
+  <div id="orgScrollWrapper" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative">
+    <!-- Scroll content -->
+    <div id="orgInner" style="position:relative;min-width:100%;min-height:100%">
     <!-- Canvas for connections -->
     <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
     <!-- Nodes container -->
-    <div id="orgNodes" style="position:relative;z-index:1;flex:1;overflow:auto;padding:20px;-webkit-overflow-scrolling:touch"></div>
+    <div id="orgNodes" style="position:relative;z-index:1"></div>
     <!-- Empty state -->
-    <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2)">
+    <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:280px">
       <div style="font-size:3rem;margin-bottom:12px">🗂️</div>
       <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Sin estructura aún</div>
       <div style="font-size:.85rem;margin-bottom:20px">Crea el primer nodo para empezar</div>
@@ -2746,14 +2780,17 @@ async function openUserMgmt() {
 
 async function renderUserList() {
   const listEl = document.getElementById('userList');
+  if(!listEl) return;
   listEl.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:8px">Cargando...</div>';
   try {
-    const { data } = await sb.from('gestion_users').select('id,username,role,empresas,puede_ver_salarios').order('created_at');
+    const { data, error } = await sb.from('gestion_users').select('id,username,role,empresas,puede_ver_salarios').order('username');
+    if(error) throw error;
     if(!data?.length) { listEl.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:8px">No hay usuarios.</div>'; return; }
     const roleColors = { admin:'var(--accent1)', editor:'var(--accent3)', readonly:'var(--text2)', supervisor:'var(--accent2)' };
     listEl.innerHTML = data.map(u => {
       parseUserData(u);
-      const accesos = u.empresas.length ? empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?'E1':e==='empresa1'?'E2':e==='empresa2'?'E3':e).join(' ') : (u.role==='admin'?'Todo':'Ninguno');
+      const empNames = (state.empresas||[]).map((em,i)=>em.nombre||'Emp'+(i+1));
+      const accesos = u.empresas.length ? u.empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?(empNames[0]||'E1'):e==='empresa1'?(empNames[1]||'E2'):e==='empresa2'?(empNames[2]||'E3'):e).join(' · ') : (u.role==='admin'?'Todo':'Ninguno');
       return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
         <div style="flex:1">
           <div style="font-weight:700;font-size:.92rem">${u.username} ${u.id===currentUser?.id?'<span style="font-size:.7rem;color:var(--accent3)">(tú)</span>':''}</div>
@@ -3441,12 +3478,18 @@ function renderOrganigrama() {
   if(!container) return;
 
   if(!org.nodes.length) {
-    empty.style.display = 'block';
+    empty.style.display = 'flex';
+    empty.style.flexDirection = 'column';
+    empty.style.alignItems = 'center';
     container.innerHTML = '';
     if(canvas) canvas.style.display = 'none';
+    const wrapper = document.getElementById('orgScrollWrapper');
+    if(wrapper) { wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.justifyContent = 'center'; }
     return;
   }
   empty.style.display = 'none';
+  const wrapper = document.getElementById('orgScrollWrapper');
+  if(wrapper) { wrapper.style.display = ''; wrapper.style.alignItems = ''; wrapper.style.justifyContent = ''; }
 
   // Build tree
   const nodeMap = {};
@@ -3478,26 +3521,39 @@ function renderOrganigrama() {
     });
   }
 
+  // First pass: calculate positions
   let startX = 24;
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
+  // Second pass: shift all nodes right if any go negative
+  const minX = Math.min(...Object.values(positions).map(p => p.x));
+  if(minX < 24) {
+    const shift = 24 - minX;
+    Object.keys(positions).forEach(id => { positions[id].x += shift; });
+  }
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
 
   // Set container size
-  container.style.minWidth = maxX + 'px';
-  container.style.minHeight = maxY + 'px';
+  // Size the inner wrapper to fit all nodes + padding
+  const orgInner = document.getElementById('orgInner');
+  if(orgInner) {
+    orgInner.style.width = (maxX + 40) + 'px';
+    orgInner.style.height = (maxY + 40) + 'px';
+  }
+  container.style.width = (maxX + 40) + 'px';
+  container.style.height = (maxY + 40) + 'px';
 
   // Draw connections
   if(canvas) {
-    canvas.width = maxX;
-    canvas.height = maxY;
+    canvas.width = maxX + 40;
+    canvas.height = maxY + 40;
     canvas.style.display = 'block';
-    canvas.style.width = maxX + 'px';
-    canvas.style.height = maxY + 'px';
+    canvas.style.width = (maxX + 40) + 'px';
+    canvas.style.height = (maxY + 40) + 'px';
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, maxX, maxY);
     ctx.strokeStyle = 'rgba(139,146,169,0.4)';
@@ -3563,12 +3619,7 @@ function renderOrganigrama() {
 
   container.innerHTML = html;
 
-  // Sync canvas position with container scroll
-  container.onscroll = () => {
-    if(canvas) {
-      canvas.style.transform = `translate(-${container.scrollLeft}px, -${container.scrollTop}px)`;
-    }
-  };
+
 }
 
 
