@@ -1141,7 +1141,7 @@
 <div id="orgDetailBg" onclick="closeOrgDetail()" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.3)"></div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
-<div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
+<div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:1000;display:none;align-items:center;gap:8px">
   <div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px">
     <span id="currentUserName"></span>
     <span id="currentUserRole" style="color:var(--accent1)"></span>
@@ -1514,6 +1514,11 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   closeFabMenu();
   applyUserPermissions();
+  // Always keep user badge visible
+  if(currentUser) {
+    const badge = document.getElementById('currentUserBadge');
+    if(badge) badge.style.display = 'flex';
+  }
 }
 // ── EMPRESAS NAVIGATION ──────────────────────────────────────────────────────
 let currentEmpresaIdx = null; // index into state.empresas array
@@ -2618,7 +2623,7 @@ function onLoginSuccess() {
   const badge = document.getElementById('currentUserBadge');
   if(nameEl) nameEl.textContent = currentUser.username;
   if(roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
-  if(badge) badge.style.display = 'flex';
+  if(badge) { badge.style.display = 'flex'; badge.style.zIndex = '1000'; }
   // Show users fab only for admin
   const fab = document.getElementById('usersFab');
   if(fab) fab.style.display = currentUser.role==='admin' ? 'flex' : 'none';
