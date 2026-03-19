@@ -184,7 +184,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html{height:-webkit-fill-available;}
-  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;min-height:-webkit-fill-available;overflow-x:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;min-height:-webkit-fill-available;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
   input,select,button,textarea{-webkit-appearance:none;appearance:none;}
   .screen{display:none;min-height:100vh;}
   .screen.active{display:flex;flex-direction:column;}
@@ -1516,8 +1516,8 @@ function showScreen(id) {
   applyUserPermissions();
   // Always keep user badge visible
   if(currentUser) {
-    const badge = document.getElementById('currentUserBadge');
-    if(badge) badge.style.display = 'flex';
+    const badge = document.getElementById('currentUserBadge') || createUserBadge();
+    badge.style.display = 'flex';
   }
 }
 // ── EMPRESAS NAVIGATION ──────────────────────────────────────────────────────
@@ -2615,15 +2615,26 @@ function showLoginError(msg) {
   document.getElementById('loginBtn').disabled = false;
 }
 
+function createUserBadge() {
+  let badge = document.getElementById('currentUserBadge');
+  if(!badge) {
+    badge = document.createElement('div');
+    badge.id = 'currentUserBadge';
+    badge.style.cssText = 'position:fixed;top:8px;right:16px;z-index:99999;display:flex;align-items:center;gap:8px;pointer-events:auto';
+    badge.innerHTML = '<div style="background:rgba(26,29,39,.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:5px 14px;font-size:.75rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:8px"><span id="currentUserName" style="color:var(--text1)"></span><span id="currentUserRole" style="color:var(--accent1)"></span><button onclick="doLogout()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:.75rem;padding:0 0 0 6px;font-family:var(--font);font-weight:700">Salir</button></div>';
+    document.body.appendChild(badge);
+  }
+  return badge;
+}
 function onLoginSuccess() {
   document.getElementById('loginScreen').style.display = 'none';
   applyUserPermissions();
+  const badge = createUserBadge();
   const nameEl = document.getElementById('currentUserName');
   const roleEl = document.getElementById('currentUserRole');
-  const badge = document.getElementById('currentUserBadge');
   if(nameEl) nameEl.textContent = currentUser.username;
   if(roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
-  if(badge) { badge.style.display = 'flex'; badge.style.zIndex = '1000'; }
+  badge.style.display = 'flex';
   // Show users fab only for admin
   const fab = document.getElementById('usersFab');
   if(fab) fab.style.display = currentUser.role==='admin' ? 'flex' : 'none';
@@ -2634,7 +2645,7 @@ function doLogout() {
   currentUser = null;
   localStorage.removeItem('gestion_session');
   document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('currentUserBadge').style.display = 'none';
+  const _b = document.getElementById('currentUserBadge'); if(_b) _b.style.display = 'none';
   document.getElementById('usersFab').style.display = 'none';
   document.getElementById('login_user').value = '';
   document.getElementById('login_pass').value = '';
@@ -3526,33 +3537,34 @@ function renderOrganigrama() {
     });
   }
 
-  // Calculate total width of all roots combined
-  const totalTreeW = roots.reduce((s, r, i) => s + calcWidth(r) + (i > 0 ? H_GAP + 40 : 0), 0);
-  // Get viewport width
-  const viewW = document.getElementById('orgScrollWrapper')?.clientWidth || window.innerWidth;
-  // Add extra padding on both sides so children that spread left are always reachable
-  const EXTRA_PAD = Math.max(600, totalTreeW);
-  // Place roots starting at EXTRA_PAD so there's always room to scroll left
-  let startX = EXTRA_PAD + Math.max(0, (viewW - totalTreeW) / 2);
+  // Layout: start at x=24 (left edge), all children spread naturally
+  let startX = 24;
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
-  // Shift left if any node still goes negative (shouldn't happen with EXTRA_PAD)
+  // Shift entire tree right so leftmost node is at x=24 (never hidden)
   const minX = Math.min(...Object.values(positions).map(p => p.x));
   if(minX < 24) {
     const shift = 24 - minX;
     Object.keys(positions).forEach(id => { positions[id].x += shift; });
   }
-  // Center scroll on roots after DOM updates
+  // After render: if tree fits in viewport, center it; otherwise start from left
   setTimeout(() => {
     const wrapper = document.getElementById('orgScrollWrapper');
     if(!wrapper) return;
     const wW = wrapper.clientWidth || window.innerWidth;
-    const rootCenters = roots.map(r => (positions[r.id]?.x || 0) + NODE_W / 2);
-    if(!rootCenters.length) return;
-    const treeCenterX = (Math.min(...rootCenters) + Math.max(...rootCenters)) / 2;
-    wrapper.scrollLeft = Math.max(0, treeCenterX - wW / 2);
+    const allX = Object.values(positions).map(p => p.x);
+    const treeLeft = Math.min(...allX);
+    const treeRight = Math.max(...allX) + NODE_W;
+    const treeW = treeRight - treeLeft;
+    if(treeW < wW) {
+      // Tree fits: center it
+      wrapper.scrollLeft = treeLeft - (wW - treeW) / 2;
+    } else {
+      // Tree wider than screen: start from leftmost node
+      wrapper.scrollLeft = Math.max(0, treeLeft - 24);
+    }
   }, 80);
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
