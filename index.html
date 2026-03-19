@@ -1077,18 +1077,15 @@
     </div>
   </div>
   <div id="orgScrollWrapper" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain;min-height:0">
-    <!-- Scroll content -->
     <div id="orgInner" style="position:relative;display:inline-block;min-width:100%">
-    <!-- Canvas for connections -->
-    <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
-    <!-- Nodes container -->
-    <div id="orgNodes" style="position:relative;z-index:1"></div>
-    <!-- Empty state -->
-    <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:280px">
-      <div style="font-size:3rem;margin-bottom:12px">🗂️</div>
-      <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Sin estructura aún</div>
-      <div style="font-size:.85rem;margin-bottom:20px">Crea el primer nodo para empezar</div>
-      <button onclick="addOrgNode(null)" class="save-btn" style="width:auto;padding:12px 24px">➕ Agregar nodo raíz</button>
+      <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
+      <div id="orgNodes" style="position:relative;z-index:1"></div>
+      <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2)">
+        <div style="font-size:3rem;margin-bottom:12px">🗂️</div>
+        <div style="font-size:1rem;font-weight:600;margin-bottom:8px">Sin estructura aún</div>
+        <div style="font-size:.85rem;margin-bottom:20px">Crea el primer nodo para empezar</div>
+        <button onclick="addOrgNode(null)" class="save-btn" style="width:auto;padding:12px 24px">➕ Agregar nodo raíz</button>
+      </div>
     </div>
   </div>
 </div>
