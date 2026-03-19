@@ -190,7 +190,7 @@
   .screen.active{display:flex;flex-direction:column;}
 
   /* HOME */
-  #home{background:var(--home-bg);align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
+  #home{background:var(--home-bg);align-items:center;justify-content:center;padding:24px;position:relative;}
   #home::before{content:'';position:absolute;top:-40%;left:-20%;width:140%;height:140%;background:radial-gradient(ellipse at 30% 20%,rgba(91,141,246,.12) 0%,transparent 60%),radial-gradient(ellipse at 70% 80%,rgba(167,139,250,.10) 0%,transparent 60%);pointer-events:none;}
   .home-inner{width:100%;max-width:480px;z-index:1;}
   .home-header{text-align:center;margin-bottom:48px;}
@@ -1141,7 +1141,7 @@
 <div id="orgDetailBg" onclick="closeOrgDetail()" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.3)"></div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
-<div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:1000;display:none;align-items:center;gap:8px">
+<div id="currentUserBadge" style="position:fixed;top:max(8px,env(safe-area-inset-top,8px));right:16px;z-index:9998;display:none;align-items:center;gap:8px">
   <div style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:6px">
     <span id="currentUserName"></span>
     <span id="currentUserRole" style="color:var(--accent1)"></span>
@@ -3544,18 +3544,16 @@ function renderOrganigrama() {
     const shift = 24 - minX;
     Object.keys(positions).forEach(id => { positions[id].x += shift; });
   }
-  // After render, scroll so the center of the roots is centered in the viewport
-  requestAnimationFrame(() => {
+  // Center scroll on roots after DOM updates
+  setTimeout(() => {
     const wrapper = document.getElementById('orgScrollWrapper');
     if(!wrapper) return;
-    // Find center X of root nodes
+    const wW = wrapper.clientWidth || window.innerWidth;
     const rootCenters = roots.map(r => (positions[r.id]?.x || 0) + NODE_W / 2);
-    const treeCenterX = rootCenters.length
-      ? (Math.min(...rootCenters) + Math.max(...rootCenters)) / 2
-      : 0;
-    // Scroll so treeCenterX is at the center of the viewport
-    wrapper.scrollLeft = treeCenterX - viewW / 2;
-  });
+    if(!rootCenters.length) return;
+    const treeCenterX = (Math.min(...rootCenters) + Math.max(...rootCenters)) / 2;
+    wrapper.scrollLeft = Math.max(0, treeCenterX - wW / 2);
+  }, 80);
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
