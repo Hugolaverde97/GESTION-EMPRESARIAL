@@ -2628,16 +2628,15 @@ function createUserBadge() {
 }
 function onLoginSuccess() {
   document.getElementById('loginScreen').style.display = 'none';
-  applyUserPermissions();
+  // Update badge
   const badge = createUserBadge();
   const nameEl = document.getElementById('currentUserName');
   const roleEl = document.getElementById('currentUserRole');
   if(nameEl) nameEl.textContent = currentUser.username;
   if(roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
   badge.style.display = 'flex';
-  // Show users fab only for admin
-  const fab = document.getElementById('usersFab');
-  if(fab) fab.style.display = currentUser.role==='admin' ? 'flex' : 'none';
+  // Navigate to home (applies permissions, shows all correct elements)
+  goHome();
 }
 
 function doLogout() {
@@ -2687,6 +2686,10 @@ function applyUserPermissions() {
   // Show/hide settings button inside FAB based on role
   const fabSett = document.getElementById('fabSettingsBtn');
   if(fabSett) fabSett.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
+
+  // ── Users FAB (admin only)
+  const usersFabEl = document.getElementById('usersFab');
+  if(usersFabEl) usersFabEl.style.display = (currentUser?.role==='admin') ? 'flex' : 'none';
 
   // ── Export button ────────────────────────────────────────────────────
   const fabExport = document.getElementById('fabExportBtn');
@@ -3465,6 +3468,22 @@ function openOrganigrama(idx) {
   document.getElementById('orgEditBtn').style.color = '';
   renderOrganigrama();
   showScreen('organigramaScreen');
+  // Re-center after screen transition completes
+  setTimeout(() => {
+    const wrapper = document.getElementById('orgScrollWrapper');
+    if(!wrapper) return;
+    const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
+    const org = getOrg(orgCompanyIdx);
+    if(!org.nodes.length) return;
+    // Find root nodes positions
+    const rootIds = org.nodes.filter(n => !n.parentId).map(n => n.id);
+    const nodeEls = rootIds.map(id => document.getElementById('orgnode_'+id)).filter(Boolean);
+    if(!nodeEls.length) return;
+    const lefts = nodeEls.map(el => parseInt(el.style.left)||0);
+    const rights = lefts.map((l,i) => l + nodeEls[i].offsetWidth);
+    const centerX = (Math.min(...lefts) + Math.max(...rights)) / 2;
+    wrapper.scrollLeft = Math.max(0, centerX - wW/2);
+  }, 350);
 }
 
 function toggleOrgEdit() {
@@ -3558,7 +3577,7 @@ function renderOrganigrama() {
     const rootsCenter = (Math.min(...rootXs) + Math.max(...rootXs)) / 2;
     wrapper.scrollLeft = Math.max(0, rootsCenter - wW / 2);
   };
-  setTimeout(doCenter, 150);
+  setTimeout(doCenter, 300);
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
