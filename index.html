@@ -3469,12 +3469,21 @@ function openOrganigrama(idx) {
   const em = (state.empresas||[])[idx] || {};
   document.getElementById('orgTitle').textContent = (em.nombre||'Empresa') + ' · Organigrama';
   document.getElementById('orgEditBtn').textContent = '✏️ Editar';
-  document.getElementById('orgEditBtn').style.background = '';
-  document.getElementById('orgEditBtn').style.color = '';
+  document.getElementById('orgEditBtn').style.cssText = 'background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s';
   showScreen('organigramaScreen');
-  // Render AFTER screen is visible so offsetWidth is correct
-  setTimeout(() => { renderOrganigrama(); }, 60);
+  // Render after screen is painted - retry until wrapper has real dimensions
+  let attempts = 0;
+  const tryRender = () => {
+    const w = document.getElementById('orgScrollWrapper');
+    if(w && w.offsetWidth > 100) {
+      renderOrganigrama();
+    } else if(attempts++ < 10) {
+      setTimeout(tryRender, 60);
+    }
+  };
+  setTimeout(tryRender, 60);
 }
+
 
 function toggleOrgEdit() {
   orgEditMode = !orgEditMode;
@@ -3500,50 +3509,40 @@ function renderOrganigrama() {
   const container = document.getElementById('orgNodes');
   const empty = document.getElementById('orgEmpty');
   const canvas = document.getElementById('orgCanvas');
+  const wrapper = document.getElementById('orgScrollWrapper');
   if(!container) return;
 
   if(!org.nodes.length) {
-    empty.style.display = 'flex';
-    empty.style.flexDirection = 'column';
-    empty.style.alignItems = 'center';
+    if(empty) empty.style.display = 'block';
     container.innerHTML = '';
     if(canvas) canvas.style.display = 'none';
-    const wrapper = document.getElementById('orgScrollWrapper');
-    if(wrapper) { wrapper.style.display = 'flex'; wrapper.style.alignItems = 'center'; wrapper.style.justifyContent = 'center'; }
     return;
   }
-  empty.style.display = 'none';
-  const wrapper = document.getElementById('orgScrollWrapper');
-  if(wrapper) { wrapper.style.display = ''; wrapper.style.alignItems = ''; wrapper.style.justifyContent = ''; }
+  if(empty) empty.style.display = 'none';
 
-  // Build tree - separate normal and staff nodes
+  // ── Constants ──────────────────────────────────────────────
+  const NODE_W = 180, NODE_H = 88, H_GAP = 28, V_GAP = 72;
+
+  // ── Separate staff vs normal nodes ─────────────────────────
   const nodeMap = {};
   org.nodes.forEach(n => { nodeMap[n.id] = { ...n, children: [] }; });
-  const roots = [];
-  const staffNodes = []; // staff nodes positioned separately
+  const roots = [], staffNodes = [];
   org.nodes.forEach(n => {
-    if(n.tipo === 'staff') {
-      staffNodes.push(nodeMap[n.id]);
-    } else if(n.parentId && nodeMap[n.parentId]) {
-      nodeMap[n.parentId].children.push(nodeMap[n.id]);
-    } else {
-      roots.push(nodeMap[n.id]);
-    }
+    if(n.tipo === 'staff') { staffNodes.push(nodeMap[n.id]); return; }
+    if(n.parentId && nodeMap[n.parentId]) nodeMap[n.parentId].children.push(nodeMap[n.id]);
+    else roots.push(nodeMap[n.id]);
   });
 
-  // Layout constants
-  const NODE_W = 170, NODE_H = 90, H_GAP = 24, V_GAP = 70;
-
+  // ── Layout helpers ─────────────────────────────────────────
   function calcWidth(node) {
     if(!node.children.length) return NODE_W;
-    return Math.max(NODE_W, node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP));
+    return Math.max(NODE_W, node.children.reduce((s,c,i) => s + calcWidth(c) + (i?H_GAP:0), 0));
   }
-
   const positions = {};
   function assignPos(node, x, y) {
     positions[node.id] = { x, y };
     if(!node.children.length) return;
-    const totalW = node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP);
+    const totalW = node.children.reduce((s,c,i) => s + calcWidth(c) + (i?H_GAP:0), 0);
     let cx = x + NODE_W/2 - totalW/2;
     node.children.forEach(child => {
       const cw = calcWidth(child);
@@ -3552,148 +3551,126 @@ function renderOrganigrama() {
     });
   }
 
-  // Step 1: Layout with roots starting at a large offset so children never go negative
-  // Layout with root at x=0 first (natural spread, may go negative)
-  let startX = 0;
+  // ── Place roots starting at a big offset (2000px left padding) ─
+  const LPAD = 2000;
+  let sx = LPAD;
   roots.forEach(root => {
-    assignPos(root, startX, 24);
-    startX += calcWidth(root) + H_GAP + 40;
+    assignPos(root, sx, 24);
+    sx += calcWidth(root) + H_GAP * 2;
   });
-  // Find the center X of the roots group
-  const rootLefts  = roots.map(r => positions[r.id]?.x || 0);
-  const rootRights = roots.map(r => (positions[r.id]?.x || 0) + NODE_W);
-  const rootsGroupCenter = (Math.min(...rootLefts) + Math.max(...rootRights)) / 2;
-  // Get viewport width (use wrapper or window)
-  const _wrapper = document.getElementById('orgScrollWrapper');
-  const viewW = (_wrapper && _wrapper.offsetWidth > 50) ? _wrapper.offsetWidth : window.innerWidth;
-  const viewCenter = viewW / 2;
-  // Shift all nodes so rootsGroupCenter aligns with viewport center
-  const centerShift = viewCenter - rootsGroupCenter;
-  Object.keys(positions).forEach(id => { positions[id].x += centerShift; });
-  // If any node went off the left edge, shift right to bring it in (add margin)
-  const minX = Math.min(...Object.values(positions).map(p => p.x));
-  if (minX < 24) {
-    const edgeShift = 24 - minX;
-    Object.keys(positions).forEach(id => { positions[id].x += edgeShift; });
-  }
-  // Position staff nodes: to the right of their parent at same Y level
+
+  // ── Shift so leftmost node is at x = LPAD (always scrollable left) ─
+  const allX = Object.values(positions).map(p => p.x);
+  const minX = Math.min(...allX);
+  const shift = LPAD - minX;
+  Object.keys(positions).forEach(id => { positions[id].x += shift; });
+
+  // ── Place staff nodes to the right of their parent ─────────
   staffNodes.forEach(sn => {
-    const parent = positions[sn.parentId];
-    if(parent) {
-      // Find rightmost node at parent's Y level to avoid overlap
-      const sameY = Object.values(positions).filter(p => Math.abs(p.y - parent.y) < 10);
-      const rightmost = Math.max(...sameY.map(p => p.x + NODE_W));
-      positions[sn.id] = { x: rightmost + H_GAP * 2, y: parent.y };
+    const par = positions[sn.parentId];
+    if(par) {
+      const sameY = Object.values(positions).filter(p => Math.abs(p.y - par.y) < 10);
+      const rightEdge = Math.max(...sameY.map(p => p.x + NODE_W));
+      positions[sn.id] = { x: rightEdge + H_GAP * 2, y: par.y };
     } else {
-      // No parent: place at top right
-      const allX = Object.values(positions).map(p => p.x + NODE_W);
-      positions[sn.id] = { x: Math.max(...allX) + H_GAP * 2, y: 24 };
+      const maxX = Math.max(...Object.values(positions).map(p => p.x + NODE_W));
+      positions[sn.id] = { x: maxX + H_GAP * 2, y: 24 };
     }
   });
 
-  const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
-  const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
+  // ── Canvas size ─────────────────────────────────────────────
+  const maxX = Math.max(...Object.values(positions).map(p => p.x)) + NODE_W + LPAD;
+  const maxY = Math.max(...Object.values(positions).map(p => p.y)) + NODE_H + 60;
 
-  // Set container size
-  // Size the inner wrapper to fit all nodes + padding
-  const orgInner = document.getElementById('orgInner');
-  if(orgInner) {
-    orgInner.style.width = (maxX + 40) + 'px';
-    orgInner.style.height = (maxY + 40) + 'px';
-  }
-  container.style.width = (maxX + 40) + 'px';
-  container.style.height = (maxY + 40) + 'px';
+  // ── Set inner container size ────────────────────────────────
+  const inner = document.getElementById('orgInner');
+  if(inner) { inner.style.width = maxX + 'px'; inner.style.height = maxY + 'px'; }
+  container.style.width  = maxX + 'px';
+  container.style.height = maxY + 'px';
 
-  // Draw connections
+  // ── Draw canvas ─────────────────────────────────────────────
   if(canvas) {
-    canvas.width = maxX + 40;
-    canvas.height = maxY + 40;
+    canvas.width  = maxX;  canvas.height  = maxY;
+    canvas.style.width  = maxX + 'px'; canvas.style.height = maxY + 'px';
     canvas.style.display = 'block';
-    canvas.style.width = (maxX + 40) + 'px';
-    canvas.style.height = (maxY + 40) + 'px';
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, maxX, maxY);
     org.edges.forEach(e => {
       const fp = positions[e.from], tp = positions[e.to];
       if(!fp || !tp) return;
       const toNode = org.nodes.find(n => n.id === e.to);
-      const isStaff = toNode?.tipo === 'staff';
       ctx.beginPath();
-      if(isStaff) {
-        // Dashed L-shaped line for staff nodes
-        ctx.setLineDash([6, 4]);
-        ctx.strokeStyle = 'rgba(139,146,169,0.55)';
-        ctx.lineWidth = 1.5;
-        const fx = fp.x + NODE_W, fy = fp.y + NODE_H/2;
-        const tx = tp.x, ty = tp.y + NODE_H/2;
-        ctx.moveTo(fx, fy);
-        ctx.lineTo(tx - H_GAP, fy);
-        ctx.lineTo(tx - H_GAP, ty);
-        ctx.lineTo(tx, ty);
+      if(toNode?.tipo === 'staff') {
+        ctx.setLineDash([6,4]); ctx.strokeStyle='rgba(200,200,255,.5)'; ctx.lineWidth=1.5;
+        const fx=fp.x+NODE_W, fy=fp.y+NODE_H/2, tx=tp.x, ty=tp.y+NODE_H/2;
+        ctx.moveTo(fx,fy); ctx.lineTo(tx-H_GAP,fy); ctx.lineTo(tx-H_GAP,ty); ctx.lineTo(tx,ty);
       } else {
-        ctx.setLineDash([]);
-        ctx.strokeStyle = 'rgba(139,146,169,0.4)';
-        ctx.lineWidth = 2;
-        const fx = fp.x + NODE_W/2, fy = fp.y + NODE_H;
-        const tx = tp.x + NODE_W/2, ty = tp.y;
-        ctx.moveTo(fx, fy);
-        ctx.bezierCurveTo(fx, fy + V_GAP*0.5, tx, ty - V_GAP*0.5, tx, ty);
+        ctx.setLineDash([]); ctx.strokeStyle='rgba(139,146,169,.4)'; ctx.lineWidth=2;
+        const fx=fp.x+NODE_W/2, fy=fp.y+NODE_H;
+        const tx=tp.x+NODE_W/2, ty2=tp.y;
+        ctx.moveTo(fx,fy); ctx.bezierCurveTo(fx,fy+V_GAP*.5,tx,ty2-V_GAP*.5,tx,ty2);
       }
       ctx.stroke();
     });
     ctx.setLineDash([]);
   }
 
-  // Render nodes
+  // ── Render nodes ────────────────────────────────────────────
   const allEmps = getEmployees(orgCompanyIdx);
   let html = '';
   org.nodes.forEach(node => {
     const pos = positions[node.id];
     if(!pos) return;
     const assigned = (node.employees||[]).map(eid => allEmps.find(e=>e.id===eid)).filter(Boolean);
-    const puestos = node.puestos || 1;
+    const puestos  = node.puestos || 1;
     const ocupados = assigned.length;
     const pct = puestos > 0 ? ocupados/puestos : 0;
-    const statusColor = ocupados===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
-    const statusBg = ocupados===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
-    const color = node.color || '#5b8df6';
+    const sColor = ocupados===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
+    const sBg    = ocupados===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
+    const color  = node.color || '#5b8df6';
+    const isStaff = node.tipo === 'staff';
 
-    const avatarHtml = assigned.slice(0,3).map(e => {
+    const avatars = assigned.slice(0,3).map(e => {
       const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
       return `<div style="width:24px;height:24px;border-radius:50%;background:${color}22;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:${color};margin-right:-5px;flex-shrink:0">${init}</div>`;
     }).join('');
 
     const editBtns = orgEditMode ? `
       <div style="display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-        <button onclick="event.stopPropagation();openOrgNodeModal('${node.id}')" style="flex:1;padding:5px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.72rem;color:var(--text2);font-family:var(--font)">✏️ Editar</button>
-        <button onclick="event.stopPropagation();addOrgNode('${node.id}')" style="flex:1;padding:5px 4px;background:#22c55e22;border:1.5px solid #22c55e;border-radius:6px;cursor:pointer;font-size:.72rem;color:#22c55e;font-weight:700;font-family:var(--font)">➕ Hijo</button>
+        <button onclick="event.stopPropagation();openOrgNodeModal('${node.id}')" style="flex:1;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.72rem;color:var(--text2);font-family:var(--font)">✏️ Editar</button>
+        <button onclick="event.stopPropagation();addOrgNode('${node.id}')" style="flex:1;padding:5px;background:#22c55e22;border:1.5px solid #22c55e;border-radius:6px;cursor:pointer;font-size:.72rem;color:#22c55e;font-weight:700;font-family:var(--font)">➕ Hijo</button>
       </div>` : '';
+
+    const staffBadge = isStaff ? `<span style="font-size:.62rem;background:rgba(200,200,255,.15);color:#a78bfa;padding:1px 6px;border-radius:8px;margin-left:4px">staff</span>` : '';
 
     html += `<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')"
       style="position:absolute;left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;
       background:var(--surface);border:2px solid ${color};border-radius:14px;
-      padding:11px 13px;cursor:pointer;
-      box-shadow:0 4px 16px rgba(0,0,0,.25);
-      transition:transform .15s,box-shadow .15s;user-select:none">
-      <div style="font-size:.82rem;font-weight:700;color:var(--text1);line-height:1.2;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${node.cargo||''}">${node.cargo||'Sin cargo'}</div>
+      padding:11px 13px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);
+      transition:transform .15s;user-select:none;${isStaff?'border-style:dashed;':''}">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text1);line-height:1.2;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${node.cargo||''}">${node.cargo||'Sin cargo'}${staffBadge}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-        <div style="display:flex;align-items:center;overflow:hidden">${avatarHtml}${assigned.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${assigned.length-3}</span>`:''}</div>
-        <div style="background:${statusBg};color:${statusColor};font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0">${ocupados}/${puestos}</div>
+        <div style="display:flex;align-items:center;overflow:hidden">${avatars}${assigned.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${assigned.length-3}</span>`:''}</div>
+        <div style="background:${sBg};color:${sColor};font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0">${ocupados}/${puestos}</div>
       </div>
       ${editBtns}
     </div>`;
   });
 
-  // Add root button in edit mode
   if(orgEditMode) {
-    html += `<button onclick="addOrgNode(null)" style="position:absolute;right:16px;top:16px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
-  } else {
-    html += `<div style="position:absolute;right:16px;top:16px;font-size:.75rem;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:8px;border:1px solid var(--border)">👆 Toca un nodo para ver empleados</div>`;
+    const rEdge = Math.max(...Object.values(positions).map(p=>p.x+NODE_W));
+    html += `<button onclick="addOrgNode(null)" style="position:absolute;left:${rEdge+H_GAP*2}px;top:24px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
   }
 
   container.innerHTML = html;
 
-
+  // ── Center scroll on roots ──────────────────────────────────
+  if(wrapper) {
+    const rootXs = roots.map(r => (positions[r.id]?.x||0) + NODE_W/2);
+    const rootsCenter = rootXs.length ? (Math.min(...rootXs)+Math.max(...rootXs))/2 : LPAD + NODE_W/2;
+    const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
+    wrapper.scrollLeft = Math.max(0, rootsCenter - wW/2);
+  }
 }
 
 
