@@ -340,6 +340,7 @@
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px;}
   .modal-overlay.active{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:500px;max-height:85vh;overflow-y:auto;padding:24px;}
+  @media(min-width:900px){.modal{max-width:620px;padding:32px;}}
   .modal-title{font-size:1.1rem;font-weight:800;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
   .modal-close{background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;}
 
@@ -1040,10 +1041,10 @@
     <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
     <span class="bar-title" id="orgTitle">Organigrama</span>
     <div class="bar-actions" style="display:flex;gap:6px">
-      <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:var(--font)">✏️ Editar</button>
+      <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s">✏️ Editar</button>
     </div>
   </div>
-  <div class="screen-content pb-safe" style="padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column">
+  <div style="flex:1;padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column">
     <!-- Canvas for connections -->
     <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
     <!-- Nodes container -->
@@ -1091,7 +1092,7 @@
 </div>
 
 <!-- ORGANIGRAMA NODE DETAIL PANEL -->
-<div id="orgDetailPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;background:var(--surface);border-top:2px solid var(--border);border-radius:20px 20px 0 0;padding:20px;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.4)">
+<div id="orgDetailPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:201;background:var(--surface);border-top:2px solid var(--border);border-radius:20px 20px 0 0;padding:20px;max-height:60vh;overflow-y:auto;box-shadow:0 -8px 32px rgba(0,0,0,.4)">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <div>
       <div id="odp_cargo" style="font-size:1.1rem;font-weight:800;color:var(--text1)"></div>
@@ -1103,7 +1104,7 @@
   <div id="odp_vacantes" style="margin-top:12px"></div>
   <div id="odp_actions" style="display:flex;gap:8px;margin-top:16px"></div>
 </div>
-<div id="orgDetailBg" onclick="closeOrgDetail()" style="display:none;position:fixed;inset:0;z-index:149;background:rgba(0,0,0,.3)"></div>
+<div id="orgDetailBg" onclick="closeOrgDetail()" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.3)"></div>
 <!-- FAB backdrop -->
 <div id="fabBackdrop" onclick="closeFabMenu()" style="display:none;position:fixed;inset:0;z-index:199;background:rgba(0,0,0,.3)"></div>
 <div id="currentUserBadge" style="position:fixed;top:calc(8px + env(safe-area-inset-top));right:16px;z-index:50;display:none;align-items:center;gap:8px">
@@ -3416,10 +3417,19 @@ function openOrganigrama(idx) {
 function toggleOrgEdit() {
   orgEditMode = !orgEditMode;
   const btn = document.getElementById('orgEditBtn');
-  btn.textContent = orgEditMode ? '✅ Listo' : '✏️ Editar';
-  btn.style.background = orgEditMode ? '#22c55e' : '';
-  btn.style.color = orgEditMode ? '#fff' : '';
-  btn.style.borderColor = orgEditMode ? '#22c55e' : '';
+  if(orgEditMode) {
+    btn.textContent = '✅ Listo';
+    btn.style.background = '#22c55e';
+    btn.style.color = '#fff';
+    btn.style.borderColor = '#22c55e';
+    toast('Modo edición activado — toca ✏️ o ➕ Hijo en cada nodo');
+  } else {
+    btn.textContent = '✏️ Editar';
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    toast('Modo visualización — toca un nodo para ver empleados');
+  }
   renderOrganigrama();
 }
 
@@ -3547,6 +3557,8 @@ function renderOrganigrama() {
   // Add root button in edit mode
   if(orgEditMode) {
     html += `<button onclick="addOrgNode(null)" style="position:absolute;right:16px;top:16px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
+  } else {
+    html += `<div style="position:absolute;right:16px;top:16px;font-size:.75rem;color:var(--text2);background:var(--surface2);padding:5px 10px;border-radius:8px;border:1px solid var(--border)">👆 Toca un nodo para ver empleados</div>`;
   }
 
   container.innerHTML = html;
@@ -3719,7 +3731,7 @@ function openOrgDetail(nodeId) {
     const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
     const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
     const isInactive = e.activo===false;
-    return `<div onclick="closeOrgDetail();setTimeout(()=>openEmployee('${e.id}'),300)" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px;cursor:pointer;border:1px solid var(--border)">
+    return `<div onclick="${orgEditMode?'':"closeOrgDetail();setTimeout(()=>openEmployee('${e.id}'),300)"}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px;cursor:${orgEditMode?'default':'pointer'};border:1px solid var(--border)">
       <div style="width:36px;height:36px;border-radius:50%;background:${node.color||'#5b8df6'}22;border:2px solid ${node.color||'#5b8df6'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${node.color||'#5b8df6'};flex-shrink:0">${init}</div>
       <div style="flex:1">
         <div style="font-weight:600;font-size:.88rem">${name}</div>
@@ -3735,7 +3747,7 @@ function openOrgDetail(nodeId) {
     : '';
 
   const actions = document.getElementById('odp_actions');
-  actions.innerHTML = canEdit() ? `<button onclick="closeOrgDetail();openOrgNodeModal('${nodeId}')" class="save-btn" style="flex:1">✏️ Editar nodo</button>` : '';
+  actions.innerHTML = orgEditMode ? `<button onclick="closeOrgDetail();openOrgNodeModal('${nodeId}')" class="save-btn" style="flex:1">✏️ Editar nodo</button>` : '';
 
   document.getElementById('orgDetailPanel').style.display = 'block';
   document.getElementById('orgDetailBg').style.display = 'block';
