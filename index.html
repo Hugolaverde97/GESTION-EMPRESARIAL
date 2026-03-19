@@ -3465,22 +3465,8 @@ function openOrganigrama(idx) {
   document.getElementById('orgEditBtn').style.color = '';
   renderOrganigrama();
   showScreen('organigramaScreen');
-  // Re-center after screen transition completes
-  setTimeout(() => {
-    const wrapper = document.getElementById('orgScrollWrapper');
-    if(!wrapper) return;
-    const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
-    const org = getOrg(orgCompanyIdx);
-    if(!org.nodes.length) return;
-    // Find root nodes positions
-    const rootIds = org.nodes.filter(n => !n.parentId).map(n => n.id);
-    const nodeEls = rootIds.map(id => document.getElementById('orgnode_'+id)).filter(Boolean);
-    if(!nodeEls.length) return;
-    const lefts = nodeEls.map(el => parseInt(el.style.left)||0);
-    const rights = lefts.map((l,i) => l + nodeEls[i].offsetWidth);
-    const centerX = (Math.min(...lefts) + Math.max(...rights)) / 2;
-    wrapper.scrollLeft = Math.max(0, centerX - wW/2);
-  }, 350);
+  // Re-render after screen is visible so viewport width is correct
+  setTimeout(() => { renderOrganigrama(); }, 50);
 }
 
 function toggleOrgEdit() {
@@ -3554,27 +3540,28 @@ function renderOrganigrama() {
   }
 
   // Step 1: Layout with roots starting at a large offset so children never go negative
-  const PAD = 2000; // enough room for deep left branches
-  let startX = PAD;
+  // Layout with root at x=0 first (natural spread, may go negative)
+  let startX = 0;
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
-  // Step 2: Find leftmost node and shift everything so it sits at x=24
+  // Find the center X of the roots group
+  const rootLefts  = roots.map(r => positions[r.id]?.x || 0);
+  const rootRights = roots.map(r => (positions[r.id]?.x || 0) + NODE_W);
+  const rootsGroupCenter = (Math.min(...rootLefts) + Math.max(...rootRights)) / 2;
+  // Get viewport width (use wrapper or window)
+  const viewW = document.getElementById('orgScrollWrapper')?.offsetWidth || window.innerWidth;
+  const viewCenter = viewW / 2;
+  // Shift all nodes so rootsGroupCenter aligns with viewport center
+  const centerShift = viewCenter - rootsGroupCenter;
+  Object.keys(positions).forEach(id => { positions[id].x += centerShift; });
+  // If any node went off the left edge, shift right to bring it in (add margin)
   const minX = Math.min(...Object.values(positions).map(p => p.x));
-  const globalShift = 24 - minX;
-  Object.keys(positions).forEach(id => { positions[id].x += globalShift; });
-  // Step 3: After render, scroll so root nodes are centered
-  const doCenter = () => {
-    const wrapper = document.getElementById('orgScrollWrapper');
-    if(!wrapper) return;
-    const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
-    if(wW === 0) { setTimeout(doCenter, 50); return; }
-    const rootXs = roots.map(r => (positions[r.id]?.x || 0) + NODE_W / 2);
-    const rootsCenter = (Math.min(...rootXs) + Math.max(...rootXs)) / 2;
-    wrapper.scrollLeft = Math.max(0, rootsCenter - wW / 2);
-  };
-  setTimeout(doCenter, 300);
+  if (minX < 24) {
+    const edgeShift = 24 - minX;
+    Object.keys(positions).forEach(id => { positions[id].x += edgeShift; });
+  }
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
