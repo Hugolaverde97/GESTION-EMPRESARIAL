@@ -318,7 +318,7 @@
   /* CHARTS */
   .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   @media(max-width:500px){.charts-grid{grid-template-columns:1fr;}}
-  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-width:0;overflow:hidden;}
   .chart-title{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin-bottom:12px;}
   .chart-wrap{position:relative;height:160px;}
   .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
@@ -384,7 +384,7 @@
     .screen-content { max-width: 1100px; padding: 28px 48px; }
     .form-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
     .fields-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
-    .charts-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr 1fr 1fr; }
     .list-container { grid-template-columns: 1fr 1fr 1fr; }
     .main-buttons { grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
     .modal { max-width: 700px; }
@@ -1076,9 +1076,9 @@
       <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s">✏️ Editar</button>
     </div>
   </div>
-  <div id="orgScrollWrapper" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative">
+  <div id="orgScrollWrapper" style="flex:1;overflow:scroll;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain">
     <!-- Scroll content -->
-    <div id="orgInner" style="position:relative;min-width:100%;min-height:100%">
+    <div id="orgInner" style="position:relative;display:inline-block;min-width:100%">
     <!-- Canvas for connections -->
     <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
     <!-- Nodes container -->
@@ -3521,13 +3521,17 @@ function renderOrganigrama() {
     });
   }
 
-  // First pass: calculate positions
-  let startX = 24;
+  // First pass: calculate total width of all roots
+  const totalTreeW = roots.reduce((s, r, i) => s + calcWidth(r) + (i>0 ? H_GAP+40 : 0), 0);
+  // Get available width (screen width minus padding)
+  const availW = (document.getElementById('orgScrollWrapper')?.clientWidth || window.innerWidth) - 48;
+  // Start position: center if tree fits, otherwise start at padding
+  let startX = Math.max(24, (availW - totalTreeW) / 2);
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
-  // Second pass: shift all nodes right if any go negative
+  // Ensure no node goes off the left edge
   const minX = Math.min(...Object.values(positions).map(p => p.x));
   if(minX < 24) {
     const shift = 24 - minX;
