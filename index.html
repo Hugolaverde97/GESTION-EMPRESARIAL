@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="cache-buster" content="v3.1">
+<meta name="cache-buster" content="v4.0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Gestión Empresarial</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1076,7 +1076,7 @@
       <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s">✏️ Editar</button>
     </div>
   </div>
-  <div id="orgScrollWrapper" style="flex:1;overflow:scroll;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain">
+  <div id="orgScrollWrapper" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain;min-height:0">
     <!-- Scroll content -->
     <div id="orgInner" style="position:relative;display:inline-block;min-width:100%">
     <!-- Canvas for connections -->
@@ -3537,35 +3537,28 @@ function renderOrganigrama() {
     });
   }
 
-  // Layout: start at x=24 (left edge), all children spread naturally
-  let startX = 24;
+  // Step 1: Layout with roots starting at a large offset so children never go negative
+  const PAD = 2000; // enough room for deep left branches
+  let startX = PAD;
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
-  // Shift entire tree right so leftmost node is at x=24 (never hidden)
+  // Step 2: Find leftmost node and shift everything so it sits at x=24
   const minX = Math.min(...Object.values(positions).map(p => p.x));
-  if(minX < 24) {
-    const shift = 24 - minX;
-    Object.keys(positions).forEach(id => { positions[id].x += shift; });
-  }
-  // After render: if tree fits in viewport, center it; otherwise start from left
-  setTimeout(() => {
+  const globalShift = 24 - minX;
+  Object.keys(positions).forEach(id => { positions[id].x += globalShift; });
+  // Step 3: After render, scroll so root nodes are centered
+  const doCenter = () => {
     const wrapper = document.getElementById('orgScrollWrapper');
     if(!wrapper) return;
-    const wW = wrapper.clientWidth || window.innerWidth;
-    const allX = Object.values(positions).map(p => p.x);
-    const treeLeft = Math.min(...allX);
-    const treeRight = Math.max(...allX) + NODE_W;
-    const treeW = treeRight - treeLeft;
-    if(treeW < wW) {
-      // Tree fits: center it
-      wrapper.scrollLeft = treeLeft - (wW - treeW) / 2;
-    } else {
-      // Tree wider than screen: start from leftmost node
-      wrapper.scrollLeft = Math.max(0, treeLeft - 24);
-    }
-  }, 80);
+    const wW = wrapper.offsetWidth || wrapper.clientWidth || window.innerWidth;
+    if(wW === 0) { setTimeout(doCenter, 50); return; }
+    const rootXs = roots.map(r => (positions[r.id]?.x || 0) + NODE_W / 2);
+    const rootsCenter = (Math.min(...rootXs) + Math.max(...rootXs)) / 2;
+    wrapper.scrollLeft = Math.max(0, rootsCenter - wW / 2);
+  };
+  setTimeout(doCenter, 150);
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
