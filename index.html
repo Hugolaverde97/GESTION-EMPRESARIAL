@@ -1043,11 +1043,11 @@
       <button id="orgEditBtn" onclick="toggleOrgEdit()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;font-family:var(--font)">✏️ Editar</button>
     </div>
   </div>
-  <div class="screen-content pb-safe" style="padding:0;overflow:hidden;position:relative">
+  <div class="screen-content pb-safe" style="padding:0;overflow:hidden;position:relative;display:flex;flex-direction:column">
     <!-- Canvas for connections -->
     <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
     <!-- Nodes container -->
-    <div id="orgNodes" style="position:relative;z-index:1;min-height:100%;overflow:auto;padding:20px"></div>
+    <div id="orgNodes" style="position:relative;z-index:1;flex:1;overflow:auto;padding:20px;-webkit-overflow-scrolling:touch"></div>
     <!-- Empty state -->
     <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2)">
       <div style="font-size:3rem;margin-bottom:12px">🗂️</div>
@@ -2526,6 +2526,30 @@ async function hashPassword(pwd) {
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 
+
+function parseUserData(data) {
+  // Parse the empresas field which can be:
+  // - old format: JSON array ["empresa0","empresa1",...]
+  // - new format: JSON object {accesos:[...], puede_excel:bool, sub_perms:{...}}
+  try {
+    const raw = typeof data.empresas === 'string' ? JSON.parse(data.empresas || '[]') : (data.empresas || []);
+    if(Array.isArray(raw)) {
+      data.empresas = raw;
+      // puede_excel and sub_perms may be separate columns (old schema)
+      data.puede_excel = data.puede_excel || false;
+      data.sub_perms = data.sub_perms || {};
+    } else {
+      data.empresas = raw.accesos || [];
+      data.puede_excel = raw.puede_excel || false;
+      data.sub_perms = raw.sub_perms || {};
+    }
+  } catch(e) {
+    data.empresas = [];
+    data.puede_excel = false;
+    data.sub_perms = {};
+  }
+  return data;
+}
 async function doLogin() {
   const username = document.getElementById('login_user').value.trim();
   const password = document.getElementById('login_pass').value;
@@ -2538,9 +2562,8 @@ async function doLogin() {
     const hash = await hashPassword(password);
     const { data, error } = await sb.from('gestion_users').select('*').eq('username', username).eq('password_hash', hash).single();
     if(error || !data) { showLoginError('Usuario o contraseña incorrectos'); btn.textContent='Ingresar'; btn.disabled=false; return; }
-    currentUser = data;
-    currentUser.empresas = Array.isArray(data.empresas) ? data.empresas : (typeof data.empresas === 'string' ? JSON.parse(data.empresas) : []);
-    localStorage.setItem('gestion_session', JSON.stringify({id:data.id, username:data.username, role:data.role, empresas:currentUser.empresas, puede_ver_salarios:data.puede_ver_salarios}));
+    currentUser = parseUserData(data);
+    localStorage.setItem('gestion_session', JSON.stringify({id:data.id, username:data.username, role:data.role}));
     onLoginSuccess();
   } catch(e) { showLoginError('Error de conexión. Intenta de nuevo.'); btn.textContent='Ingresar'; btn.disabled=false; }
 }
@@ -2728,8 +2751,8 @@ async function renderUserList() {
     if(!data?.length) { listEl.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:8px">No hay usuarios.</div>'; return; }
     const roleColors = { admin:'var(--accent1)', editor:'var(--accent3)', readonly:'var(--text2)', supervisor:'var(--accent2)' };
     listEl.innerHTML = data.map(u => {
-      const empresas = Array.isArray(u.empresas) ? u.empresas : (typeof u.empresas==='string'?JSON.parse(u.empresas||'[]'):[]);
-      const accesos = empresas.length ? empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?'E1':e==='empresa1'?'E2':e==='empresa2'?'E3':e).join(' ') : (u.role==='admin'?'Todo':'Ninguno');
+      parseUserData(u);
+      const accesos = u.empresas.length ? empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?'E1':e==='empresa1'?'E2':e==='empresa2'?'E3':e).join(' ') : (u.role==='admin'?'Todo':'Ninguno');
       return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
         <div style="flex:1">
           <div style="font-weight:700;font-size:.92rem">${u.username} ${u.id===currentUser?.id?'<span style="font-size:.7rem;color:var(--accent3)">(tú)</span>':''}</div>
@@ -2766,14 +2789,10 @@ async function openEditUser(id) {
     document.getElementById('ue_username').value = data.username;
     document.getElementById('ue_password').value = '';
     document.getElementById('ue_role').value = data.role;
-    let empresas = [];
-    let editPuedeExcel = false;
-    let editSubPerms = {};
-    try {
-      const raw = typeof data.empresas==='string' ? JSON.parse(data.empresas||'[]') : (data.empresas||[]);
-      if(Array.isArray(raw)) { empresas = raw; }
-      else { empresas = raw.accesos||[]; editPuedeExcel = raw.puede_excel||false; editSubPerms = raw.sub_perms||{}; }
-    } catch(e2) { empresas = []; }
+    parseUserData(data);
+    const empresas = data.empresas || [];
+    const editPuedeExcel = data.puede_excel || false;
+    const editSubPerms = data.sub_perms || {};
     document.getElementById('ue_acc0').checked = data.role==='admin' || empresas.includes('empresa0');
     document.getElementById('ue_acc1').checked = data.role==='admin' || empresas.includes('empresa1');
     document.getElementById('ue_acc2').checked = data.role==='admin' || empresas.includes('empresa2');
@@ -2861,6 +2880,7 @@ function refreshPermVisuals() {
     ['ue_acc2','lbl_acc2','#34d399'],
     ['ue_acc3','lbl_acc3','#fb923c'],
     ['ue_salarios','lbl_salarios','#fbbf24'],
+    ['ue_excel','lbl_excel','#16a34a'],
   ];
   map.forEach(([checkId, labelId, color]) => {
     const cb = document.getElementById(checkId);
@@ -3380,6 +3400,165 @@ function getOrg(idx) {
   if(!state.organigramas[idx]) state.organigramas[idx] = { nodes: [], edges: [] };
   return state.organigramas[idx];
 }
+
+function openOrganigrama(idx) {
+  orgCompanyIdx = idx;
+  orgEditMode = false;
+  const em = (state.empresas||[])[idx] || {};
+  document.getElementById('orgTitle').textContent = (em.nombre||'Empresa') + ' · Organigrama';
+  document.getElementById('orgEditBtn').textContent = '✏️ Editar';
+  document.getElementById('orgEditBtn').style.background = '';
+  document.getElementById('orgEditBtn').style.color = '';
+  renderOrganigrama();
+  showScreen('organigramaScreen');
+}
+
+function toggleOrgEdit() {
+  orgEditMode = !orgEditMode;
+  const btn = document.getElementById('orgEditBtn');
+  btn.textContent = orgEditMode ? '✅ Listo' : '✏️ Editar';
+  btn.style.background = orgEditMode ? '#22c55e' : '';
+  btn.style.color = orgEditMode ? '#fff' : '';
+  btn.style.borderColor = orgEditMode ? '#22c55e' : '';
+  renderOrganigrama();
+}
+
+function renderOrganigrama() {
+  const org = getOrg(orgCompanyIdx);
+  const container = document.getElementById('orgNodes');
+  const empty = document.getElementById('orgEmpty');
+  const canvas = document.getElementById('orgCanvas');
+  if(!container) return;
+
+  if(!org.nodes.length) {
+    empty.style.display = 'block';
+    container.innerHTML = '';
+    if(canvas) canvas.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Build tree
+  const nodeMap = {};
+  org.nodes.forEach(n => { nodeMap[n.id] = { ...n, children: [] }; });
+  const roots = [];
+  org.nodes.forEach(n => {
+    if(n.parentId && nodeMap[n.parentId]) nodeMap[n.parentId].children.push(nodeMap[n.id]);
+    else roots.push(nodeMap[n.id]);
+  });
+
+  // Layout constants
+  const NODE_W = 170, NODE_H = 90, H_GAP = 24, V_GAP = 70;
+
+  function calcWidth(node) {
+    if(!node.children.length) return NODE_W;
+    return Math.max(NODE_W, node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP));
+  }
+
+  const positions = {};
+  function assignPos(node, x, y) {
+    positions[node.id] = { x, y };
+    if(!node.children.length) return;
+    const totalW = node.children.reduce((s,c) => s + calcWidth(c) + H_GAP, -H_GAP);
+    let cx = x + NODE_W/2 - totalW/2;
+    node.children.forEach(child => {
+      const cw = calcWidth(child);
+      assignPos(child, cx, y + NODE_H + V_GAP);
+      cx += cw + H_GAP;
+    });
+  }
+
+  let startX = 24;
+  roots.forEach(root => {
+    assignPos(root, startX, 24);
+    startX += calcWidth(root) + H_GAP + 40;
+  });
+
+  const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
+  const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
+
+  // Set container size
+  container.style.minWidth = maxX + 'px';
+  container.style.minHeight = maxY + 'px';
+
+  // Draw connections
+  if(canvas) {
+    canvas.width = maxX;
+    canvas.height = maxY;
+    canvas.style.display = 'block';
+    canvas.style.width = maxX + 'px';
+    canvas.style.height = maxY + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, maxX, maxY);
+    ctx.strokeStyle = 'rgba(139,146,169,0.4)';
+    ctx.lineWidth = 2;
+    org.edges.forEach(e => {
+      const fp = positions[e.from], tp = positions[e.to];
+      if(!fp || !tp) return;
+      const fx = fp.x + NODE_W/2, fy = fp.y + NODE_H;
+      const tx = tp.x + NODE_W/2, ty = tp.y;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.bezierCurveTo(fx, fy + V_GAP*0.5, tx, ty - V_GAP*0.5, tx, ty);
+      ctx.stroke();
+    });
+  }
+
+  // Render nodes
+  const allEmps = getEmployees(orgCompanyIdx);
+  let html = '';
+  org.nodes.forEach(node => {
+    const pos = positions[node.id];
+    if(!pos) return;
+    const assigned = (node.employees||[]).map(eid => allEmps.find(e=>e.id===eid)).filter(Boolean);
+    const puestos = node.puestos || 1;
+    const ocupados = assigned.length;
+    const pct = puestos > 0 ? ocupados/puestos : 0;
+    const statusColor = ocupados===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
+    const statusBg = ocupados===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
+    const color = node.color || '#5b8df6';
+
+    const avatarHtml = assigned.slice(0,3).map(e => {
+      const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
+      return `<div style="width:24px;height:24px;border-radius:50%;background:${color}22;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:${color};margin-right:-5px;flex-shrink:0">${init}</div>`;
+    }).join('');
+
+    const editBtns = orgEditMode ? `
+      <div style="display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <button onclick="event.stopPropagation();openOrgNodeModal('${node.id}')" style="flex:1;padding:5px 4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.72rem;color:var(--text2);font-family:var(--font)">✏️ Editar</button>
+        <button onclick="event.stopPropagation();addOrgNode('${node.id}')" style="flex:1;padding:5px 4px;background:#22c55e22;border:1.5px solid #22c55e;border-radius:6px;cursor:pointer;font-size:.72rem;color:#22c55e;font-weight:700;font-family:var(--font)">➕ Hijo</button>
+      </div>` : '';
+
+    html += `<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')"
+      style="position:absolute;left:${pos.x}px;top:${pos.y}px;width:${NODE_W}px;
+      background:var(--surface);border:2px solid ${color};border-radius:14px;
+      padding:11px 13px;cursor:pointer;
+      box-shadow:0 4px 16px rgba(0,0,0,.25);
+      transition:transform .15s,box-shadow .15s;user-select:none">
+      <div style="font-size:.82rem;font-weight:700;color:var(--text1);line-height:1.2;margin-bottom:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${node.cargo||''}">${node.cargo||'Sin cargo'}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+        <div style="display:flex;align-items:center;overflow:hidden">${avatarHtml}${assigned.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${assigned.length-3}</span>`:''}</div>
+        <div style="background:${statusBg};color:${statusColor};font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0">${ocupados}/${puestos}</div>
+      </div>
+      ${editBtns}
+    </div>`;
+  });
+
+  // Add root button in edit mode
+  if(orgEditMode) {
+    html += `<button onclick="addOrgNode(null)" style="position:absolute;right:16px;top:16px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
+  }
+
+  container.innerHTML = html;
+
+  // Sync canvas position with container scroll
+  container.onscroll = () => {
+    if(canvas) {
+      canvas.style.transform = `translate(-${container.scrollLeft}px, -${container.scrollTop}px)`;
+    }
+  };
+}
+
 
 function openOrganigrama(idx) {
   orgCompanyIdx = idx;
@@ -4068,16 +4247,7 @@ function calcEdad(fechaNac) {
       const { data } = await sb.from('gestion_users').select('*').eq('id', sess.id).single();
       if(data) {
         currentUser = data;
-        try {
-        const raw = typeof data.empresas==='string' ? JSON.parse(data.empresas||'[]') : (data.empresas||[]);
-        if(Array.isArray(raw)) {
-          currentUser.empresas = raw; // old format
-        } else {
-          currentUser.empresas = raw.accesos || [];
-          currentUser.puede_excel = raw.puede_excel || false;
-          currentUser.sub_perms = raw.sub_perms || {};
-        }
-      } catch(e2) { currentUser.empresas = []; }
+        parseUserData(currentUser);
         onLoginSuccess();
       } else {
         localStorage.removeItem('gestion_session');
