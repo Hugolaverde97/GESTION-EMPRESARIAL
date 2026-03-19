@@ -3521,22 +3521,36 @@ function renderOrganigrama() {
     });
   }
 
-  // First pass: calculate total width of all roots
-  const totalTreeW = roots.reduce((s, r, i) => s + calcWidth(r) + (i>0 ? H_GAP+40 : 0), 0);
-  // Get available width (screen width minus padding)
-  const availW = (document.getElementById('orgScrollWrapper')?.clientWidth || window.innerWidth) - 48;
-  // Start position: center if tree fits, otherwise start at padding
-  let startX = Math.max(24, (availW - totalTreeW) / 2);
+  // Calculate total width of all roots combined
+  const totalTreeW = roots.reduce((s, r, i) => s + calcWidth(r) + (i > 0 ? H_GAP + 40 : 0), 0);
+  // Get viewport center
+  const viewW = document.getElementById('orgScrollWrapper')?.clientWidth || window.innerWidth;
+  const centerX = viewW / 2;
+  // Start roots so their combined center aligns with viewport center
+  let startX = centerX - totalTreeW / 2;
   roots.forEach(root => {
     assignPos(root, startX, 24);
     startX += calcWidth(root) + H_GAP + 40;
   });
-  // Ensure no node goes off the left edge
+  // If any node goes off left edge, shift everything right (but keep centered if possible)
   const minX = Math.min(...Object.values(positions).map(p => p.x));
   if(minX < 24) {
     const shift = 24 - minX;
     Object.keys(positions).forEach(id => { positions[id].x += shift; });
   }
+  // After layout, scroll wrapper to center the tree
+  requestAnimationFrame(() => {
+    const wrapper = document.getElementById('orgScrollWrapper');
+    if(!wrapper) return;
+    const inner = document.getElementById('orgInner');
+    if(!inner) return;
+    const innerW = inner.scrollWidth;
+    const wrapperW = wrapper.clientWidth;
+    if(innerW > wrapperW) {
+      // Center scroll so the center of the tree is visible
+      wrapper.scrollLeft = (innerW - wrapperW) / 2;
+    }
+  });
 
   const maxX = Object.values(positions).reduce((m,p) => Math.max(m, p.x + NODE_W), 0) + 40;
   const maxY = Object.values(positions).reduce((m,p) => Math.max(m, p.y + NODE_H), 0) + 80;
