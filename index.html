@@ -3489,18 +3489,10 @@ function openOrganigrama(idx) {
 
 
 function centerOrganigrama() {
-  const wrapper = document.getElementById('orgScrollWrapper');
-  if(!wrapper) return;
-  const org = getOrg(orgCompanyIdx);
-  if(!org.nodes.length) return;
-  const rootNodes = org.nodes.filter(n => !n.parentId && n.tipo !== 'staff');
-  const nodeEls = rootNodes.map(n => document.getElementById('orgnode_'+n.id)).filter(Boolean);
-  if(!nodeEls.length) return;
-  const lefts = nodeEls.map(el => parseInt(el.style.left) || 0);
-  const rights = lefts.map(l => l + ORG_NODE_W);
-  const treeCenter = (Math.min(...lefts) + Math.max(...rights)) / 2;
-  wrapper.scrollLeft = Math.max(0, treeCenter - window.innerWidth / 2);
+  renderOrganigrama();
 }
+
+
 function toggleOrgEdit() {
   orgEditMode = !orgEditMode;
   const btn = document.getElementById('orgEditBtn');
@@ -3536,8 +3528,8 @@ function renderOrganigrama() {
   if(empty) empty.style.display='none';
 
   const NW=180,NH=88,HG=28,VG=72;
-  const OFFSET=1500;
 
+  // Build tree
   const map={};
   org.nodes.forEach(n=>{map[n.id]={...n,children:[]};});
   const roots=[],staff=[];
@@ -3556,32 +3548,49 @@ function renderOrganigrama() {
     node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=cw(c)+HG;});
   }
 
-  let sx=OFFSET;
+  // Place roots starting at x=0
+  let sx=0;
   roots.forEach(r=>{place(r,sx,24);sx+=cw(r)+HG*2;});
 
-  // Shift so leftmost node is exactly at OFFSET
+  // Shift so leftmost node is at x=0
   const minX=Math.min(...Object.values(pos).map(p=>p.x));
-  if(minX<OFFSET){const s=OFFSET-minX;Object.keys(pos).forEach(id=>{pos[id].x+=s;});}
+  if(minX<0){const s=-minX;Object.keys(pos).forEach(id=>{pos[id].x+=s;});}
 
+  // Staff nodes
   staff.forEach(sn=>{
     const par=pos[sn.parentId];
     const sy=par?par.y:24;
     const sameY=Object.values(pos).filter(p=>Math.abs(p.y-sy)<10);
-    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):OFFSET)+HG*2,y:sy};
+    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):0)+HG*2,y:sy};
   });
 
-  const maxX=Math.max(...Object.values(pos).map(p=>p.x+NW))+40;
-  const maxY=Math.max(...Object.values(pos).map(p=>p.y+NH))+60;
+  const treeW=Math.max(...Object.values(pos).map(p=>p.x+NW));
+  const treeH=Math.max(...Object.values(pos).map(p=>p.y+NH))+60;
 
+  // Calculate centering offset using window.innerWidth
+  // This shifts the ENTIRE tree so roots are centered in viewport
+  const vW = window.innerWidth;
+  const rootXs = roots.map(r=>(pos[r.id]?.x||0)+NW/2);
+  const rootsCenter = rootXs.length?(Math.min(...rootXs)+Math.max(...rootXs))/2:treeW/2;
+  // How much to shift right so rootsCenter aligns with vW/2
+  const offsetX = Math.max(0, vW/2 - rootsCenter);
+  // Total canvas width = tree width + offset + padding
+  const canvasW = Math.max(treeW + offsetX + 40, vW);
+
+  // Apply offset to all positions
+  Object.keys(pos).forEach(id=>{pos[id].x += offsetX;});
+
+  // Size containers
   const inner=document.getElementById('orgInner');
-  if(inner){inner.style.width=maxX+'px';inner.style.height=maxY+'px';}
-  container.style.width=maxX+'px';container.style.height=maxY+'px';
+  if(inner){inner.style.width=canvasW+'px';inner.style.height=treeH+'px';}
+  container.style.width=canvasW+'px';container.style.height=treeH+'px';
 
+  // Draw canvas
   if(canvas){
-    canvas.width=maxX;canvas.height=maxY;
-    canvas.style.cssText=`display:block;position:absolute;top:0;left:0;width:${maxX}px;height:${maxY}px;pointer-events:none;z-index:0`;
+    canvas.width=canvasW;canvas.height=treeH;
+    canvas.style.cssText=`display:block;position:absolute;top:0;left:0;width:${canvasW}px;height:${treeH}px;pointer-events:none;z-index:0`;
     const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,maxX,maxY);
+    ctx.clearRect(0,0,canvasW,treeH);
     org.edges.forEach(e=>{
       const f=pos[e.from],t=pos[e.to];if(!f||!t)return;
       const tn=org.nodes.find(n=>n.id===e.to);
@@ -3591,14 +3600,15 @@ function renderOrganigrama() {
         ctx.moveTo(f.x+NW,f.y+NH/2);ctx.lineTo(t.x-HG,f.y+NH/2);ctx.lineTo(t.x-HG,t.y+NH/2);ctx.lineTo(t.x,t.y+NH/2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
-        const fx=f.x+NW/2,fy=f.y+NH,tx=t.x+NW/2,ty=t.y;
-        ctx.moveTo(fx,fy);ctx.bezierCurveTo(fx,fy+VG*.5,tx,ty-VG*.5,tx,ty);
+        ctx.moveTo(f.x+NW/2,f.y+NH);
+        ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*.5,t.x+NW/2,t.y-VG*.5,t.x+NW/2,t.y);
       }
       ctx.stroke();
     });
     ctx.setLineDash([]);
   }
 
+  // Render nodes
   const emps=getEmployees(orgCompanyIdx);
   let html='';
   org.nodes.forEach(node=>{
@@ -3632,7 +3642,6 @@ function renderOrganigrama() {
     html+=`<button onclick="addOrgNode(null)" style="position:absolute;left:${re2+HG*2}px;top:24px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;
   }
   container.innerHTML=html;
-  requestAnimationFrame(()=>centerOrganigrama());
 }
 
 
