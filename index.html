@@ -3553,13 +3553,14 @@ function renderOrganigrama() {
     if(n.tipo==='staff'){staff.push(map[n.id]);return;}
     n.parentId&&map[n.parentId]?map[n.parentId].children.push(map[n.id]):roots.push(map[n.id]);
   });
-  function cw(node){return !node.children.length?NW:Math.max(NW,node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0));}
+  function cw(node){if(!node.children.length)return NW;const childrenW=node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0);return Math.max(NW,childrenW+(node.children.length===1?HG*2:0));}
   const pos={};
   function place(node,x,y){
     pos[node.id]={x,y};
     if(!node.children.length)return;
     const tw=node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0);
-    let cx=x+NW/2-tw/2;
+    const totalW=node.children.length===1?tw+HG*2:tw;
+    let cx=x+NW/2-totalW/2+(node.children.length===1?HG:0);
     node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=cw(c)+HG;});
   }
   let sx=0;
