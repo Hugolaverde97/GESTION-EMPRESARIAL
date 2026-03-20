@@ -2072,34 +2072,36 @@ function renderPermisosStats() {
     return true;
   });
 
-  // Build chart data by period
+  // Granularity: day if <=31 days, week if <=90 days, month otherwise
+  const diffDays = Math.round((hasta-desde)/86400000);
+  const granularity = diffDays<=31 ? 'dia' : diffDays<=90 ? 'semana' : 'mes';
+
+  // Build labels from date range
   const labels=[], dataMap={};
   let cur = new Date(desde);
-  const granularity = (hasta-desde) < 8*24*3600*1000 ? 'dia' : (hasta-desde) < 60*24*3600*1000 ? 'semana' : 'mes';
-
   while(cur<=hasta) {
     let label;
-    if(granularity==='dia') label = cur.toLocaleDateString('es',{day:'2-digit',month:'short'});
-    else if(granularity==='semana') { const wk=getWeek(cur); label=`S${wk}`; }
-    else label = cur.toLocaleDateString('es',{month:'short',year:'2-digit'});
-    if(!dataMap[label]) { dataMap[label]=0; labels.push(label); }
+    if(granularity==='dia') label=`${String(cur.getDate()).padStart(2,'0')}/${String(cur.getMonth()+1).padStart(2,'0')}`;
+    else if(granularity==='semana') label=`S${getWeek(cur)}`;
+    else label=cur.toLocaleDateString('es',{month:'short',year:'2-digit'});
+    if(!dataMap[label]){dataMap[label]=0;labels.push(label);}
     if(granularity==='dia') cur.setDate(cur.getDate()+1);
     else if(granularity==='semana') cur.setDate(cur.getDate()+7);
     else cur.setMonth(cur.getMonth()+1);
   }
-  // Remove duplicate labels
   const uniqueLabels=[...new Set(labels)];
 
+  // Map each registro to its label
   filtered.forEach(p=>{
-    const fd = new Date(p.fechaInicio);
+    const fd=new Date(p.fechaInicio+'T00:00:00');
     let label;
-    if(granularity==='dia') label=fd.toLocaleDateString('es',{day:'2-digit',month:'short'});
+    if(granularity==='dia') label=`${String(fd.getDate()).padStart(2,'0')}/${String(fd.getMonth()+1).padStart(2,'0')}`;
     else if(granularity==='semana') label=`S${getWeek(fd)}`;
     else label=fd.toLocaleDateString('es',{month:'short',year:'2-digit'});
-    if(dataMap[label]!==undefined) {
+    if(dataMap[label]!==undefined){
       if(metrica==='registros') dataMap[label]++;
-      else {
-        const dias = p.tipo==='vacaciones'?(p.diasHabiles||0):p.tipo==='incapacidad'?(p.diasIncap||0):(p.duracionTipo==='dias'?(p.dias||1):(p.totalMinutos||0)/480);
+      else{
+        const dias=p.tipo==='vacaciones'?(p.diasHabiles||0):p.tipo==='incapacidad'?(p.diasIncap||0):(p.duracionTipo==='dias'?(p.dias||1):(p.totalMinutos||0)/480);
         dataMap[label]+=dias;
       }
     }
