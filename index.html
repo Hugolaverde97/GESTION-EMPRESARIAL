@@ -1077,7 +1077,7 @@
       <button onclick="centerOrganigrama()" title="Centrar" style="background:none;border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">⊙</button>
     </div>
   </div>
-  <div id="orgScrollWrapper" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain;min-height:0">
+  <div id="orgScrollWrapper" style="flex:1;overflow:scroll;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain;min-height:0;cursor:grab">
     <div id="orgInner" style="position:relative;display:inline-block;min-width:100%">
       <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
       <div id="orgNodes" style="position:relative;z-index:1"></div>
@@ -3473,7 +3473,39 @@ function openOrganigrama(idx) {
   document.getElementById('orgEditBtn').textContent = '✏️ Editar';
   document.getElementById('orgEditBtn').style.cssText = 'background:none;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;font-family:var(--font);transition:all .2s';
   showScreen('organigramaScreen');
-  // Render after screen is painted - retry until wrapper has real dimensions
+
+  // Setup scroll & pan interactions (only once)
+  const wrapper = document.getElementById('orgScrollWrapper');
+  if(wrapper && !wrapper._orgEventsSet) {
+    wrapper._orgEventsSet = true;
+
+    // Mouse wheel: scroll in both axes
+    wrapper.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      wrapper.scrollLeft += e.deltaX || (e.shiftKey ? e.deltaY : 0);
+      wrapper.scrollTop  += e.shiftKey ? 0 : e.deltaY;
+    }, { passive: false });
+
+    // Click+drag to pan
+    let dragging=false, startX=0, startY=0, scrollX=0, scrollY=0;
+    wrapper.addEventListener('mousedown', e=>{
+      if(e.target.tagName==='BUTTON'||e.target.closest('button')) return;
+      dragging=true; startX=e.clientX; startY=e.clientY;
+      scrollX=wrapper.scrollLeft; scrollY=wrapper.scrollTop;
+      wrapper.style.cursor='grabbing'; e.preventDefault();
+    });
+    window.addEventListener('mousemove', e=>{
+      if(!dragging) return;
+      wrapper.scrollLeft=scrollX-(e.clientX-startX);
+      wrapper.scrollTop=scrollY-(e.clientY-startY);
+    });
+    window.addEventListener('mouseup', ()=>{
+      dragging=false;
+      wrapper.style.cursor='grab';
+    });
+  }
+
+  // Render after screen is painted
   let attempts = 0;
   const tryRender = () => {
     const w = document.getElementById('orgScrollWrapper');
@@ -3547,8 +3579,8 @@ function renderOrganigrama() {
   }
   if(empty) empty.style.display='none';
 
-  const NW=180, NH=88, HG=28, VG=72;
-  const LATERAL_W = NW + HG*3; // space a lateral node occupies to the right of parent
+  const NW=180, HG=28, VG=60;
+  const NH = orgEditMode ? 136 : 88; // taller in edit mode (has buttons)
 
   // Separate normal vs lateral nodes
   const map={};
@@ -3559,16 +3591,10 @@ function renderOrganigrama() {
     n.parentId&&map[n.parentId]?map[n.parentId].children.push(map[n.id]):roots.push(map[n.id]);
   });
 
-  // Width of a normal subtree — includes extra space if parent has lateral children
+  // Width of a normal subtree
   function nodeWidth(node){
-    if(!node.children.length){
-      // Add space if this node has lateral children
-      const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
-      return hasLateral ? NW + LATERAL_W : NW;
-    }
-    const childrenW = node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
-    const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
-    return Math.max(NW, childrenW) + (hasLateral ? LATERAL_W : 0);
+    if(!node.children.length) return NW;
+    return Math.max(NW, node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0));
   }
 
   // Place normal nodes
@@ -3576,10 +3602,8 @@ function renderOrganigrama() {
   function place(node,x,y){
     pos[node.id]={x,y,tipo:'normal'};
     if(!node.children.length)return;
-    const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
-    const baseW = nodeWidth(node) - (hasLateral ? LATERAL_W : 0);
-    const tw = node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
-    let cx = x + NW/2 - tw/2;
+    const tw=node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
+    let cx=x+NW/2-tw/2;
     node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=nodeWidth(c)+HG;});
   }
   let sx=0;
@@ -3606,21 +3630,40 @@ function renderOrganigrama() {
     }
   });
 
-  // Place lateral nodes: to the right of their parent, midway between parent and first child
+  // Place lateral nodes and resolve overlaps minimally
   lateralNodes.forEach(ln=>{
     const par=pos[ln.parentId];
     if(!par){pos[ln.id]={x:20,y:24,tipo:'lateral'};return;}
-    const parNode=org.nodes.find(n=>n.id===ln.parentId);
-    const firstNormalChild=parNode&&map[ln.parentId]?.children[0];
+    const firstNormalChild=map[ln.parentId]?.children[0];
     const childPos=firstNormalChild?pos[firstNormalChild.id]:null;
-    const lateralY = childPos ? par.y + (childPos.y - par.y)*0.45 : par.y + NH + VG/2;
-    const lateralX = par.x + NW + HG*2;
-    pos[ln.id]={x:lateralX, y:lateralY - NH/2, tipo:'lateral'};
+    const lateralY=childPos?par.y+(childPos.y-par.y)*0.45:par.y+NH+VG/2;
+    const lateralX=par.x+NW+HG*2;
+    const ly=lateralY-NH/2;
+    pos[ln.id]={x:lateralX,y:ly,tipo:'lateral'};
+
+    // Check if lateral overlaps any existing node — shift offenders right by minimum
+    const latLeft=lateralX-HG, latRight=lateralX+NW+HG;
+    const latTop=ly-HG, latBottom=ly+NH+HG;
+    // Find all nodes that overlap with the lateral node's space
+    // Process from left to right to cascade shifts properly
+    const overlapping=Object.entries(pos)
+      .filter(([id,p])=>{
+        if(id===ln.id||id===ln.parentId)return false;
+        const hOverlap=p.x<latRight && p.x+NW>latLeft;
+        const vOverlap=p.y<latBottom && p.y+NH>latTop;
+        return hOverlap&&vOverlap;
+      })
+      .sort((a,b)=>a[1].x-b[1].x);
+    overlapping.forEach(([id,p])=>{
+      const shift=latRight-p.x;
+      if(shift>0) getSubtree(id).forEach(sid=>{if(pos[sid])pos[sid].x+=shift;});
+    });
+
     // Place lateral's own children
     if(map[ln.id].children.length){
       const tw=map[ln.id].children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
       let cx=lateralX+NW/2-tw/2;
-      map[ln.id].children.forEach(c=>{place(c,cx,lateralY-NH/2+NH+VG);cx+=nodeWidth(c)+HG;});
+      map[ln.id].children.forEach(c=>{place(c,cx,ly+NH+VG);cx+=nodeWidth(c)+HG;});
     }
   });
 
