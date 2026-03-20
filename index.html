@@ -3627,11 +3627,11 @@ function renderOrganigrama() {
   let sx=0;
   roots.forEach(r=>{place(r,sx,24);sx+=nodeWidth(r)+HG*2;});
 
-  // Fix overlaps between normal nodes
-  // Group by Y using NH/2 bucket so nodes at similar heights are compared
+  // Fix overlaps: group nodes by exact Y level (same parent = same Y)
   const byY={};
   Object.entries(pos).forEach(([id,p])=>{
-    const bucket=Math.round(p.y/Math.max(NH/2,30))*Math.max(NH/2,30);
+    // Round to nearest 4px to group nodes placed at the same level
+    const bucket=Math.round(p.y/4)*4;
     if(!byY[bucket])byY[bucket]=[];
     byY[bucket].push(id);
   });
@@ -3725,7 +3725,7 @@ function renderOrganigrama() {
         ctx.moveTo(px,py2);ctx.lineTo(t.x,py2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
-        ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*0.8,t.x+NW/2,t.y-VG*0.8,t.x+NW/2,t.y);
+        ctx.moveTo(f.x+NW/2,f.y+NH+2);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG,t.x+NW/2,t.y-VG,t.x+NW/2,t.y-2);
       }
       ctx.stroke();
     });ctx.setLineDash([]);
