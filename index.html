@@ -3638,13 +3638,26 @@ function renderOrganigrama() {
   const childrenMapN={};
   org.nodes.forEach(n=>{if(n.parentId&&n.tipo!=='lateral'&&n.tipo!=='staff')childrenMapN[n.parentId]=(childrenMapN[n.parentId]||[]).concat(n.id);});
   function getSubtree(id){const r=[id];(childrenMapN[id]||[]).forEach(c=>r.push(...getSubtree(c)));return r;}
+  // Build parent map for pushing entire sibling groups
+  const parentMapN={};
+  org.nodes.forEach(n=>{if(n.parentId&&n.tipo!=='lateral'&&n.tipo!=='staff')parentMapN[n.id]=n.parentId;});
+  function getFullSubtree(id){
+    // Get the topmost ancestor that we should shift (to keep siblings together)
+    // Find the root of the subtree containing id that needs to move
+    const r=[id];(childrenMapN[id]||[]).forEach(c=>r.push(...getSubtree(c)));return r;
+  }
   Object.keys(byY).sort((a,b)=>+a-+b).forEach(y=>{
     const nodes=byY[y].sort((a,b)=>pos[a].x-pos[b].x);
     for(let i=1;i<nodes.length;i++){
       const minX=pos[nodes[i-1]].x+NW+HG;
       if(pos[nodes[i]].x<minX){
         const shift=minX-pos[nodes[i]].x;
-        getSubtree(nodes[i]).forEach(id=>{if(pos[id])pos[id].x+=shift;});
+        // Shift this node AND all its siblings (via parent) AND their subtrees
+        const parentId=parentMapN[nodes[i]];
+        const toShift = parentId 
+          ? getSubtree(parentId)  // shift entire parent subtree (includes all siblings)
+          : getSubtree(nodes[i]); // no parent = root node, shift just its subtree
+        toShift.forEach(id=>{if(pos[id])pos[id].x+=shift;});
       }
     }
   });
