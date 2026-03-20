@@ -786,11 +786,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Fecha inicio</label>
-        <input type="date" class="form-select" id="perm_fecha_inicio">
+        <input type="date" class="form-select" id="perm_fecha_inicio" onchange="calcDiasHabiles()">
       </div>
       <div class="form-group">
         <label class="form-label">Fecha fin</label>
-        <input type="date" class="form-select" id="perm_fecha_fin">
+        <input type="date" class="form-select" id="perm_fecha_fin" onchange="calcDiasHabiles()">
       </div>
 
       <!-- VACACIONES fields -->
@@ -911,18 +911,7 @@
       <button onclick="saveFestivo()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">Guardar</button>
       <button onclick="closeModal('festivoModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
     </div>
-  
-    <div style="background:var(--surface);border-radius:16px;padding:16px;margin:0 16px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-weight:700;color:var(--text1);font-size:.95rem">🗓️ Festivos Colombia</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="festivosAnio" onchange="renderFestivosList()" class="form-select" style="font-size:.82rem;width:auto"></select>
-          <button onclick="openAddFestivo()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-family:var(--font);font-weight:700">+ Agregar</button>
-        </div>
-      </div>
-      <div id="festivosListContainer" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-</div>
+  </div>
 </div>
 
 <!-- ADD/EDIT EMPRESA MODAL -->
@@ -1184,7 +1173,19 @@
     </div>
     <button class="save-btn" onclick="applySettings()">💾 Guardar cambios</button>
     <button class="del-btn" onclick="resetSettings()">↺ Restablecer valores</button>
-  </div>
+  
+    <!-- Festivos Card -->
+    <div style="background:var(--surface);border-radius:16px;padding:16px;margin:0 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-weight:700;color:var(--text1);font-size:.95rem">🗓️ Festivos Colombia</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="festivosAnio" onchange="renderFestivosList()" class="form-select" style="font-size:.82rem;width:auto"></select>
+          <button onclick="openAddFestivo()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-family:var(--font);font-weight:700">+ Agregar</button>
+        </div>
+      </div>
+      <div id="festivosListContainer" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+</div>
 </div>
 
 <!-- EXPANDABLE FAB MENU -->
@@ -1918,8 +1919,6 @@ function calcDiasHabiles() {
   const jornada = em.jornada||'lv';
   const count = calcDiasHabilesVacaciones(fi, ff, jornada);
   document.getElementById('perm_dias_habiles').value = count + ' días hábiles';
-  document.getElementById('perm_dias_habiles').removeAttribute('readonly');
-  document.getElementById('perm_dias_habiles').setAttribute('readonly','');
 }
 
 function savePermiso() {
