@@ -187,6 +187,7 @@
   body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;min-height:-webkit-fill-available;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);-webkit-overflow-scrolling:touch;overscroll-behavior:none;}
   input,select,button,textarea{-webkit-appearance:none;appearance:none;}
   .screen{display:none;min-height:100vh;}
+  #organigramaScreen{height:100vh;max-height:100vh;}
   .screen.active{display:flex;flex-direction:column;}
 
   /* HOME */
@@ -1068,7 +1069,7 @@
 </div>
 
 <!-- ORGANIGRAMA SCREEN -->
-<div id="organigramaScreen" class="screen">
+<div id="organigramaScreen" class="screen" style="height:100vh">
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
     <span class="bar-title" id="orgTitle">Organigrama</span>
@@ -1078,7 +1079,7 @@
     </div>
   </div>
   <div id="orgScrollWrapper" style="flex:1;overflow:scroll;-webkit-overflow-scrolling:touch;position:relative;overscroll-behavior:contain;min-height:0;cursor:grab">
-    <div id="orgInner" style="position:relative;display:inline-block;min-width:100%">
+    <div id="orgInner" style="position:relative;display:block">
       <canvas id="orgCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:0"></canvas>
       <div id="orgNodes" style="position:relative;z-index:1"></div>
       <div id="orgEmpty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2)">
@@ -3482,9 +3483,26 @@ function openOrganigrama(idx) {
     // Mouse wheel: scroll in both axes
     wrapper.addEventListener('wheel', (e) => {
       e.preventDefault();
-      wrapper.scrollLeft += e.deltaX || (e.shiftKey ? e.deltaY : 0);
-      wrapper.scrollTop  += e.shiftKey ? 0 : e.deltaY;
+      if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        wrapper.scrollLeft += e.deltaX;
+      } else if(e.shiftKey) {
+        wrapper.scrollLeft += e.deltaY;
+      } else {
+        wrapper.scrollTop += e.deltaY;
+      }
     }, { passive: false });
+
+    // Keyboard navigation
+    wrapper.setAttribute('tabindex', '0');
+    wrapper.addEventListener('keydown', (e) => {
+      const step = 80;
+      if(e.key==='ArrowUp')    { wrapper.scrollTop  -= step; e.preventDefault(); }
+      if(e.key==='ArrowDown')  { wrapper.scrollTop  += step; e.preventDefault(); }
+      if(e.key==='ArrowLeft')  { wrapper.scrollLeft -= step; e.preventDefault(); }
+      if(e.key==='ArrowRight') { wrapper.scrollLeft += step; e.preventDefault(); }
+    });
+    // Auto-focus wrapper so keyboard works immediately
+    setTimeout(()=>wrapper.focus({preventScroll:true}), 200);
 
     // Click+drag to pan
     let dragging=false, startX=0, startY=0, scrollX=0, scrollY=0;
@@ -3681,7 +3699,11 @@ function renderOrganigrama() {
   const maxY=Math.max(...Object.values(pos).map(p=>p.y+NH))+40;
   const canvasW=Math.max(maxX,winW), canvasH=maxY;
   const inner=document.getElementById('orgInner');
-  if(inner){inner.style.width=canvasW+'px';inner.style.height=canvasH+'px';}
+  if(inner){
+    inner.style.width=canvasW+'px';
+    inner.style.height=canvasH+'px';
+    inner.style.minHeight=canvasH+'px';
+  }
   container.style.width=canvasW+'px';container.style.height=canvasH+'px';
 
   // Draw edges
