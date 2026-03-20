@@ -3539,50 +3539,98 @@ function renderOrganigrama() {
   const empty = document.getElementById('orgEmpty');
   const canvas = document.getElementById('orgCanvas');
   if(!container) return;
+
   if(!org.nodes.length) {
     if(empty) empty.style.display='block';
     if(canvas) canvas.style.display='none';
     container.innerHTML=''; return;
   }
   if(empty) empty.style.display='none';
-  const NW=180,NH=88,HG=28,VG=72;
+
+  const NW=180, NH=88, HG=28, VG=72;
+
+  // Build tree
   const map={};
   org.nodes.forEach(n=>{map[n.id]={...n,children:[]};});
-  const roots=[],staff=[];
+  const roots=[], staff=[];
   org.nodes.forEach(n=>{
     if(n.tipo==='staff'){staff.push(map[n.id]);return;}
     n.parentId&&map[n.parentId]?map[n.parentId].children.push(map[n.id]):roots.push(map[n.id]);
   });
-  function cw(node){if(!node.children.length)return NW;const childrenW=node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0);return Math.max(NW,childrenW+(node.children.length===1?HG*2:0));}
+
+  // Initial placement
   const pos={};
   function place(node,x,y){
     pos[node.id]={x,y};
     if(!node.children.length)return;
-    const tw=node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0);
-    const totalW=node.children.length===1?tw+HG*2:tw;
-    let cx=x+NW/2-totalW/2+(node.children.length===1?HG:0);
-    node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=cw(c)+HG;});
+    const tw=node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
+    let cx=x+NW/2-tw/2;
+    node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=nodeWidth(c)+HG;});
+  }
+  function nodeWidth(node){
+    if(!node.children.length)return NW;
+    return Math.max(NW, node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0));
   }
   let sx=0;
-  roots.forEach(r=>{place(r,sx,24);sx+=cw(r)+HG*2;});
-  const vals=Object.values(pos);
-  const rawMinX=Math.min(...vals.map(p=>p.x));
-  const treeW=Math.max(...vals.map(p=>p.x+NW))-rawMinX;
-  Object.keys(pos).forEach(id=>{pos[id].x-=rawMinX;});
-  const winW=window.innerWidth;
-  const leftPad=Math.max(20,winW/2-treeW/2);
-  Object.keys(pos).forEach(id=>{pos[id].x+=leftPad;});
+  roots.forEach(r=>{place(r,sx,24);sx+=nodeWidth(r)+HG*2;});
+
+  // Fix overlaps: scan each Y level, push nodes apart
+  const byY={};
+  Object.entries(pos).forEach(([id,p])=>{
+    const y=Math.round(p.y/10)*10;
+    if(!byY[y])byY[y]=[];
+    byY[y].push(id);
+  });
+
+  // Build children map for subtree shifting
+  const childrenMap={};
+  org.nodes.forEach(n=>{
+    if(n.parentId)childrenMap[n.parentId]=(childrenMap[n.parentId]||[]).concat(n.id);
+  });
+  function getSubtree(id){
+    const r=[id];
+    (childrenMap[id]||[]).forEach(c=>r.push(...getSubtree(c)));
+    return r;
+  }
+
+  // For each level top-to-bottom, ensure no overlap by shifting subtrees right
+  Object.keys(byY).sort((a,b)=>+a-+b).forEach(y=>{
+    const nodes=byY[y].sort((a,b)=>pos[a].x-pos[b].x);
+    for(let i=1;i<nodes.length;i++){
+      const minX=pos[nodes[i-1]].x+NW+HG;
+      if(pos[nodes[i]].x<minX){
+        const shift=minX-pos[nodes[i]].x;
+        // Shift this node and its entire subtree
+        getSubtree(nodes[i]).forEach(id=>{if(pos[id])pos[id].x+=shift;});
+      }
+    }
+  });
+
+  // Staff nodes
   staff.forEach(sn=>{
     const par=pos[sn.parentId];const sy=par?par.y:24;
     const sameY=Object.values(pos).filter(p=>Math.abs(p.y-sy)<10);
-    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):leftPad)+HG*2,y:sy};
+    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):0)+HG*2,y:sy};
   });
+
+  // Shift so minX=0 then center
+  const vals=Object.values(pos);
+  const rawMinX=Math.min(...vals.map(p=>p.x));
+  Object.keys(pos).forEach(id=>{pos[id].x-=rawMinX;});
+  const treeW=Math.max(...Object.values(pos).map(p=>p.x+NW));
+  const winW=window.innerWidth;
+  const leftPad=Math.max(20,winW/2-treeW/2);
+  Object.keys(pos).forEach(id=>{pos[id].x+=leftPad;});
+
+  // Canvas
   const maxX=Math.max(...Object.values(pos).map(p=>p.x+NW))+20;
   const maxY=Math.max(...Object.values(pos).map(p=>p.y+NH))+40;
-  const canvasW=Math.max(maxX,winW),canvasH=maxY;
+  const canvasW=Math.max(maxX,winW), canvasH=maxY;
+
   const inner=document.getElementById('orgInner');
   if(inner){inner.style.width=canvasW+'px';inner.style.height=canvasH+'px';}
   container.style.width=canvasW+'px';container.style.height=canvasH+'px';
+
   if(canvas){
     canvas.width=canvasW;canvas.height=canvasH;
     canvas.style.cssText=`display:block;position:absolute;top:0;left:0;width:${canvasW}px;height:${canvasH}px;pointer-events:none;z-index:0`;
@@ -3595,6 +3643,7 @@ function renderOrganigrama() {
       ctx.stroke();
     });ctx.setLineDash([]);
   }
+
   const emps=getEmployees(orgCompanyIdx);let html='';
   org.nodes.forEach(node=>{
     const p=pos[node.id];if(!p)return;
