@@ -683,6 +683,232 @@
   </div>
 </div>
 
+<!-- PERMISOS SCREEN -->
+<div id="permisosScreen" class="screen" style="height:100vh">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
+    <span class="bar-title" id="permisosTitle">Permisos y Ausencias</span>
+    <div class="bar-actions"></div>
+  </div>
+  <!-- Tabs -->
+  <div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface)">
+    <button id="tabRegistros" onclick="switchPermisosTab('registros')" style="flex:1;padding:12px;border:none;background:none;cursor:pointer;font-family:var(--font);font-weight:600;font-size:.88rem;color:var(--accent);border-bottom:2px solid var(--accent)">📋 Registros</button>
+    <button id="tabEstadisticas" onclick="switchPermisosTab('estadisticas')" style="flex:1;padding:12px;border:none;background:none;cursor:pointer;font-family:var(--font);font-weight:600;font-size:.88rem;color:var(--text2);border-bottom:2px solid transparent">📊 Estadísticas</button>
+  </div>
+
+  <!-- Tab: Registros -->
+  <div id="permisosTabRegistros" style="flex:1;overflow-y:auto;padding:16px">
+    <!-- Filters -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <select id="filtroPermisoTipo" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:140px;font-size:.82rem">
+        <option value="">Todos los tipos</option>
+        <option value="vacaciones">Vacaciones</option>
+        <option value="incapacidad">Incapacidad</option>
+        <option value="permiso_remunerado">Permiso remunerado</option>
+        <option value="permiso_no_remunerado">Permiso no remunerado</option>
+      </select>
+      <select id="filtroPermisoEmpleado" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:140px;font-size:.82rem">
+        <option value="">Todos los empleados</option>
+      </select>
+      <select id="filtroPermisoEstado" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:120px;font-size:.82rem">
+        <option value="">Todos los estados</option>
+        <option value="programado">Programado</option>
+        <option value="tomado">Tomado</option>
+        <option value="cancelado">Cancelado</option>
+      </select>
+    </div>
+    <div id="permisosListContainer"></div>
+  </div>
+
+  <!-- Tab: Estadísticas -->
+  <div id="permisosTabEstadisticas" style="display:none;flex:1;overflow-y:auto;padding:16px">
+    <!-- Stat Filters -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <select id="statRango" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
+        <option value="mes">Este mes</option>
+        <option value="semana">Esta semana</option>
+        <option value="año">Este año</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      <div id="statCustomDates" style="display:none;display:flex;gap:6px;flex:2">
+        <input type="date" id="statFechaDesde" onchange="renderPermisosStats()" class="form-select" style="flex:1;font-size:.82rem">
+        <input type="date" id="statFechaHasta" onchange="renderPermisosStats()" class="form-select" style="flex:1;font-size:.82rem">
+      </div>
+      <select id="statTipo" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
+        <option value="todos">Todos los tipos</option>
+        <option value="vacaciones">Vacaciones</option>
+        <option value="incapacidad">Incapacidad</option>
+        <option value="permiso_remunerado">Permiso remunerado</option>
+        <option value="permiso_no_remunerado">Permiso no remunerado</option>
+      </select>
+      <select id="statEmpleado" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
+        <option value="">Todos los empleados</option>
+      </select>
+      <select id="statMetrica" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
+        <option value="registros">Nº de registros</option>
+        <option value="dias">Días/horas totales</option>
+      </select>
+    </div>
+    <!-- Chart -->
+    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">
+      <canvas id="permisosChart" style="width:100%;height:200px"></canvas>
+    </div>
+    <!-- Summary cards -->
+    <div id="permisosSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
+  </div>
+</div>
+
+<!-- PERMISO MODAL -->
+<div class="modal-overlay" id="permisoModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">
+      <span id="permisoModalTitle">Nuevo Permiso</span>
+      <button class="modal-close" onclick="closeModal('permisoModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Empleado</label>
+        <select class="form-select" id="perm_empleado"></select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="perm_tipo" onchange="updatePermisoForm()">
+          <option value="vacaciones">🏖️ Vacaciones</option>
+          <option value="incapacidad">🏥 Incapacidad</option>
+          <option value="permiso_remunerado">✅ Permiso remunerado</option>
+          <option value="permiso_no_remunerado">⏸️ Permiso no remunerado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha inicio</label>
+        <input type="date" class="form-select" id="perm_fecha_inicio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha fin</label>
+        <input type="date" class="form-select" id="perm_fecha_fin">
+      </div>
+
+      <!-- VACACIONES fields -->
+      <div id="campos_vacaciones" class="form-group full" style="display:none">
+        <label class="form-label">Días hábiles</label>
+        <input type="number" class="form-select" id="perm_dias_habiles" placeholder="Se calcula automáticamente" readonly style="opacity:.7">
+      </div>
+
+      <!-- INCAPACIDAD fields -->
+      <div id="campos_incapacidad" style="display:none;grid-column:1/-1;display:none">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Entidad</label>
+            <select class="form-select" id="perm_entidad">
+              <option value="eps">EPS</option>
+              <option value="arl">ARL</option>
+              <option value="maternidad">Licencia maternidad</option>
+              <option value="paternidad">Licencia paternidad</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Días</label>
+            <input type="number" class="form-select" id="perm_dias_incap" min="1" placeholder="Ej: 5">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Diagnóstico / Motivo</label>
+            <input type="text" class="form-select" id="perm_diagnostico" placeholder="Ej: Gripa, fractura, etc.">
+          </div>
+        </div>
+      </div>
+
+      <!-- PERMISO fields -->
+      <div id="campos_permiso" style="display:none;grid-column:1/-1;display:none">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Duración</label>
+            <select class="form-select" id="perm_duracion_tipo" onchange="updateDuracionFields()">
+              <option value="dias">Días completos</option>
+              <option value="horas">Horas / Minutos</option>
+            </select>
+          </div>
+          <div id="campo_dias_permiso" class="form-group">
+            <label class="form-label">Cantidad de días</label>
+            <input type="number" class="form-select" id="perm_dias" min="1" value="1">
+          </div>
+          <div id="campo_horas_permiso" class="form-group" style="display:none">
+            <label class="form-label">Horas</label>
+            <input type="number" class="form-select" id="perm_horas" min="0" max="23" value="0" placeholder="h">
+          </div>
+          <div id="campo_minutos_permiso" class="form-group" style="display:none">
+            <label class="form-label">Minutos</label>
+            <input type="number" class="form-select" id="perm_minutos" min="0" max="59" value="0" placeholder="min">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Razón</label>
+            <input type="text" class="form-select" id="perm_razon" placeholder="Ej: Cita médica hijo, diligencia banco...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" id="perm_categoria">
+              <option value="medico">Médico</option>
+              <option value="familiar">Familiar</option>
+              <option value="personal">Personal</option>
+              <option value="calamidad">Calamidad doméstica</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Manejo nómina</label>
+            <select class="form-select" id="perm_manejo">
+              <option value="sin_descuento">Sin descuento</option>
+              <option value="repone">Repone tiempo</option>
+              <option value="descuenta">Se descuenta</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label class="form-label">Estado</label>
+        <select class="form-select" id="perm_estado">
+          <option value="programado">📅 Programado</option>
+          <option value="tomado">✅ Tomado</option>
+          <option value="cancelado">❌ Cancelado</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-select" id="perm_obs" rows="2" placeholder="Opcional..." style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="savePermiso()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem">Guardar</button>
+      <button onclick="closeModal('permisoModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- FESTIVO MODAL -->
+<div class="modal-overlay" id="festivoModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">
+      <span>Agregar Festivo</span>
+      <button class="modal-close" onclick="closeModal('festivoModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Fecha</label>
+        <input type="date" class="form-select" id="festivo_fecha">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Nombre</label>
+        <input type="text" class="form-select" id="festivo_nombre" placeholder="Ej: Día de la Independencia">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveFestivo()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">Guardar</button>
+      <button onclick="closeModal('festivoModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD/EDIT EMPRESA MODAL -->
 <div class="modal-overlay" id="empresaModal">
   <div class="modal">
@@ -691,6 +917,7 @@
       <div class="form-group full"><label class="form-label">Nombre de la empresa *</label><input class="form-input" id="em_nombre" placeholder="Nombre"></div>
       <div class="form-group"><label class="form-label">Emoji / Ícono</label><input class="form-input" id="em_emoji" placeholder="🏢" maxlength="4" style="font-size:1.4rem;text-align:center"></div>
       <div class="form-group"><label class="form-label">Color del botón</label><input type="color" class="form-input" id="em_color" value="#5b8df6" style="height:44px;cursor:pointer"></div>
+      <div class="form-group full"><label class="form-label">Jornada laboral</label><select class="form-select" id="em_jornada"><option value="lv">Lunes a Viernes</option><option value="ls">Lunes a Sábado</option></select></div>
     </div>
     <button class="save-btn" onclick="saveEmpresa()">💾 Guardar</button>
     <button class="del-btn" id="em_del_btn" onclick="deleteEmpresa()" style="display:none">🗑️ Eliminar empresa</button>
@@ -1443,6 +1670,544 @@ async function loadSettings() {
   try { const {data}=await sb.from('gestion_data').select('value').eq('key','settings').single(); if(data?.value){state.settings=JSON.parse(data.value);return;} } catch(e){}
   loadLocal();
 }
+// ============ FESTIVOS ============
+function colombiaFestivos(year) {
+  // Fixed festivos
+  const fixed = [
+    [1,1,'Año Nuevo'],[5,1,'Día del Trabajo'],[7,20,'Grito de Independencia'],
+    [8,7,'Batalla de Boyacá'],[12,8,'Inmaculada Concepción'],[12,25,'Navidad'],
+    [1,6,'Reyes Magos'],[3,19,'San José'],[6,29,'San Pedro y San Pablo'],
+    [8,15,'Asunción de la Virgen'],[10,12,'Día de la Raza'],[11,1,'Todos los Santos'],
+    [11,11,'Independencia de Cartagena']
+  ];
+  // Easter-based (approximate for common years)
+  const easter = getEasterDate(year);
+  const addDays = (d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
+  const fmt = d=>`${year}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const movable = [
+    {d:addDays(easter,-3), n:'Jueves Santo'},
+    {d:addDays(easter,-2), n:'Viernes Santo'},
+    {d:addDays(easter,39), n:'Ascensión del Señor'},
+    {d:addDays(easter,60), n:'Corpus Christi'},
+    {d:addDays(easter,68), n:'Sagrado Corazón'},
+  ];
+  const result = fixed.map(([m,d,n])=>{
+    const date = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    return {fecha:date,nombre:n};
+  });
+  movable.forEach(({d,n})=>result.push({fecha:fmt(d),nombre:n}));
+  return result.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+}
+
+function getEasterDate(year) {
+  const a=year%19,b=Math.floor(year/100),c=year%100;
+  const d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31);
+  const day=((h+l-7*m+114)%31)+1;
+  return new Date(year,month-1,day);
+}
+
+function getFestivos(year) {
+  if(!state.festivos) state.festivos = {};
+  if(!state.festivos[year]) state.festivos[year] = colombiaFestivos(year);
+  return state.festivos[year];
+}
+
+function isFestivo(dateStr) {
+  const year = parseInt(dateStr.split('-')[0]);
+  return getFestivos(year).some(f=>f.fecha===dateStr);
+}
+
+function renderFestivosList() {
+  const sel = document.getElementById('festivosAnio');
+  const container = document.getElementById('festivosListContainer');
+  if(!sel||!container) return;
+  const year = parseInt(sel.value)||new Date().getFullYear();
+  const festivos = getFestivos(year);
+  container.innerHTML = festivos.map(f=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-radius:8px">
+      <div>
+        <span style="font-size:.8rem;color:var(--accent);font-weight:600">${f.fecha}</span>
+        <span style="font-size:.82rem;color:var(--text1);margin-left:8px">${f.nombre}</span>
+      </div>
+      <button onclick="deleteFestivo('${f.fecha}',${year})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:.85rem;padding:2px 6px">✕</button>
+    </div>`).join('');
+}
+
+function initFestivosAnio() {
+  const sel = document.getElementById('festivosAnio');
+  if(!sel) return;
+  const cur = new Date().getFullYear();
+  sel.innerHTML = [cur-1,cur,cur+1,cur+2].map(y=>`<option value="${y}">${y}</option>`).join('');
+  sel.value = cur;
+  renderFestivosList();
+}
+
+function openAddFestivo() {
+  document.getElementById('festivo_fecha').value='';
+  document.getElementById('festivo_nombre').value='';
+  openModal('festivoModal');
+}
+
+function saveFestivo() {
+  const fecha = document.getElementById('festivo_fecha').value;
+  const nombre = document.getElementById('festivo_nombre').value.trim();
+  if(!fecha||!nombre){toast('Completa fecha y nombre');return;}
+  const year = parseInt(fecha.split('-')[0]);
+  if(!state.festivos) state.festivos={};
+  if(!state.festivos[year]) state.festivos[year]=colombiaFestivos(year);
+  if(!state.festivos[year].some(f=>f.fecha===fecha)){
+    state.festivos[year].push({fecha,nombre});
+    state.festivos[year].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  }
+  save();
+  closeModal('festivoModal');
+  renderFestivosList();
+  toast('Festivo agregado');
+}
+
+function deleteFestivo(fecha,year) {
+  if(!state.festivos?.[year]) return;
+  state.festivos[year]=state.festivos[year].filter(f=>f.fecha!==fecha);
+  save();
+  renderFestivosList();
+}
+
+function calcDiasHabilesVacaciones(fechaInicio, fechaFin, jornada) {
+  if(!fechaInicio||!fechaFin) return 0;
+  let d = new Date(fechaInicio+'T00:00:00'), end = new Date(fechaFin+'T00:00:00'), count=0;
+  while(d<=end){
+    const dow=d.getDay();
+    const dateStr=d.toISOString().split('T')[0];
+    const esFinSemana = dow===0||(dow===6&&jornada==='lv');
+    if(!esFinSemana&&!isFestivo(dateStr)) count++;
+    d.setDate(d.getDate()+1);
+  }
+  return count;
+}
+
+
+// ============ PERMISOS ============
+let currentPermisosEmpresaIdx = null;
+
+function openPermisos(idx) {
+  currentPermisosEmpresaIdx = idx;
+  const em = (state.empresas||[])[idx] || {};
+  document.getElementById('permisosTitle').textContent = (em.nombre||'Empresa') + ' · Permisos';
+  // Populate employee selectors
+  const emps = getEmployees(idx);
+  ['filtroPermisoEmpleado','statEmpleado','perm_empleado'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    const hasAll = selId !== 'perm_empleado';
+    sel.innerHTML = (hasAll ? '<option value="">Todos los empleados</option>' : '') +
+      emps.map(e => `<option value="${e.id}">${e.nombres||''} ${e.apellidos||''}</option>`).join('');
+  });
+  // Reset tab to registros
+  switchPermisosTab('registros');
+  showScreen('permisosScreen');
+}
+
+function switchPermisosTab(tab) {
+  document.getElementById('permisosTabRegistros').style.display = tab==='registros' ? 'block' : 'none';
+  document.getElementById('permisosTabEstadisticas').style.display = tab==='estadisticas' ? 'block' : 'none';
+  const tR = document.getElementById('tabRegistros');
+  const tE = document.getElementById('tabEstadisticas');
+  tR.style.color = tab==='registros' ? 'var(--accent)' : 'var(--text2)';
+  tR.style.borderBottomColor = tab==='registros' ? 'var(--accent)' : 'transparent';
+  tE.style.color = tab==='estadisticas' ? 'var(--accent)' : 'var(--text2)';
+  tE.style.borderBottomColor = tab==='estadisticas' ? 'var(--accent)' : 'transparent';
+  if(tab==='registros') renderPermisosList();
+  if(tab==='estadisticas') renderPermisosStats();
+}
+
+function getPermisos(empresaIdx) {
+  if(!state.permisos) state.permisos = {};
+  if(!state.permisos[empresaIdx]) state.permisos[empresaIdx] = [];
+  return state.permisos[empresaIdx];
+}
+
+function openNuevoPermiso() {
+  document.getElementById('permisoModalTitle').textContent = 'Nuevo Permiso';
+  document.getElementById('perm_empleado').value = '';
+  document.getElementById('perm_tipo').value = 'vacaciones';
+  document.getElementById('perm_fecha_inicio').value = '';
+  document.getElementById('perm_fecha_fin').value = '';
+  document.getElementById('perm_estado').value = 'programado';
+  document.getElementById('perm_obs').value = '';
+  document.getElementById('perm_razon').value = '';
+  document.getElementById('perm_diagnostico').value = '';
+  document.getElementById('perm_dias').value = 1;
+  document.getElementById('perm_horas').value = 0;
+  document.getElementById('perm_minutos').value = 0;
+  document.getElementById('permisoModal').dataset.editId = '';
+  updatePermisoForm();
+  openModal('permisoModal');
+}
+
+function openEditPermiso(id) {
+  const permisos = getPermisos(currentPermisosEmpresaIdx);
+  const p = permisos.find(x=>x.id===id);
+  if(!p) return;
+  document.getElementById('permisoModalTitle').textContent = 'Editar Permiso';
+  document.getElementById('perm_empleado').value = p.empleadoId||'';
+  document.getElementById('perm_tipo').value = p.tipo||'vacaciones';
+  document.getElementById('perm_fecha_inicio').value = p.fechaInicio||'';
+  document.getElementById('perm_fecha_fin').value = p.fechaFin||'';
+  document.getElementById('perm_estado').value = p.estado||'programado';
+  document.getElementById('perm_obs').value = p.observaciones||'';
+  document.getElementById('perm_razon').value = p.razon||'';
+  document.getElementById('perm_diagnostico').value = p.diagnostico||'';
+  document.getElementById('perm_entidad').value = p.entidad||'eps';
+  document.getElementById('perm_categoria').value = p.categoria||'personal';
+  document.getElementById('perm_manejo').value = p.manejoNomina||'sin_descuento';
+  document.getElementById('perm_duracion_tipo').value = p.duracionTipo||'dias';
+  document.getElementById('perm_dias').value = p.dias||1;
+  document.getElementById('perm_horas').value = p.horas||0;
+  document.getElementById('perm_minutos').value = p.minutos_extra||0;
+  document.getElementById('perm_dias_incap').value = p.diasIncap||1;
+  document.getElementById('permisoModal').dataset.editId = id;
+  updatePermisoForm();
+  openModal('permisoModal');
+}
+
+function updatePermisoForm() {
+  const tipo = document.getElementById('perm_tipo').value;
+  document.getElementById('campos_vacaciones').style.display = tipo==='vacaciones' ? 'block' : 'none';
+  document.getElementById('campos_incapacidad').style.display = tipo==='incapacidad' ? 'block' : 'none';
+  document.getElementById('campos_permiso').style.display = (tipo==='permiso_remunerado'||tipo==='permiso_no_remunerado') ? 'block' : 'none';
+  if(tipo==='vacaciones') calcDiasHabiles();
+  // Hook date changes to recalculate
+  ['perm_fecha_inicio','perm_fecha_fin'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.onchange=()=>{if(document.getElementById('perm_tipo').value==='vacaciones') calcDiasHabiles();};
+  });
+}
+
+function updateDuracionFields() {
+  const tipo = document.getElementById('perm_duracion_tipo').value;
+  document.getElementById('campo_dias_permiso').style.display = tipo==='dias' ? 'block' : 'none';
+  document.getElementById('campo_horas_permiso').style.display = tipo==='horas' ? 'block' : 'none';
+  document.getElementById('campo_minutos_permiso').style.display = tipo==='horas' ? 'block' : 'none';
+}
+
+function calcDiasHabiles() {
+  const fi = document.getElementById('perm_fecha_inicio').value;
+  const ff = document.getElementById('perm_fecha_fin').value;
+  if(!fi||!ff) return;
+  const em = (state.empresas||[])[currentPermisosEmpresaIdx]||{};
+  const jornada = em.jornada||'lv';
+  const count = calcDiasHabilesVacaciones(fi, ff, jornada);
+  document.getElementById('perm_dias_habiles').value = count + ' días hábiles';
+  document.getElementById('perm_dias_habiles').removeAttribute('readonly');
+  document.getElementById('perm_dias_habiles').setAttribute('readonly','');
+}
+
+function savePermiso() {
+  const empleadoId = document.getElementById('perm_empleado').value;
+  const tipo = document.getElementById('perm_tipo').value;
+  const fechaInicio = document.getElementById('perm_fecha_inicio').value;
+  const fechaFin = document.getElementById('perm_fecha_fin').value;
+  if(!empleadoId) { toast('Selecciona un empleado'); return; }
+  if(!fechaInicio) { toast('Ingresa la fecha de inicio'); return; }
+
+  const editId = document.getElementById('permisoModal').dataset.editId;
+  const id = editId || 'perm_' + Date.now();
+
+  const registro = {
+    id, empleadoId, tipo,
+    fechaInicio, fechaFin: fechaFin||fechaInicio,
+    estado: document.getElementById('perm_estado').value,
+    observaciones: document.getElementById('perm_obs').value,
+    creadoEn: editId ? undefined : new Date().toISOString(),
+  };
+
+  if(tipo==='vacaciones') {
+    registro.diasHabiles = parseInt(document.getElementById('perm_dias_habiles').value)||0;
+  } else if(tipo==='incapacidad') {
+    registro.entidad = document.getElementById('perm_entidad').value;
+    registro.diasIncap = parseInt(document.getElementById('perm_dias_incap').value)||1;
+    registro.diagnostico = document.getElementById('perm_diagnostico').value;
+  } else {
+    registro.duracionTipo = document.getElementById('perm_duracion_tipo').value;
+    registro.dias = parseInt(document.getElementById('perm_dias').value)||1;
+    registro.horas = parseInt(document.getElementById('perm_horas').value)||0;
+    registro.minutos_extra = parseInt(document.getElementById('perm_minutos').value)||0;
+    registro.razon = document.getElementById('perm_razon').value;
+    registro.categoria = document.getElementById('perm_categoria').value;
+    registro.manejoNomina = document.getElementById('perm_manejo').value;
+    // Total minutes for nomina
+    registro.totalMinutos = registro.duracionTipo==='dias'
+      ? registro.dias * 480
+      : registro.horas*60 + registro.minutos_extra;
+  }
+
+  if(!state.permisos) state.permisos = {};
+  if(!state.permisos[currentPermisosEmpresaIdx]) state.permisos[currentPermisosEmpresaIdx] = [];
+  const arr = state.permisos[currentPermisosEmpresaIdx];
+  if(editId) {
+    const i = arr.findIndex(x=>x.id===editId);
+    if(i>=0) arr[i] = {...arr[i], ...registro};
+  } else {
+    arr.push(registro);
+  }
+  save();
+  closeModal('permisoModal');
+  renderPermisosList();
+  toast(editId ? 'Permiso actualizado' : 'Permiso registrado');
+}
+
+function deletePermiso(id) {
+  if(!confirm('¿Eliminar este registro?')) return;
+  if(!state.permisos?.[currentPermisosEmpresaIdx]) return;
+  state.permisos[currentPermisosEmpresaIdx] = state.permisos[currentPermisosEmpresaIdx].filter(x=>x.id!==id);
+  save();
+  renderPermisosList();
+  toast('Registro eliminado');
+}
+
+function renderPermisosList() {
+  const container = document.getElementById('permisosListContainer');
+  if(!container) return;
+  const permisos = getPermisos(currentPermisosEmpresaIdx);
+  const emps = getEmployees(currentPermisosEmpresaIdx);
+
+  const filtroTipo = document.getElementById('filtroPermisoTipo')?.value||'';
+  const filtroEmp = document.getElementById('filtroPermisoEmpleado')?.value||'';
+  const filtroEst = document.getElementById('filtroPermisoEstado')?.value||'';
+
+  let list = [...permisos];
+  if(filtroTipo) list = list.filter(p=>p.tipo===filtroTipo);
+  if(filtroEmp) list = list.filter(p=>p.empleadoId===filtroEmp);
+  if(filtroEst) list = list.filter(p=>p.estado===filtroEst);
+  list.sort((a,b)=>b.fechaInicio?.localeCompare(a.fechaInicio||'')||0);
+
+  const tipoLabel = {vacaciones:'🏖️ Vacaciones',incapacidad:'🏥 Incapacidad',permiso_remunerado:'✅ Permiso rem.',permiso_no_remunerado:'⏸️ Permiso no rem.'};
+  const estadoColor = {programado:'#f59e0b',tomado:'#22c55e',cancelado:'#ef4444'};
+  const manejoLabel = {sin_descuento:'Sin descuento',repone:'Repone tiempo',descuenta:'Se descuenta'};
+
+  if(!list.length) {
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text2)">No hay registros${filtroTipo||filtroEmp||filtroEst?' con estos filtros':''}<br><small>Usa ➕ para agregar</small></div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(p => {
+    const emp = emps.find(e=>e.id===p.empleadoId);
+    const empName = emp ? `${emp.nombres||''} ${emp.apellidos||''}`.trim() : 'Empleado';
+    const sc = estadoColor[p.estado]||'#888';
+    let detalle = '';
+    if(p.tipo==='vacaciones') detalle = `${p.diasHabiles||'?'} días hábiles`;
+    else if(p.tipo==='incapacidad') detalle = `${p.diasIncap||'?'} días · ${p.diagnostico||''} · ${(p.entidad||'').toUpperCase()}`;
+    else detalle = p.duracionTipo==='dias' ? `${p.dias||1} día(s) · ${manejoLabel[p.manejoNomina]||''}` : `${p.horas||0}h ${p.minutos_extra||0}min · ${manejoLabel[p.manejoNomina]||''}`;
+    const fechaStr = p.fechaInicio + (p.fechaFin&&p.fechaFin!==p.fechaInicio?' → '+p.fechaFin:'');
+
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:700;font-size:.88rem;color:var(--text1)">${empName}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:.72rem;background:${sc}22;color:${sc};padding:2px 8px;border-radius:20px;font-weight:600">${p.estado||'programado'}</span>
+          <button onclick="openEditPermiso('${p.id}')" style="background:none;border:none;cursor:pointer;font-size:.85rem;color:var(--text2);padding:2px 5px">✏️</button>
+          <button onclick="deletePermiso('${p.id}')" style="background:none;border:none;cursor:pointer;font-size:.85rem;color:#ef4444;padding:2px 5px">🗑️</button>
+        </div>
+      </div>
+      <div style="font-size:.82rem;color:var(--accent);font-weight:600;margin-bottom:3px">${tipoLabel[p.tipo]||p.tipo}</div>
+      <div style="font-size:.78rem;color:var(--text2)">${fechaStr}</div>
+      <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${detalle}</div>
+      ${p.razon?`<div style="font-size:.75rem;color:var(--text2);margin-top:3px;font-style:italic">"${p.razon}"</div>`:''}
+      ${p.observaciones?`<div style="font-size:.75rem;color:var(--text2);margin-top:3px">${p.observaciones}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderPermisosStats() {
+  const permisos = getPermisos(currentPermisosEmpresaIdx);
+  const emps = getEmployees(currentPermisosEmpresaIdx);
+  const rango = document.getElementById('statRango')?.value||'mes';
+  const tipo = document.getElementById('statTipo')?.value||'todos';
+  const empFiltro = document.getElementById('statEmpleado')?.value||'';
+  const metrica = document.getElementById('statMetrica')?.value||'registros';
+
+  // Show/hide custom dates
+  const customDiv = document.getElementById('statCustomDates');
+  if(customDiv) customDiv.style.display = rango==='custom'?'flex':'none';
+
+  // Date range
+  const now = new Date();
+  let desde, hasta = new Date();
+  if(rango==='semana') { desde = new Date(now); desde.setDate(now.getDate()-6); }
+  else if(rango==='mes') { desde = new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(rango==='año') { desde = new Date(now.getFullYear(),0,1); }
+  else {
+    desde = new Date(document.getElementById('statFechaDesde')?.value||now);
+    hasta = new Date(document.getElementById('statFechaHasta')?.value||now);
+  }
+
+  // Filter permisos
+  let filtered = permisos.filter(p=>{
+    if(p.estado==='cancelado') return false;
+    const fd = new Date(p.fechaInicio);
+    if(fd<desde||fd>hasta) return false;
+    if(tipo!=='todos'&&p.tipo!==tipo) return false;
+    if(empFiltro&&p.empleadoId!==empFiltro) return false;
+    return true;
+  });
+
+  // Build chart data by period
+  const labels=[], dataMap={};
+  let cur = new Date(desde);
+  const granularity = (hasta-desde) < 8*24*3600*1000 ? 'dia' : (hasta-desde) < 60*24*3600*1000 ? 'semana' : 'mes';
+
+  while(cur<=hasta) {
+    let label;
+    if(granularity==='dia') label = cur.toLocaleDateString('es',{day:'2-digit',month:'short'});
+    else if(granularity==='semana') { const wk=getWeek(cur); label=`S${wk}`; }
+    else label = cur.toLocaleDateString('es',{month:'short',year:'2-digit'});
+    if(!dataMap[label]) { dataMap[label]=0; labels.push(label); }
+    if(granularity==='dia') cur.setDate(cur.getDate()+1);
+    else if(granularity==='semana') cur.setDate(cur.getDate()+7);
+    else cur.setMonth(cur.getMonth()+1);
+  }
+  // Remove duplicate labels
+  const uniqueLabels=[...new Set(labels)];
+
+  filtered.forEach(p=>{
+    const fd = new Date(p.fechaInicio);
+    let label;
+    if(granularity==='dia') label=fd.toLocaleDateString('es',{day:'2-digit',month:'short'});
+    else if(granularity==='semana') label=`S${getWeek(fd)}`;
+    else label=fd.toLocaleDateString('es',{month:'short',year:'2-digit'});
+    if(dataMap[label]!==undefined) {
+      if(metrica==='registros') dataMap[label]++;
+      else {
+        const dias = p.tipo==='vacaciones'?(p.diasHabiles||0):p.tipo==='incapacidad'?(p.diasIncap||0):(p.duracionTipo==='dias'?(p.dias||1):(p.totalMinutos||0)/480);
+        dataMap[label]+=dias;
+      }
+    }
+  });
+
+  const values = uniqueLabels.map(l=>dataMap[l]||0);
+  drawPermisosChart(uniqueLabels, values, metrica);
+
+  // Summary cards
+  const cards = document.getElementById('permisosSummaryCards');
+  if(!cards) return;
+  const total = filtered.length;
+  const totalDias = filtered.reduce((s,p)=>{
+    if(p.tipo==='vacaciones') return s+(p.diasHabiles||0);
+    if(p.tipo==='incapacidad') return s+(p.diasIncap||0);
+    return s+(p.duracionTipo==='dias'?(p.dias||1):(p.totalMinutos||0)/480);
+  },0);
+
+  // Top employee
+  const byEmp={};
+  filtered.forEach(p=>{byEmp[p.empleadoId]=(byEmp[p.empleadoId]||0)+1;});
+  const topEmpId = Object.entries(byEmp).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const topEmp = topEmpId ? emps.find(e=>e.id===topEmpId) : null;
+  const topEmpName = topEmp ? `${topEmp.nombres||''} ${topEmp.apellidos||''}`.trim() : '—';
+
+  // Top tipo
+  const byTipo={};
+  filtered.forEach(p=>{byTipo[p.tipo]=(byTipo[p.tipo]||0)+1;});
+  const topTipoKey = Object.entries(byTipo).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  const tipoNames={vacaciones:'Vacaciones',incapacidad:'Incapacidad',permiso_remunerado:'Perm. rem.',permiso_no_remunerado:'Perm. no rem.'};
+
+  // Top categoria/razon
+  const byCat={};
+  filtered.filter(p=>p.categoria).forEach(p=>{byCat[p.categoria]=(byCat[p.categoria]||0)+1;});
+  const topCat = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0]?.[0]||'—';
+  const catNames={medico:'Médico',familiar:'Familiar',personal:'Personal',calamidad:'Calamidad',otro:'Otro'};
+
+  cards.innerHTML = [
+    {icon:'📋',label:'Total registros',val:total},
+    {icon:'📅',label:'Días totales',val:totalDias.toFixed(1)},
+    {icon:'👤',label:'Mayor ausentismo',val:topEmpName},
+    {icon:'📌',label:'Tipo más común',val:tipoNames[topTipoKey]||'—'},
+    {icon:'🏷️',label:'Categoría frecuente',val:catNames[topCat]||'—'},
+  ].map(c=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center">
+    <div style="font-size:1.4rem">${c.icon}</div>
+    <div style="font-size:.68rem;color:var(--text2);margin:4px 0">${c.label}</div>
+    <div style="font-size:.88rem;font-weight:700;color:var(--text1)">${c.val}</div>
+  </div>`).join('');
+}
+
+function getWeek(d) {
+  const s = new Date(d.getFullYear(),0,1);
+  return Math.ceil(((d-s)/86400000+s.getDay()+1)/7);
+}
+
+function drawPermisosChart(labels, values, metrica) {
+  const canvas = document.getElementById('permisosChart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth||300, H = 200;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0,0,W,H);
+
+  if(!values.length||values.every(v=>v===0)) {
+    ctx.fillStyle='rgba(255,255,255,.3)';
+    ctx.font='14px sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('Sin datos en este período',W/2,H/2);
+    return;
+  }
+
+  const PAD={top:16,right:16,bottom:36,left:36};
+  const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
+  const maxV=Math.max(...values,1);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=PAD.top+cH*(1-i/4);
+    ctx.beginPath();ctx.moveTo(PAD.left,y);ctx.lineTo(PAD.left+cW,y);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px sans-serif';ctx.textAlign='right';
+    ctx.fillText(Math.round(maxV*i/4),PAD.left-4,y+3);
+  }
+
+  // Line
+  const pts=labels.map((l,i)=>({
+    x:PAD.left+(i/(labels.length-1||1))*cW,
+    y:PAD.top+cH*(1-values[i]/maxV)
+  }));
+
+  ctx.strokeStyle='#5b8df6';ctx.lineWidth=2.5;ctx.lineJoin='round';
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+
+  // Fill under line
+  ctx.fillStyle='rgba(91,141,246,.12)';
+  ctx.beginPath();
+  pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.lineTo(pts[pts.length-1].x,PAD.top+cH);
+  ctx.lineTo(pts[0].x,PAD.top+cH);
+  ctx.closePath();ctx.fill();
+
+  // Points
+  pts.forEach((p,i)=>{
+    ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);
+    ctx.fillStyle='#5b8df6';ctx.fill();
+    ctx.strokeStyle='var(--bg,#0f1117)';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // X labels
+  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='9px sans-serif';ctx.textAlign='center';
+  const step=Math.ceil(labels.length/8);
+  labels.forEach((l,i)=>{
+    if(i%step===0) ctx.fillText(l,pts[i].x,H-6);
+  });
+
+  // Y axis label
+  ctx.save();ctx.translate(10,H/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='rgba(255,255,255,.3)';ctx.font='9px sans-serif';ctx.textAlign='center';
+  ctx.fillText(metrica==='registros'?'Registros':'Días',0,0);
+  ctx.restore();
+}
+
+
 function save() { saveLocal(); clearTimeout(syncTimeout); syncTimeout=setTimeout(()=>syncToCloud(),1500); updateNotifBadge(); }
 
 function showSyncStatus(msg) {
@@ -1585,9 +2350,10 @@ function openEmpresaModule(idx) {
       <div style="text-align:left"><div>Trabajadores</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">${getEmployees(idx).length} empleados registrados</div></div>
       <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
     </button>
-    <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
+    <button class="main-btn" style="background:var(--surface2);color:var(--text1);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start"
+      onclick="openPermisos(${idx})">
       <span style="font-size:1.8rem">📅</span>
-      <div style="text-align:left"><div>Permisos y Ausencias</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">Próximamente</div></div>
+      <div style="text-align:left"><div>Permisos y Ausencias</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px" id="permisosCount_${idx}">Ver registros</div></div>
       <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
     </button>
     <button class="main-btn" style="background:var(--surface2);color:var(--text2);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start;opacity:.55" disabled>
@@ -1650,7 +2416,7 @@ function saveEmpresa() {
   const nombre = document.getElementById('em_nombre').value.trim();
   if(!nombre) { alert('El nombre es obligatorio.'); return; }
   if(!state.empresas) state.empresas = buildDefaultEmpresas();
-  const em = { id: 'emp_'+(editingEmpresaIdx!==null?(state.empresas[editingEmpresaIdx]?.id||Date.now()):Date.now()), nombre, emoji: document.getElementById('em_emoji').value||'🏢', color: document.getElementById('em_color').value||'#5b8df6' };
+  const em = { id: 'emp_'+(editingEmpresaIdx!==null?(state.empresas[editingEmpresaIdx]?.id||Date.now()):Date.now()), nombre, emoji: document.getElementById('em_emoji').value||'🏢', color: document.getElementById('em_color').value||'#5b8df6', jornada: document.getElementById('em_jornada')?.value||'lv' };
   if(editingEmpresaIdx !== null) state.empresas[editingEmpresaIdx] = em;
   else state.empresas.push(em);
   persistData();
@@ -1672,7 +2438,7 @@ function deleteEmpresa() {
 }
 
 function goHome() { closeGlobalSearch(); updateNotifBadge(); showScreen('home'); }
-function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings'); }
+function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings');setTimeout(initFestivosAnio,80); }
 function getCompanyName(idx) { const em=(state.empresas||buildDefaultEmpresas())[idx]; return em?em.nombre:('Empresa '+(idx+1)); }
 
 // ===================== TABS =====================
@@ -4380,3 +5146,15 @@ self.addEventListener('activate', e => e.waitUntil(
 </script>
 </body>
 </html>
+    <!-- Festivos Card -->
+    <div style="background:var(--surface);border-radius:16px;padding:16px;margin:0 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-weight:700;color:var(--text1);font-size:.95rem">🗓️ Festivos Colombia</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="festivosAnio" onchange="renderFestivosList()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text1);padding:4px 8px;border-radius:8px;font-family:var(--font);font-size:.8rem"></select>
+          <button onclick="openAddFestivo()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.8rem;font-family:var(--font);font-weight:700">+ Agregar</button>
+        </div>
+      </div>
+      <div id="festivosListContainer" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
