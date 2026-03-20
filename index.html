@@ -1758,7 +1758,8 @@ function initFestivosAnio() {
   const cur = new Date().getFullYear();
   sel.innerHTML = [cur-1,cur,cur+1,cur+2].map(y=>`<option value="${y}">${y}</option>`).join('');
   sel.value = String(cur);
-  renderFestivosList();
+  getFestivos(cur);
+  setTimeout(renderFestivosList, 20);
 }
 
 function openAddFestivo() {
@@ -1838,7 +1839,7 @@ function switchPermisosTab(tab) {
   });
   if(tab==='registros') renderPermisosList();
   if(tab==='estadisticas') renderPermisosStats();
-  if(tab==='festivos') { initFestivosAnio(); renderFestivosList(); }
+  if(tab==='festivos') setTimeout(()=>{ initFestivosAnio(); }, 30);
 }
 
 function getPermisos(empresaIdx) {
@@ -2074,7 +2075,7 @@ function renderPermisosStats() {
 
   // Granularity: day if <=31 days, week if <=90 days, month otherwise
   const diffDays = Math.round((hasta-desde)/86400000);
-  const granularity = diffDays<=31 ? 'dia' : diffDays<=90 ? 'semana' : 'mes';
+  const granularity = (rango==='año'||diffDays>90) ? 'mes' : diffDays<=7 ? 'dia' : diffDays<=31 ? 'dia' : 'semana';
 
   // Build labels from date range
   const labels=[], dataMap={};
