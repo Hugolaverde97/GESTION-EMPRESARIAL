@@ -3597,8 +3597,9 @@ function renderOrganigrama() {
   }
   if(empty) empty.style.display='none';
 
-  const NW=180, HG=28, VG=60;
-  const NH = orgEditMode ? 136 : 88; // taller in edit mode (has buttons)
+  const NW=180, HG=28;
+  const NH = orgEditMode ? 136 : 88;
+  const VG = orgEditMode ? 32 : 28; // tight gap between nodes
 
   // Separate normal vs lateral nodes
   const map={};
