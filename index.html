@@ -3548,20 +3548,27 @@ function renderOrganigrama() {
   if(empty) empty.style.display='none';
 
   const NW=180, NH=88, HG=28, VG=72;
+  const LATERAL_W = NW + HG*3; // space a lateral node occupies to the right of parent
 
-  // Separate node types
+  // Separate normal vs lateral nodes
   const map={};
   org.nodes.forEach(n=>{map[n.id]={...n,children:[]};});
-  const roots=[], laterals=[];
+  const roots=[], lateralNodes=[];
   org.nodes.forEach(n=>{
-    if(n.tipo==='lateral'||n.tipo==='staff'){laterals.push(map[n.id]);return;}
+    if(n.tipo==='lateral'||n.tipo==='staff'){lateralNodes.push(map[n.id]);return;}
     n.parentId&&map[n.parentId]?map[n.parentId].children.push(map[n.id]):roots.push(map[n.id]);
   });
 
-  // Width calculation (only normal nodes)
+  // Width of a normal subtree — includes extra space if parent has lateral children
   function nodeWidth(node){
-    if(!node.children.length)return NW;
-    return Math.max(NW, node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0));
+    if(!node.children.length){
+      // Add space if this node has lateral children
+      const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
+      return hasLateral ? NW + LATERAL_W : NW;
+    }
+    const childrenW = node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
+    const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
+    return Math.max(NW, childrenW) + (hasLateral ? LATERAL_W : 0);
   }
 
   // Place normal nodes
@@ -3569,8 +3576,10 @@ function renderOrganigrama() {
   function place(node,x,y){
     pos[node.id]={x,y,tipo:'normal'};
     if(!node.children.length)return;
-    const tw=node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
-    let cx=x+NW/2-tw/2;
+    const hasLateral = lateralNodes.some(l=>l.parentId===node.id);
+    const baseW = nodeWidth(node) - (hasLateral ? LATERAL_W : 0);
+    const tw = node.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
+    let cx = x + NW/2 - tw/2;
     node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=nodeWidth(c)+HG;});
   }
   let sx=0;
@@ -3583,9 +3592,9 @@ function renderOrganigrama() {
     if(!byY[y])byY[y]=[];
     byY[y].push(id);
   });
-  const childrenMap={};
-  org.nodes.forEach(n=>{if(n.parentId&&n.tipo!=='lateral'&&n.tipo!=='staff')childrenMap[n.parentId]=(childrenMap[n.parentId]||[]).concat(n.id);});
-  function getSubtree(id){const r=[id];(childrenMap[id]||[]).forEach(c=>r.push(...getSubtree(c)));return r;}
+  const childrenMapN={};
+  org.nodes.forEach(n=>{if(n.parentId&&n.tipo!=='lateral'&&n.tipo!=='staff')childrenMapN[n.parentId]=(childrenMapN[n.parentId]||[]).concat(n.id);});
+  function getSubtree(id){const r=[id];(childrenMapN[id]||[]).forEach(c=>r.push(...getSubtree(c)));return r;}
   Object.keys(byY).sort((a,b)=>+a-+b).forEach(y=>{
     const nodes=byY[y].sort((a,b)=>pos[a].x-pos[b].x);
     for(let i=1;i<nodes.length;i++){
@@ -3597,33 +3606,21 @@ function renderOrganigrama() {
     }
   });
 
-  // Place lateral nodes: beside the vertical line between parent and first normal child
-  // Position: x = parent.x + NW + HG*2, y = midpoint between parent and first child
-  laterals.forEach(ln=>{
+  // Place lateral nodes: to the right of their parent, midway between parent and first child
+  lateralNodes.forEach(ln=>{
     const par=pos[ln.parentId];
     if(!par){pos[ln.id]={x:20,y:24,tipo:'lateral'};return;}
-    // Find first normal child of parent
     const parNode=org.nodes.find(n=>n.id===ln.parentId);
-    const firstChild=parNode&&map[ln.parentId]?.children[0];
-    const childPos=firstChild?pos[firstChild.id]:null;
-    const midY=childPos?par.y+(childPos.y-par.y)*0.5:par.y+NH/2+VG/2;
-    // Place to the right of parent
-    const rightEdge=par.x+NW;
-    pos[ln.id]={x:rightEdge+HG*2, y:midY, tipo:'lateral'};
-  });
-
-  // Place lateral nodes' own children (as normal subtrees below them)
-  laterals.forEach(ln=>{
-    const lp=pos[ln.id];
-    if(!lp)return;
-    const lnode=map[ln.id];
-    if(lnode.children.length){
-      const tw=lnode.children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
-      let cx=lp.x+NW/2-tw/2;
-      lnode.children.forEach(c=>{
-        place(c,cx,lp.y+NH+VG);
-        cx+=nodeWidth(c)+HG;
-      });
+    const firstNormalChild=parNode&&map[ln.parentId]?.children[0];
+    const childPos=firstNormalChild?pos[firstNormalChild.id]:null;
+    const lateralY = childPos ? par.y + (childPos.y - par.y)*0.45 : par.y + NH + VG/2;
+    const lateralX = par.x + NW + HG*2;
+    pos[ln.id]={x:lateralX, y:lateralY - NH/2, tipo:'lateral'};
+    // Place lateral's own children
+    if(map[ln.id].children.length){
+      const tw=map[ln.id].children.reduce((s,c,i)=>s+nodeWidth(c)+(i?HG:0),0);
+      let cx=lateralX+NW/2-tw/2;
+      map[ln.id].children.forEach(c=>{place(c,cx,lateralY-NH/2+NH+VG);cx+=nodeWidth(c)+HG;});
     }
   });
 
@@ -3639,7 +3636,7 @@ function renderOrganigrama() {
   // Canvas
   const maxX=Math.max(...Object.values(pos).map(p=>p.x+NW))+20;
   const maxY=Math.max(...Object.values(pos).map(p=>p.y+NH))+40;
-  const canvasW=Math.max(maxX,winW),canvasH=maxY;
+  const canvasW=Math.max(maxX,winW), canvasH=maxY;
   const inner=document.getElementById('orgInner');
   if(inner){inner.style.width=canvasW+'px';inner.style.height=canvasH+'px';}
   container.style.width=canvasW+'px';container.style.height=canvasH+'px';
@@ -3654,12 +3651,12 @@ function renderOrganigrama() {
       const tn=org.nodes.find(n=>n.id===e.to);
       ctx.beginPath();
       if(tn?.tipo==='lateral'||tn?.tipo==='staff'){
-        // Dashed horizontal line from mid-right of parent to left of lateral node
-        ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(200,200,255,.5)';ctx.lineWidth=1.5;
-        const fx=f.x+NW, fy=t.y+NH/2; // from right side of parent at lateral's Y
-        ctx.moveTo(fx,fy);ctx.lineTo(t.x,fy);
-        // Small vertical tick on the parent's right side
-        ctx.moveTo(fx,f.y+NH/2);ctx.lineTo(fx,fy);
+        ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(167,139,250,.7)';ctx.lineWidth=1.5;
+        // Vertical line on right side of parent from parent center to lateral Y
+        const px=f.x+NW, py1=f.y+NH/2, py2=t.y+NH/2;
+        ctx.moveTo(px,py1);ctx.lineTo(px,py2);
+        // Horizontal line to lateral node
+        ctx.moveTo(px,py2);ctx.lineTo(t.x,py2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
         ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*.5,t.x+NW/2,t.y-VG*.5,t.x+NW/2,t.y);
@@ -3677,11 +3674,11 @@ function renderOrganigrama() {
     const sc=oc===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
     const sb=oc===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
     const col=node.color||'#5b8df6';
-    const isLateral=node.tipo==='lateral'||node.tipo==='staff';
+    const isLat=node.tipo==='lateral'||node.tipo==='staff';
     const avs=asgn.slice(0,3).map(e=>{const i=((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();return `<div style="width:24px;height:24px;border-radius:50%;background:${col}22;border:2px solid ${col};display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:${col};margin-right:-5px;flex-shrink:0">${i}</div>`;}).join('');
     const ebtns=orgEditMode?`<div style="display:flex;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)"><button onclick="event.stopPropagation();openOrgNodeModal('${node.id}')" style="flex:1;padding:5px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.72rem;color:var(--text2);font-family:var(--font)">✏️</button><button onclick="event.stopPropagation();addOrgNode('${node.id}')" style="flex:1;padding:5px;background:#22c55e22;border:1.5px solid #22c55e;border-radius:6px;cursor:pointer;font-size:.72rem;color:#22c55e;font-weight:700;font-family:var(--font)">➕ Hijo</button></div>`:'';
-    const lateralBadge=isLateral?`<span style="font-size:.62rem;background:rgba(200,200,255,.15);color:#a78bfa;padding:1px 6px;border-radius:8px;margin-left:4px">lateral</span>`:'';
-    html+=`<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')" style="position:absolute;left:${p.x}px;top:${p.y}px;width:${NW}px;background:var(--surface);border:2px solid ${col};${isLateral?'border-style:dashed;':''}border-radius:14px;padding:11px 13px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);user-select:none"><div style="font-size:.82rem;font-weight:700;color:var(--text1);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${node.cargo||''}">${node.cargo||'Sin cargo'}${lateralBadge}</div><div style="display:flex;align-items:center;justify-content:space-between;gap:4px"><div style="display:flex;align-items:center;overflow:hidden">${avs}${asgn.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${asgn.length-3}</span>`:''}</div><div style="background:${sb};color:${sc};font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${oc}/${pp}</div></div>${ebtns}</div>`;
+    const latBadge=isLat?`<span style="font-size:.62rem;background:rgba(167,139,250,.15);color:#a78bfa;padding:1px 6px;border-radius:8px;margin-left:4px">lateral</span>`:'';
+    html+=`<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')" style="position:absolute;left:${p.x}px;top:${p.y}px;width:${NW}px;background:var(--surface);border:2px solid ${col};${isLat?'border-style:dashed;':''}border-radius:14px;padding:11px 13px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);user-select:none"><div style="font-size:.82rem;font-weight:700;color:var(--text1);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${node.cargo||''}">${node.cargo||'Sin cargo'}${latBadge}</div><div style="display:flex;align-items:center;justify-content:space-between;gap:4px"><div style="display:flex;align-items:center;overflow:hidden">${avs}${asgn.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${asgn.length-3}</span>`:''}</div><div style="background:${sb};color:${sc};font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap">${oc}/${pp}</div></div>${ebtns}</div>`;
   });
   if(orgEditMode){const re2=Math.max(...Object.values(pos).map(p=>p.x+NW));html+=`<button onclick="addOrgNode(null)" style="position:absolute;left:${re2+HG*2}px;top:24px;background:#5b8df622;border:2px dashed #5b8df6;color:#5b8df6;border-radius:10px;padding:8px 14px;cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Nodo raíz</button>`;}
   container.innerHTML=html;
