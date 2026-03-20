@@ -3597,8 +3597,8 @@ function renderOrganigrama() {
   }
   if(empty) empty.style.display='none';
 
-  const NW=180, HG=40, VG=20;
-  const NH = orgEditMode ? 136 : 88;
+  const NW=180, HG=40, VG=36;
+  const NH = orgEditMode ? 140 : 74;
 
   // Separate normal vs lateral nodes
   const map={};
@@ -3628,11 +3628,12 @@ function renderOrganigrama() {
   roots.forEach(r=>{place(r,sx,24);sx+=nodeWidth(r)+HG*2;});
 
   // Fix overlaps between normal nodes
+  // Group by Y using NH/2 bucket so nodes at similar heights are compared
   const byY={};
   Object.entries(pos).forEach(([id,p])=>{
-    const y=Math.round(p.y/10)*10;
-    if(!byY[y])byY[y]=[];
-    byY[y].push(id);
+    const bucket=Math.round(p.y/Math.max(NH/2,30))*Math.max(NH/2,30);
+    if(!byY[bucket])byY[bucket]=[];
+    byY[bucket].push(id);
   });
   const childrenMapN={};
   org.nodes.forEach(n=>{if(n.parentId&&n.tipo!=='lateral'&&n.tipo!=='staff')childrenMapN[n.parentId]=(childrenMapN[n.parentId]||[]).concat(n.id);});
@@ -3640,7 +3641,7 @@ function renderOrganigrama() {
   Object.keys(byY).sort((a,b)=>+a-+b).forEach(y=>{
     const nodes=byY[y].sort((a,b)=>pos[a].x-pos[b].x);
     for(let i=1;i<nodes.length;i++){
-      const minX=pos[nodes[i-1]].x+NW+HG*1.5;
+      const minX=pos[nodes[i-1]].x+NW+HG;
       if(pos[nodes[i]].x<minX){
         const shift=minX-pos[nodes[i]].x;
         getSubtree(nodes[i]).forEach(id=>{if(pos[id])pos[id].x+=shift;});
@@ -3724,7 +3725,7 @@ function renderOrganigrama() {
         ctx.moveTo(px,py2);ctx.lineTo(t.x,py2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
-        const dy=t.y-(f.y+NH);const ctrl=Math.max(dy*0.5,20);ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+ctrl,t.x+NW/2,t.y-ctrl,t.x+NW/2,t.y+2);
+        ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*0.8,t.x+NW/2,t.y-VG*0.8,t.x+NW/2,t.y);
       }
       ctx.stroke();
     });ctx.setLineDash([]);
