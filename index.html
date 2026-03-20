@@ -3488,9 +3488,7 @@ function openOrganigrama(idx) {
 
 
 
-function centerOrganigrama() {
-  renderOrganigrama();
-}
+function centerOrganigrama() { renderOrganigrama(); }
 
 
 function toggleOrgEdit() {
@@ -3517,7 +3515,6 @@ function renderOrganigrama() {
   const container = document.getElementById('orgNodes');
   const empty = document.getElementById('orgEmpty');
   const canvas = document.getElementById('orgCanvas');
-  const wrapper = document.getElementById('orgScrollWrapper');
   if(!container) return;
 
   if(!org.nodes.length) {
@@ -3527,9 +3524,9 @@ function renderOrganigrama() {
   }
   if(empty) empty.style.display='none';
 
-  const NW=180,NH=88,HG=28,VG=72;
+  const NW=180, NH=88, HG=28, VG=72;
 
-  // Build tree
+  // ── 1. Build tree ──────────────────────────────────────────
   const map={};
   org.nodes.forEach(n=>{map[n.id]={...n,children:[]};});
   const roots=[],staff=[];
@@ -3538,7 +3535,13 @@ function renderOrganigrama() {
     n.parentId&&map[n.parentId]?map[n.parentId].children.push(map[n.id]):roots.push(map[n.id]);
   });
 
-  function cw(node){return !node.children.length?NW:Math.max(NW,node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0));}
+  // ── 2. Calculate subtree widths ────────────────────────────
+  function cw(node){
+    if(!node.children.length) return NW;
+    return Math.max(NW, node.children.reduce((s,c,i)=>s+cw(c)+(i?HG:0),0));
+  }
+
+  // ── 3. Place all nodes starting at x=0 ────────────────────
   const pos={};
   function place(node,x,y){
     pos[node.id]={x,y};
@@ -3547,57 +3550,65 @@ function renderOrganigrama() {
     let cx=x+NW/2-tw/2;
     node.children.forEach(c=>{place(c,cx,y+NH+VG);cx+=cw(c)+HG;});
   }
-
-  // Place roots starting at x=0
   let sx=0;
   roots.forEach(r=>{place(r,sx,24);sx+=cw(r)+HG*2;});
 
-  // Shift so leftmost node is at x=0
-  const minX=Math.min(...Object.values(pos).map(p=>p.x));
-  if(minX<0){const s=-minX;Object.keys(pos).forEach(id=>{pos[id].x+=s;});}
+  // ── 4. NOW we know the full tree dimensions ────────────────
+  const allPos = Object.values(pos);
+  const rawMinX = Math.min(...allPos.map(p=>p.x));
+  const rawMaxX = Math.max(...allPos.map(p=>p.x+NW));
+  const treeW = rawMaxX - rawMinX; // total width of the tree
 
-  // Staff nodes
+  // ── 5. Shift so minX = 0 (all nodes non-negative) ─────────
+  allPos.forEach(p=>p.x -= rawMinX);
+  // Re-apply to pos object
+  Object.keys(pos).forEach(id=>{pos[id].x -= rawMinX;});
+
+  // ── 6. Center: add left offset so tree is centered in viewport
+  const winW = window.innerWidth;
+  const PAD = 20;
+  // Center of tree
+  const treeCenter = treeW / 2;
+  // Where we want the center to be
+  const targetCenter = winW / 2;
+  // Left padding = how much to push right so tree center = screen center
+  const leftPad = Math.max(PAD, targetCenter - treeCenter);
+  // Apply to all nodes
+  Object.keys(pos).forEach(id=>{pos[id].x += leftPad;});
+
+  // ── 7. Staff nodes beside their parent ────────────────────
   staff.forEach(sn=>{
     const par=pos[sn.parentId];
     const sy=par?par.y:24;
     const sameY=Object.values(pos).filter(p=>Math.abs(p.y-sy)<10);
-    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):0)+HG*2,y:sy};
+    pos[sn.id]={x:(sameY.length?Math.max(...sameY.map(p=>p.x+NW)):leftPad)+HG*2,y:sy};
   });
 
-  const treeW=Math.max(...Object.values(pos).map(p=>p.x+NW));
-  const treeH=Math.max(...Object.values(pos).map(p=>p.y+NH))+60;
+  // ── 8. Final canvas size ───────────────────────────────────
+  const finalMaxX = Math.max(...Object.values(pos).map(p=>p.x+NW)) + PAD;
+  const finalMaxY = Math.max(...Object.values(pos).map(p=>p.y+NH)) + PAD;
+  // Canvas must be at least as wide as viewport for scroll to work both ways
+  const canvasW = Math.max(finalMaxX, winW);
+  const canvasH = finalMaxY;
 
-  // Calculate centering offset using window.innerWidth
-  // This shifts the ENTIRE tree so roots are centered in viewport
-  const vW = window.innerWidth;
-  const rootXs = roots.map(r=>(pos[r.id]?.x||0)+NW/2);
-  const rootsCenter = rootXs.length?(Math.min(...rootXs)+Math.max(...rootXs))/2:treeW/2;
-  // How much to shift right so rootsCenter aligns with vW/2
-  const offsetX = Math.max(0, vW/2 - rootsCenter);
-  // Total canvas width = tree width + offset + padding
-  const canvasW = Math.max(treeW + offsetX + 40, vW);
-
-  // Apply offset to all positions
-  Object.keys(pos).forEach(id=>{pos[id].x += offsetX;});
-
-  // Size containers
   const inner=document.getElementById('orgInner');
-  if(inner){inner.style.width=canvasW+'px';inner.style.height=treeH+'px';}
-  container.style.width=canvasW+'px';container.style.height=treeH+'px';
+  if(inner){inner.style.width=canvasW+'px';inner.style.height=canvasH+'px';}
+  container.style.width=canvasW+'px';container.style.height=canvasH+'px';
 
-  // Draw canvas
+  // ── 9. Draw connections ────────────────────────────────────
   if(canvas){
-    canvas.width=canvasW;canvas.height=treeH;
-    canvas.style.cssText=`display:block;position:absolute;top:0;left:0;width:${canvasW}px;height:${treeH}px;pointer-events:none;z-index:0`;
+    canvas.width=canvasW;canvas.height=canvasH;
+    canvas.style.cssText=`display:block;position:absolute;top:0;left:0;width:${canvasW}px;height:${canvasH}px;pointer-events:none;z-index:0`;
     const ctx=canvas.getContext('2d');
-    ctx.clearRect(0,0,canvasW,treeH);
+    ctx.clearRect(0,0,canvasW,canvasH);
     org.edges.forEach(e=>{
       const f=pos[e.from],t=pos[e.to];if(!f||!t)return;
       const tn=org.nodes.find(n=>n.id===e.to);
       ctx.beginPath();
       if(tn?.tipo==='staff'){
         ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(200,200,255,.5)';ctx.lineWidth=1.5;
-        ctx.moveTo(f.x+NW,f.y+NH/2);ctx.lineTo(t.x-HG,f.y+NH/2);ctx.lineTo(t.x-HG,t.y+NH/2);ctx.lineTo(t.x,t.y+NH/2);
+        ctx.moveTo(f.x+NW,f.y+NH/2);ctx.lineTo(t.x-HG,f.y+NH/2);
+        ctx.lineTo(t.x-HG,t.y+NH/2);ctx.lineTo(t.x,t.y+NH/2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
         ctx.moveTo(f.x+NW/2,f.y+NH);
@@ -3608,13 +3619,13 @@ function renderOrganigrama() {
     ctx.setLineDash([]);
   }
 
-  // Render nodes
+  // ── 10. Render node divs ───────────────────────────────────
   const emps=getEmployees(orgCompanyIdx);
   let html='';
   org.nodes.forEach(node=>{
     const p=pos[node.id];if(!p)return;
     const asgn=(node.employees||[]).map(id=>emps.find(e=>e.id===id)).filter(Boolean);
-    const pp=node.puestos||1,oc=asgn.length,pct=pp>0?oc/pp:0;
+    const pp=node.puestos||1,oc=asgn.length,pct=pp?oc/pp:0;
     const sc=oc===0?'#ef4444':pct>=1?'#22c55e':'#f59e0b';
     const sb=oc===0?'rgba(239,68,68,.12)':pct>=1?'rgba(34,197,94,.12)':'rgba(245,158,11,.12)';
     const col=node.color||'#5b8df6',isS=node.tipo==='staff';
@@ -3629,7 +3640,7 @@ function renderOrganigrama() {
     html+=`<div id="orgnode_${node.id}" onclick="handleNodeClick('${node.id}')"
       style="position:absolute;left:${p.x}px;top:${p.y}px;width:${NW}px;background:var(--surface);
       border:2px solid ${col};${isS?'border-style:dashed;':''}border-radius:14px;padding:11px 13px;
-      cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:transform .15s;user-select:none">
+      cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);user-select:none">
       <div style="font-size:.82rem;font-weight:700;color:var(--text1);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${node.cargo||''}">${node.cargo||'Sin cargo'}${isS?'<span style="font-size:.62rem;background:rgba(200,200,255,.15);color:#a78bfa;padding:1px 6px;border-radius:8px;margin-left:4px">staff</span>':''}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
         <div style="display:flex;align-items:center;overflow:hidden">${avs}${asgn.length>3?`<span style="font-size:.65rem;color:var(--text2);margin-left:10px">+${asgn.length-3}</span>`:''}</div>
