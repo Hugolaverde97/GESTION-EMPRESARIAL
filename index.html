@@ -786,17 +786,17 @@
       </div>
       <div class="form-group">
         <label class="form-label">Fecha inicio</label>
-        <input type="date" class="form-select" id="perm_fecha_inicio" onchange="calcDiasHabiles()">
+        <input type="date" class="form-select" id="perm_fecha_inicio">
       </div>
       <div class="form-group">
         <label class="form-label">Fecha fin</label>
-        <input type="date" class="form-select" id="perm_fecha_fin" onchange="calcDiasHabiles()">
+        <input type="date" class="form-select" id="perm_fecha_fin">
       </div>
 
       <!-- VACACIONES fields -->
       <div id="campos_vacaciones" class="form-group full" style="display:none">
-        <label class="form-label">Días hábiles</label>
-        <input type="number" class="form-select" id="perm_dias_habiles" placeholder="Se calcula automáticamente" readonly style="opacity:.7">
+        <label class="form-label">Días hábiles (ingresar manualmente)</label>
+        <input type="number" class="form-select" id="perm_dias_habiles" placeholder="Ej: 5" min="1">
       </div>
 
       <!-- INCAPACIDAD fields -->
@@ -890,29 +890,7 @@
 </div>
 
 
-<!-- FESTIVO MODAL -->
-<div class="modal-overlay" id="festivoModal">
-  <div class="modal" style="max-width:360px">
-    <div class="modal-title">
-      <span>Agregar Festivo</span>
-      <button class="modal-close" onclick="closeModal('festivoModal')">✕</button>
-    </div>
-    <div class="form-grid">
-      <div class="form-group full">
-        <label class="form-label">Fecha</label>
-        <input type="date" class="form-select" id="festivo_fecha">
-      </div>
-      <div class="form-group full">
-        <label class="form-label">Nombre</label>
-        <input type="text" class="form-select" id="festivo_nombre" placeholder="Ej: Día de la Independencia">
-      </div>
-    </div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="saveFestivo()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">Guardar</button>
-      <button onclick="closeModal('festivoModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- ADD/EDIT EMPRESA MODAL -->
 <div class="modal-overlay" id="empresaModal">
@@ -1085,8 +1063,27 @@
     <div class="modal-title"><span id="trailerModalTitle">Agregar Tráiler</span><button class="modal-close" onclick="closeModal('trailerModal')">✕</button></div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Placa *</label><input class="form-input" id="tr_placa" placeholder="ABC-123" style="text-transform:uppercase"></div>
-      <div class="form-group"><label class="form-label">Tipo de carrocería</label>
-        <select class="form-select" id="tr_tipo">
+      <div class="form-group"><label class="form-label">Clase de vehículo</label>
+        <select class="form-select" id="tr_clase">
+          <option value="">Seleccionar...</option>
+          <option>Semirremolque</option>
+          <option>Remolque</option>
+          <option>Carreta</option>
+          <option>Batea</option>
+          <option>Cisterna</option>
+          <option>Volco</option>
+          <option>Cama baja</option>
+          <option>Portacontenedor</option>
+          <option>Furgón</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Marca / Fabricante</label><input class="form-input" id="tr_marca" placeholder="Marca"></div>
+      <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="tr_modelo" placeholder="2024"></div>
+      <div class="form-group"><label class="form-label">Número de serie</label><input class="form-input" id="tr_serie" placeholder="Número de serie / VIN"></div>
+      <div class="form-group"><label class="form-label">Fecha de matrícula</label><input type="date" class="form-input" id="tr_matricula"></div>
+      <div class="form-group full"><label class="form-label">Carrocería</label>
+        <select class="form-select" id="tr_carroceria">
           <option value="">Seleccionar...</option>
           <option>Seco / Estacas</option>
           <option>Refrigerado / Isotérmico</option>
@@ -1100,15 +1097,11 @@
           <option>Otro</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Marca / Fabricante</label><input class="form-input" id="tr_marca" placeholder="Marca"></div>
-      <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="tr_modelo" placeholder="2024"></div>
-      <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="tr_color" placeholder="Color"></div>
-      <div class="form-group"><label class="form-label">Capacidad (ton)</label><input class="form-input" id="tr_capacidad" placeholder="Ej: 34" type="number" min="0" step="0.5"></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="tr_propietario" placeholder="Propietario"></div>
-      <div class="form-group"><label class="form-label">Tipo de ID Propietario</label><select class="form-select" id="tr_tipoIdPropietario"><option value="">Seleccionar...</option><option value="CC">Cédula de Ciudadanía</option><option value="NIT">NIT</option><option value="CE">Cédula de Extranjería</option><option value="PAS">Pasaporte</option><option value="TI">Tarjeta de Identidad</option></select></div>
-      <div class="form-group"><label class="form-label">No. Identificación Propietario</label><input class="form-input" id="tr_noIdPropietario" placeholder="Número de identificación"></div>
-      <div class="form-group"><label class="form-label">N° de ejes</label><input class="form-input" id="tr_ejes" placeholder="Ej: 3" type="number" min="1" max="10"></div>
-      <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza Todo Riesgo</div>
+      <div class="form-group"><label class="form-label">Tipo ID Propietario</label><select class="form-select" id="tr_tipoIdPropietario"><option value="">Seleccionar...</option><option value="CC">Cédula</option><option value="NIT">NIT</option><option value="CE">Cédula Extranjería</option><option value="PAS">Pasaporte</option></select></div>
+      <div class="form-group"><label class="form-label">No. ID Propietario</label><input class="form-input" id="tr_noIdPropietario" placeholder="Número de identificación"></div>
+      <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza</div>
+      <div class="form-group full"><label class="form-label">Aseguradora</label><input class="form-input" id="tr_aseguradora" placeholder="Ej: Sura, Bolívar, Allianz..."></div>
       <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="tr_poliza_ini"></div>
       <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="tr_poliza_fin"></div>
     </div>
@@ -1173,19 +1166,7 @@
     </div>
     <button class="save-btn" onclick="applySettings()">💾 Guardar cambios</button>
     <button class="del-btn" onclick="resetSettings()">↺ Restablecer valores</button>
-  
-    <!-- Festivos Card -->
-    <div style="background:var(--surface);border-radius:16px;padding:16px;margin:0 16px 16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-weight:700;color:var(--text1);font-size:.95rem">🗓️ Festivos Colombia</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="festivosAnio" onchange="renderFestivosList()" class="form-select" style="font-size:.82rem;width:auto"></select>
-          <button onclick="openAddFestivo()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.82rem;font-family:var(--font);font-weight:700">+ Agregar</button>
-        </div>
-      </div>
-      <div id="festivosListContainer" style="display:flex;flex-direction:column;gap:6px"></div>
-    </div>
-</div>
+  </div>
 </div>
 
 <!-- EXPANDABLE FAB MENU -->
@@ -1688,128 +1669,12 @@ async function loadSettings() {
   loadLocal();
 }
 // ============ FESTIVOS ============
-function colombiaFestivos(year) {
-  // Fixed festivos
-  const fixed = [
-    [1,1,'Año Nuevo'],[5,1,'Día del Trabajo'],[7,20,'Grito de Independencia'],
-    [8,7,'Batalla de Boyacá'],[12,8,'Inmaculada Concepción'],[12,25,'Navidad'],
-    [1,6,'Reyes Magos'],[3,19,'San José'],[6,29,'San Pedro y San Pablo'],
-    [8,15,'Asunción de la Virgen'],[10,12,'Día de la Raza'],[11,1,'Todos los Santos'],
-    [11,11,'Independencia de Cartagena']
-  ];
-  // Easter-based (approximate for common years)
-  const easter = getEasterDate(year);
-  const addDays = (d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
-  const fmt = d=>`${year}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const movable = [
-    {d:addDays(easter,-3), n:'Jueves Santo'},
-    {d:addDays(easter,-2), n:'Viernes Santo'},
-    {d:addDays(easter,39), n:'Ascensión del Señor'},
-    {d:addDays(easter,60), n:'Corpus Christi'},
-    {d:addDays(easter,68), n:'Sagrado Corazón'},
-  ];
-  const result = fixed.map(([m,d,n])=>{
-    const date = `${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    return {fecha:date,nombre:n};
-  });
-  movable.forEach(({d,n})=>result.push({fecha:fmt(d),nombre:n}));
-  return result.sort((a,b)=>a.fecha.localeCompare(b.fecha));
-}
-
-function getEasterDate(year) {
-  const a=year%19,b=Math.floor(year/100),c=year%100;
-  const d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
-  const g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
-  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
-  const m=Math.floor((a+11*h+22*l)/451);
-  const month=Math.floor((h+l-7*m+114)/31);
-  const day=((h+l-7*m+114)%31)+1;
-  return new Date(year,month-1,day);
-}
-
-function getFestivos(year) {
-  if(!state.festivos) state.festivos = {};
-  if(!state.festivos[year]) state.festivos[year] = colombiaFestivos(year);
-  return state.festivos[year];
-}
-
-function isFestivo(dateStr) {
-  const year = parseInt(dateStr.split('-')[0]);
-  return getFestivos(year).some(f=>f.fecha===dateStr);
-}
-
-function renderFestivosList() {
-  const sel = document.getElementById('festivosAnio');
-  const container = document.getElementById('festivosListContainer');
-  if(!sel||!container) return;
-  const year = parseInt(sel.value)||new Date().getFullYear();
-  const festivos = getFestivos(year);
-  container.innerHTML = festivos.map(f=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-radius:8px">
-      <div>
-        <span style="font-size:.8rem;color:var(--accent);font-weight:600">${f.fecha}</span>
-        <span style="font-size:.82rem;color:var(--text1);margin-left:8px">${f.nombre}</span>
-      </div>
-      <button onclick="deleteFestivo('${f.fecha}',${year})" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:.85rem;padding:2px 6px">✕</button>
-    </div>`).join('');
-}
-
-function initFestivosAnio() {
-  const sel = document.getElementById('festivosAnio');
-  if(!sel) return;
-  const cur = new Date().getFullYear();
-  sel.innerHTML = [cur-1,cur,cur+1,cur+2].map(y=>`<option value="${y}">${y}</option>`).join('');
-  sel.value = String(cur);
-  getFestivos(cur);
-  setTimeout(renderFestivosList, 20);
-}
-
-function openAddFestivo() {
-  document.getElementById('festivo_fecha').value='';
-  document.getElementById('festivo_nombre').value='';
-  openModal('festivoModal');
-}
-
-function saveFestivo() {
-  const fecha = document.getElementById('festivo_fecha').value;
-  const nombre = document.getElementById('festivo_nombre').value.trim();
-  if(!fecha||!nombre){toast('Completa fecha y nombre');return;}
-  const year = parseInt(fecha.split('-')[0]);
-  if(!state.festivos) state.festivos={};
-  if(!state.festivos[year]) state.festivos[year]=colombiaFestivos(year);
-  if(!state.festivos[year].some(f=>f.fecha===fecha)){
-    state.festivos[year].push({fecha,nombre});
-    state.festivos[year].sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  }
-  save();
-  closeModal('festivoModal');
-  renderFestivosList();
-  toast('Festivo agregado');
-}
-
-function deleteFestivo(fecha,year) {
-  if(!state.festivos?.[year]) return;
-  state.festivos[year]=state.festivos[year].filter(f=>f.fecha!==fecha);
-  save();
-  renderFestivosList();
-}
-
-function calcDiasHabilesVacaciones(fechaInicio, fechaFin, jornada) {
-  if(!fechaInicio||!fechaFin) return 0;
-  let d = new Date(fechaInicio+'T00:00:00'), end = new Date(fechaFin+'T00:00:00'), count=0;
-  while(d<=end){
-    const dow=d.getDay();
-    const dateStr=d.toISOString().split('T')[0];
-    const esFinSemana = dow===0||(dow===6&&jornada==='lv');
-    if(!esFinSemana&&!isFestivo(dateStr)) count++;
-    d.setDate(d.getDate()+1);
-  }
-  return count;
-}
 
 
-// ============ PERMISOS ============
-let currentPermisosEmpresaIdx = null;
+
+
+
+
 
 function openPermisos(idx) {
   currentPermisosEmpresaIdx = idx;
@@ -1896,12 +1761,7 @@ function updatePermisoForm() {
   document.getElementById('campos_vacaciones').style.display = tipo==='vacaciones' ? 'block' : 'none';
   document.getElementById('campos_incapacidad').style.display = tipo==='incapacidad' ? 'block' : 'none';
   document.getElementById('campos_permiso').style.display = (tipo==='permiso_remunerado'||tipo==='permiso_no_remunerado') ? 'block' : 'none';
-  if(tipo==='vacaciones') calcDiasHabiles();
-  // Hook date changes to recalculate
-  ['perm_fecha_inicio','perm_fecha_fin'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.onchange=()=>{if(document.getElementById('perm_tipo').value==='vacaciones') calcDiasHabiles();};
-  });
+
 }
 
 function updateDuracionFields() {
@@ -1911,15 +1771,6 @@ function updateDuracionFields() {
   document.getElementById('campo_minutos_permiso').style.display = tipo==='horas' ? 'block' : 'none';
 }
 
-function calcDiasHabiles() {
-  const fi = document.getElementById('perm_fecha_inicio').value;
-  const ff = document.getElementById('perm_fecha_fin').value;
-  if(!fi||!ff) return;
-  const em = (state.empresas||[])[currentPermisosEmpresaIdx]||{};
-  const jornada = em.jornada||'lv';
-  const count = calcDiasHabilesVacaciones(fi, ff, jornada);
-  document.getElementById('perm_dias_habiles').value = count + ' días hábiles';
-}
 
 function savePermiso() {
   const empleadoId = document.getElementById('perm_empleado').value;
@@ -2455,7 +2306,7 @@ function deleteEmpresa() {
 }
 
 function goHome() { closeGlobalSearch(); updateNotifBadge(); showScreen('home'); }
-function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings');setTimeout(initFestivosAnio,80); }
+function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings'); }
 function getCompanyName(idx) { const em=(state.empresas||buildDefaultEmpresas())[idx]; return em?em.nombre:('Empresa '+(idx+1)); }
 
 // ===================== TABS =====================
@@ -3204,28 +3055,43 @@ function openTrailerDetail(id) {
 
 function openAddTrailer() {
   editingTrailerId = null;
-  document.getElementById('trailerModalTitle').textContent='Agregar Tráiler';
-  ['tr_placa','tr_marca','tr_modelo','tr_color','tr_propietario','tr_noIdPropietario'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('tr_tipoIdPropietario').value='';
-  ['tr_capacidad','tr_ejes'].forEach(id=>document.getElementById(id).value='');
-  ['tr_poliza_ini','tr_poliza_fin'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('tr_tipo').value='';
-  document.getElementById('tr_del_btn').style.display='none';
+  document.getElementById('trailerModalTitle').textContent = 'Agregar Tráiler';
+  ['tr_placa','tr_marca','tr_modelo','tr_serie','tr_propietario','tr_noIdPropietario','tr_aseguradora'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  ['tr_clase','tr_carroceria','tr_tipoIdPropietario'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  ['tr_matricula','tr_poliza_ini','tr_poliza_fin'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('tr_del_btn').style.display = 'none';
   openModal('trailerModal');
 }
 
-function openEditTrailer() {
-  const t=(state.trailers||[]).find(t=>t.id===currentTrailerId);
+
+function openEditTrailer(id) {
+  const t = state.trailers.find(x=>x.id===id);
   if(!t) return;
-  editingTrailerId=t.id;
-  document.getElementById('trailerModalTitle').textContent='Editar Tráiler';
-  document.getElementById('tr_del_btn').style.display='';
-  ['placa','marca','modelo','color','propietario'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
-  ['capacidad','ejes'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
-  document.getElementById('tr_tipo').value=t.tipo||'';
-  ['poliza_ini','poliza_fin'].forEach(f=>document.getElementById('tr_'+f).value=t[f]||'');
+  editingTrailerId = id;
+  document.getElementById('trailerModalTitle').textContent = 'Editar Tráiler';
+  document.getElementById('tr_placa').value = t.placa||'';
+  document.getElementById('tr_clase').value = t.clase||t.tipo||'';
+  document.getElementById('tr_marca').value = t.marca||'';
+  document.getElementById('tr_modelo').value = t.modelo||'';
+  document.getElementById('tr_serie').value = t.serie||'';
+  document.getElementById('tr_matricula').value = t.matricula||'';
+  document.getElementById('tr_carroceria').value = t.carroceria||'';
+  document.getElementById('tr_propietario').value = t.propietario||'';
+  document.getElementById('tr_tipoIdPropietario').value = t.tipoIdPropietario||'';
+  document.getElementById('tr_noIdPropietario').value = t.noIdPropietario||'';
+  document.getElementById('tr_aseguradora').value = t.aseguradora||'';
+  document.getElementById('tr_poliza_ini').value = t.poliza_ini||'';
+  document.getElementById('tr_poliza_fin').value = t.poliza_fin||'';
+  document.getElementById('tr_del_btn').style.display = 'block';
   openModal('trailerModal');
 }
+
 
 function saveTrailer() {
   const placa=document.getElementById('tr_placa').value.trim().toUpperCase();
@@ -3233,29 +3099,29 @@ function saveTrailer() {
   if(!state.trailers) state.trailers=[];
   const data={
     id: editingTrailerId||('tr_'+Date.now()),
-    placa, tipo:document.getElementById('tr_tipo').value,
-    marca:document.getElementById('tr_marca').value.trim(),
-    modelo:document.getElementById('tr_modelo').value.trim(),
-    color:document.getElementById('tr_color').value.trim(),
-    capacidad:document.getElementById('tr_capacidad').value,
-    ejes:document.getElementById('tr_ejes').value,
-    propietario:document.getElementById('tr_propietario').value.trim(),
-    tipoIdPropietario:document.getElementById('tr_tipoIdPropietario').value,
-    noIdPropietario:document.getElementById('tr_noIdPropietario').value.trim(),
-    poliza_ini:document.getElementById('tr_poliza_ini').value,
-    poliza_fin:document.getElementById('tr_poliza_fin').value,
-    activo:true
+    placa,
+    clase: document.getElementById('tr_clase').value,
+    marca: document.getElementById('tr_marca').value.trim(),
+    modelo: document.getElementById('tr_modelo').value.trim(),
+    serie: document.getElementById('tr_serie').value.trim(),
+    matricula: document.getElementById('tr_matricula').value,
+    carroceria: document.getElementById('tr_carroceria').value,
+    propietario: document.getElementById('tr_propietario').value.trim(),
+    tipoIdPropietario: document.getElementById('tr_tipoIdPropietario').value,
+    noIdPropietario: document.getElementById('tr_noIdPropietario').value.trim(),
+    aseguradora: document.getElementById('tr_aseguradora').value.trim(),
+    poliza_ini: document.getElementById('tr_poliza_ini').value,
+    poliza_fin: document.getElementById('tr_poliza_fin').value,
   };
-  if(editingTrailerId) {
-    const idx=state.trailers.findIndex(t=>t.id===editingTrailerId);
-    if(idx>=0){data.activo=state.trailers[idx].activo;state.trailers[idx]=data;}
-  } else {
-    state.trailers.push(data);
-  }
-  persistData(); closeModal('trailerModal'); renderTrailerList();
-  toast(editingTrailerId?'✅ Tráiler actualizado':'✅ Tráiler agregado');
-  if(editingTrailerId) openTrailerDetail(data.id);
+  if(editingTrailerId!==null){
+    const i=state.trailers.findIndex(t=>t.id===editingTrailerId);
+    if(i>=0) state.trailers[i]=data;
+  } else { state.trailers.push(data); }
+  editingTrailerId=null;
+  save(); closeModal('trailerModal'); renderTrailerList();
+  toast('Tráiler guardado');
 }
+
 
 function deleteTrailer() {
   if(!confirm('¿Eliminar este tráiler?')) return;
