@@ -3597,9 +3597,8 @@ function renderOrganigrama() {
   }
   if(empty) empty.style.display='none';
 
-  const NW=180, HG=28;
+  const NW=180, HG=28, VG=16;
   const NH = orgEditMode ? 136 : 88;
-  const VG = orgEditMode ? 32 : 28; // tight gap between nodes
 
   // Separate normal vs lateral nodes
   const map={};
@@ -3725,7 +3724,7 @@ function renderOrganigrama() {
         ctx.moveTo(px,py2);ctx.lineTo(t.x,py2);
       }else{
         ctx.setLineDash([]);ctx.strokeStyle='rgba(139,146,169,.4)';ctx.lineWidth=2;
-        ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*.5,t.x+NW/2,t.y-VG*.5,t.x+NW/2,t.y);
+        ctx.moveTo(f.x+NW/2,f.y+NH);ctx.bezierCurveTo(f.x+NW/2,f.y+NH+VG*.3,t.x+NW/2,t.y-VG*.3,t.x+NW/2,t.y);
       }
       ctx.stroke();
     });ctx.setLineDash([]);
