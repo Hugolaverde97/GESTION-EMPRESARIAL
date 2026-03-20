@@ -3560,8 +3560,6 @@ function renderOrganigrama() {
   const treeW = rawMaxX - rawMinX; // total width of the tree
 
   // ── 5. Shift so minX = 0 (all nodes non-negative) ─────────
-  allPos.forEach(p=>p.x -= rawMinX);
-  // Re-apply to pos object
   Object.keys(pos).forEach(id=>{pos[id].x -= rawMinX;});
 
   // ── 6. Center: add left offset so tree is centered in viewport
