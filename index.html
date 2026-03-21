@@ -3360,6 +3360,11 @@ function checkEmpresaAccess(idx) {
   if(!hasRestriction) return true;
   return p['empresa_'+idx] === true;
 }
+function canSeeNotif() {
+  if(isSuperadmin()||isAdmin()) return true;
+  if(isEditor()) return getPerm('ver_notif', true);
+  return getPerm('ver_notif', false); // vision: off by default
+}
 function canSeeModule(mod) {
   if(isSuperadmin()||isAdmin()) return true;
   const p = currentUser?.permisos||{};
@@ -3470,12 +3475,23 @@ const MODULOS = [
   {key:'permisos',    label:'📅 Permisos'},
 ];
 
+function toggleCheck(cbId, lblId, forceVal) {
+  const cb=document.getElementById(cbId);
+  const icon=document.getElementById(cbId+'_icon');
+  if(!cb)return;
+  cb.checked=forceVal!==undefined?forceVal:!cb.checked;
+  if(icon)icon.textContent=cb.checked?'☑️':'⬜';
+  const lbl=document.getElementById(lblId);
+  if(lbl)lbl.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+}
+
 function buildModulosGrid() {
   const grid = document.getElementById('ue_modulos_grid');
   if(!grid) return;
   grid.innerHTML = MODULOS.map(m=>`
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-      <input type="checkbox" id="ue_mod_${m.key}" checked> <span>${m.label}</span>
+    <label id="lbl_mod_${m.key}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--accent);font-size:.82rem" onclick="toggleCheck('ue_mod_${m.key}','lbl_mod_${m.key}')">
+      <span>${m.label}</span><span id="ue_mod_${m.key}_icon">☑️</span>
+      <input type="checkbox" id="ue_mod_${m.key}" style="display:none" checked>
     </label>`).join('');
 }
 
@@ -3483,16 +3499,16 @@ function buildEmpresasList() {
   const list = document.getElementById('ue_empresas_list');
   if(!list) return;
   list.innerHTML = (state.empresas||[]).map((em,i)=>`
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-      <input type="checkbox" id="ue_empresa_${i}" checked> <span>${em.nombre||'Empresa '+(i+1)}</span>
+    <label id="lbl_empresa_${i}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--accent);font-size:.82rem" onclick="toggleCheck('ue_empresa_${i}','lbl_empresa_${i}')">
+      <span>${em.nombre||'Empresa '+(i+1)}</span><span id="ue_empresa_${i}_icon">☑️</span>
+      <input type="checkbox" id="ue_empresa_${i}" style="display:none" checked>
     </label>`).join('');
 }
 
 function toggleTodasEmpresas(checked) {
-  (state.empresas||[]).forEach((_,i)=>{
-    const cb=document.getElementById('ue_empresa_'+i);
-    if(cb) cb.checked=checked;
-  });
+  const icon=document.getElementById('ue_todas_icon');
+  if(icon)icon.textContent=checked?'☑️':'⬜';
+  (state.empresas||[]).forEach((_,i)=>toggleCheck('ue_empresa_'+i,'lbl_empresa_'+i,checked));
 }
 
 function toggleUserPerms() {
@@ -3515,6 +3531,7 @@ function getPermsFromForm() {
   }
   p.ver_salarios=document.getElementById('ue_ver_salarios')?.checked||false;
   p.exportar=document.getElementById('ue_exportar')?.checked||false;
+  p.ver_notif=document.getElementById('ue_ver_notif')?.checked||false;
   if(role==='editor'){
     p.baja_emp=document.getElementById('ue_baja_emp')?.checked||false;
     p.del_emp=document.getElementById('ue_del_emp')?.checked||false;
@@ -3533,12 +3550,17 @@ function loadPermsToForm(permisos={}, role='vision') {
   const todasCb=document.getElementById('ue_todas_empresas');
   if(todasCb) todasCb.checked=!hasEmpRestriction;
   (state.empresas||[]).forEach((_,i)=>{const cb=document.getElementById('ue_empresa_'+i);if(cb)cb.checked=hasEmpRestriction?(permisos['empresa_'+i]===true):true;});
-  const vs=document.getElementById('ue_ver_salarios');if(vs)vs.checked=permisos.ver_salarios||false;
-  const ex=document.getElementById('ue_exportar');if(ex)ex.checked=permisos.exportar||false;
-  const be=document.getElementById('ue_baja_emp');if(be)be.checked=permisos.baja_emp||false;
-  const de=document.getElementById('ue_del_emp');if(de)de.checked=permisos.del_emp||false;
-  const bv=document.getElementById('ue_baja_veh');if(bv)bv.checked=permisos.baja_veh||false;
-  const dv=document.getElementById('ue_del_veh');if(dv)dv.checked=permisos.del_veh||false;
+  toggleCheck('ue_ver_salarios','lbl_ver_salarios',permisos.ver_salarios||false);
+  toggleCheck('ue_exportar','lbl_exportar',permisos.exportar||false);
+  toggleCheck('ue_ver_notif','lbl_ver_notif',permisos.ver_notif!==false&&role==='editor');
+  toggleCheck('ue_baja_emp','lbl_baja_emp',permisos.baja_emp||false);
+  toggleCheck('ue_del_emp','lbl_del_emp',permisos.del_emp||false);
+  toggleCheck('ue_baja_veh','lbl_baja_veh',permisos.baja_veh||false);
+  toggleCheck('ue_del_veh','lbl_del_veh',permisos.del_veh||false);
+  MODULOS.forEach(m=>toggleCheck('ue_mod_'+m.key,'lbl_mod_'+m.key,permisos['mod_'+m.key]!==false));
+  const hasEmpR=Object.keys(permisos).some(k=>k.startsWith('empresa_'));
+  toggleTodasEmpresas(!hasEmpR);
+  if(hasEmpR)(state.empresas||[]).forEach((_,i)=>toggleCheck('ue_empresa_'+i,'lbl_empresa_'+i,permisos['empresa_'+i]===true));
 }
 
 async function saveUser() {
