@@ -3414,17 +3414,24 @@ async function renderUserList() {
 }
 
 function openAddUser() {
-  editingUserId = null;
-  document.getElementById('userEditTitle').textContent = 'Agregar Usuario';
-  document.getElementById('ue_username').value = '';
-  document.getElementById('ue_password').value = '';
-  document.getElementById('ue_role').value = 'editor';
-  document.getElementById('ue_del_btn').style.display = 'none';
-  ['ue_acc0','ue_acc1','ue_acc2','ue_acc3','ue_salarios','ue_excel','ue_baja_emp0','ue_del_emp0','ue_stats0','ue_baja_emp1','ue_del_emp1','ue_stats1','ue_baja_emp2','ue_del_emp2','ue_stats2','ue_baja_veh','ue_del_veh','ue_baja_tr','ue_del_tr'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  document.querySelectorAll('[id^="subperm_"]').forEach(d=>d.style.display='none');
-  toggleUserPerms();
-  refreshPermVisuals();
-  openModal('userEditModal');
+  try {
+    editingUserId = null;
+    document.getElementById('userEditTitle').textContent = 'Nuevo Usuario';
+    document.getElementById('ue_username').value = '';
+    document.getElementById('ue_password').value = '';
+    document.getElementById('ue_del_btn').style.display = 'none';
+    const roleEl = document.getElementById('ue_role');
+    if(roleEl) {
+      roleEl.value = 'vision';
+      Array.from(roleEl.options).forEach(o=>{ if(o.value==='admin') o.disabled=!isSuperadmin(); });
+    }
+    loadPermsToForm({}, 'vision');
+    toggleUserPerms();
+    openModal('userEditModal');
+  } catch(e) {
+    console.error('openAddUser error:', e);
+    toast('Error: ' + e.message);
+  }
 }
 
 async function openEditUser(id) {
