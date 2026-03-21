@@ -1066,7 +1066,7 @@
       <div class="form-group"><label class="form-label">Clase de vehículo</label>
         <select class="form-select" id="tr_clase">
           <option value="">Seleccionar...</option>
-          <option>Semirremolque</option>
+          <option>Semiremolque</option>
           <option>Remolque</option>
           <option>Carreta</option>
           <option>Batea</option>
@@ -3020,38 +3020,46 @@ function openTrailerDetail(id) {
   if(!t) return;
   const isInactive=t.activo===false;
   const docs=[docStatus(t.poliza_fin)];
-  // Find vehicle using this trailer
   const veh=(state.vehicles||[]).find(v=>v.trailerAsignado===id);
+  const fmtDate=d=>d?d.split('-').reverse().join('/'):'—';
   document.getElementById('trailerDetailContent').innerHTML=`
     <div class="detail-header">
       <div class="detail-avatar" style="background:#64748b;font-size:2rem">🚛</div>
       <div class="detail-name">${t.placa||'Sin placa'} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
-      <div class="detail-cargo">${t.tipo||'Sin tipo'}${t.capacidad?' · '+t.capacidad+' ton':''}</div>
+      <div class="detail-cargo">${t.clase||t.tipo||'Sin clase'}${t.carroceria?' · '+t.carroceria:''}</div>
     </div>
     <div class="detail-section">
       <div class="section-title">📋 Datos del Tráiler</div>
       <div class="field-card"><div class="field-label">Placa</div><div class="field-value">${t.placa||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Tipo de carrocería</div><div class="field-value">${t.tipo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Clase de vehículo</div><div class="field-value">${t.clase||t.tipo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Marca</div><div class="field-value">${t.marca||'—'}</div></div>
       <div class="field-card"><div class="field-label">Modelo (año)</div><div class="field-value">${t.modelo||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Color</div><div class="field-value">${t.color||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Capacidad</div><div class="field-value">${t.capacidad?t.capacidad+' toneladas':'—'}</div></div>
-      <div class="field-card"><div class="field-label">N° de ejes</div><div class="field-value">${t.ejes||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${t.propietario||'—'}</div></div>
-      <div class="field-card"><div class="field-label">ID Propietario</div><div class="field-value">${t.tipoIdPropietario?t.tipoIdPropietario+' '+t.noIdPropietario:'—'}</div></div>
-      <div class="field-card"><div class="field-label">Vehículo enganchado</div><div class="field-value" style="color:${veh?'var(--accent3)':'var(--text2)'}">${veh?'🚛 '+veh.placa+' · '+(veh.marca||''):'— Sin enganchar'}</div></div>
-      <div class="section-title">📄 Documentos</div>
-      ${docs.map(d=>`<div class="field-card"><div class="field-label">${d.label}</div><div class="field-value" style="color:${d.color}">${d.text} ${d.icon}</div></div>`).join('')}
-      ${isInactive?`<div class="section-title">⛔ Retiro</div><div class="field-card"><div class="field-label">Fecha de retiro</div><div class="field-value">${fmtDate(t.fechaRetiro)||'—'}</div></div><div class="field-card"><div class="field-label">Motivo</div><div class="field-value">${t.motivoRetiro||'—'}</div></div>`:''}
+      <div class="field-card"><div class="field-label">Número de serie</div><div class="field-value">${t.serie||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Fecha de matrícula</div><div class="field-value">${fmtDate(t.matricula)}</div></div>
+      <div class="field-card"><div class="field-label">Carrocería</div><div class="field-value">${t.carroceria||'—'}</div></div>
     </div>
+    <div class="detail-section">
+      <div class="section-title">👤 Propietario</div>
+      <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${t.propietario||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo ID</div><div class="field-value">${t.tipoIdPropietario||'—'}</div></div>
+      <div class="field-card"><div class="field-label">No. ID</div><div class="field-value">${t.noIdPropietario||'—'}</div></div>
+    </div>
+    <div class="detail-section">
+      <div class="section-title">📄 Póliza Todo Riesgo</div>
+      <div class="field-card"><div class="field-label">Aseguradora</div><div class="field-value">${t.aseguradora||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Vigencia inicio</div><div class="field-value">${fmtDate(t.poliza_ini)}</div></div>
+      <div class="field-card" style="background:${docStatus(t.poliza_fin).bg}"><div class="field-label">Vigencia fin</div><div class="field-value" style="color:${docStatus(t.poliza_fin).color}">${fmtDate(t.poliza_fin)} ${docStatus(t.poliza_fin).icon}</div></div>
+    </div>
+    ${veh?`<div class="detail-section"><div class="section-title">🚗 Vehículo enganchado</div><div class="field-card"><div class="field-label">Placa</div><div class="field-value">${veh.placa||'—'}</div></div></div>`:''}
     <div class="detail-actions">
-      ${canEdit()?`<button class="action-btn" onclick="openEditTrailer()">✏️ Editar</button>`:''}
-      ${!isInactive&&canEdit()?`<button class="action-btn" onclick="retireTrailer()">⛔ Dar de baja</button>`:''}
-      ${isInactive&&canBajaTr()?`<button class="action-btn" onclick="reactivateTrailer()">✅ Reactivar</button>`:''}
-      ${canDelete()?`<button class="action-btn danger" onclick="deleteTrailer()">🗑️ Eliminar</button>`:''}
-    </div>`;
+      <button class="action-btn" onclick="openEditTrailer('${id}')">✏️ Editar</button>
+      <button class="action-btn ${isInactive?'':'action-btn-danger'}" onclick="toggleTrailerActivo('${id}')">${isInactive?'✅ Activar':'🚫 Dar de baja'}</button>
+      <button class="action-btn action-btn-danger" onclick="deleteTrailer()">🗑️ Eliminar</button>
+    </div>
+  `;
   showScreen('trailerDetail');
 }
+
 
 function openAddTrailer() {
   editingTrailerId = null;
@@ -3122,6 +3130,17 @@ function saveTrailer() {
   toast('Tráiler guardado');
 }
 
+
+function toggleTrailerActivo(id) {
+  const t = (state.trailers||[]).find(t=>t.id===id);
+  if(!t) return;
+  const isInactive = t.activo===false;
+  if(!isInactive && !confirm('¿Dar de baja este tráiler?')) return;
+  t.activo = isInactive ? true : false;
+  persistData();
+  openTrailerDetail(id);
+  toast(isInactive ? '✅ Tráiler activado' : '🚫 Tráiler dado de baja');
+}
 
 function deleteTrailer() {
   if(!confirm('¿Eliminar este tráiler?')) return;
