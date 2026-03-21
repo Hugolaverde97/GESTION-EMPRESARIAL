@@ -29,6 +29,11 @@
   #splash-dots span:nth-child(2) { animation-delay: 0.2s; background: #a78bfa; }
   #splash-dots span:nth-child(3) { animation-delay: 0.4s; background: #34d399; }
   @keyframes pulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
+
+  .perm-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:.85rem;font-weight:600;transition:border-color .15s;user-select:none}
+  .perm-row:hover{border-color:var(--accent)}
+  .perm-row input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
+  .perm-row.checked{border-color:var(--accent)}
 </style>
 <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180">
 <link id="pwa-icon" rel="icon" type="image/png" sizes="192x192">
@@ -433,83 +438,93 @@
 </div>
 
 <!-- ADD/EDIT USER MODAL -->
+<div class="modal<!-- USER EDIT MODAL -->
 <div class="modal-overlay" id="userEditModal">
-  <div class="modal">
-    <div class="modal-title"><span id="userEditTitle">Agregar Usuario</span><button class="modal-close" onclick="closeModal('userEditModal')">✕</button></div>
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">
+      <span id="userEditTitle">Nuevo Usuario</span>
+      <button class="modal-close" onclick="closeModal('userEditModal')">✕</button>
+    </div>
     <div class="form-grid">
-      <div class="form-group full"><label class="form-label">Nombre de usuario *</label><input class="form-input" id="ue_username" placeholder="usuario123" autocomplete="off"></div>
+      <div class="form-group full">
+        <label class="form-label">Usuario *</label>
+        <input class="form-input" id="ue_username" placeholder="usuario123" autocomplete="off">
+      </div>
       <div class="form-group full" id="ue_pass_group">
         <label class="form-label">Contraseña *</label>
         <div style="position:relative">
-          <input type="password" class="form-input" id="ue_password" placeholder="Contraseña" style="width:100%;padding-right:44px">
-          <button onclick="togglePassVis('ue_password',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8b92a9;cursor:pointer;font-size:1rem;padding:4px">👁</button>
+          <input type="password" class="form-input" id="ue_password" placeholder="Contraseña" style="padding-right:44px">
+          <button onclick="togglePassVis('ue_password',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:#8b92a9;cursor:pointer;font-size:1rem">👁</button>
         </div>
-        <div style="font-size:.72rem;color:#8b92a9;margin-top:4px">Dejar vacío para no cambiar la contraseña (al editar)</div>
+        <div style="font-size:.72rem;color:#8b92a9;margin-top:4px">Dejar vacío para no cambiar (al editar)</div>
       </div>
-      <div class="form-group full"><label class="form-label">Rol</label>
-        <select class="form-select" id="ue_role" onchange="toggleUserPerms()">
+      <div class="form-group full">
+        <label class="form-label">Rol</label>
+        <select class="form-select" id="ue_role" onchange="onRoleChange()">
           <option value="vision">👁 Visión (solo lectura)</option>
           <option value="editor">✏️ Editor (agregar y editar)</option>
           <option value="admin">🔑 Administrador</option>
         </select>
       </div>
-      <div id="ue_perms" style="grid-column:1/-1;display:none">
-        <!-- MÓDULOS -->
-        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">📦 Módulos visibles</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px" id="ue_modulos_grid"></div>
+    </div>
 
-        <!-- EMPRESAS -->
-        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🏢 Empresas con acceso</div>
-        <div style="margin-bottom:6px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--text2)">
-            <input type="checkbox" id="ue_todas_empresas" onchange="toggleTodasEmpresas(this.checked)"> Todas las empresas
-          </label>
+    <!-- PERMS PANEL: hidden for admin -->
+    <div id="ue_perms_panel" style="margin-top:8px">
+
+      <!-- MÓDULOS -->
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:10px 0 6px">📦 Módulos visibles</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" id="ue_modulos_grid"></div>
+
+      <!-- EMPRESAS -->
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 6px">🏢 Empresas con acceso</div>
+      <div style="display:flex;flex-direction:column;gap:6px" id="ue_empresas_grid"></div>
+
+      <!-- OPCIONES -->
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 6px">⚙️ Opciones adicionales</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="perm-row" onclick="permToggle('ue_p_salarios')">
+          <span>💰 Ver salarios de empleados</span>
+          <input type="checkbox" id="ue_p_salarios" onclick="event.stopPropagation()">
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px" id="ue_empresas_list"></div>
-
-        <!-- OPCIONES ADICIONALES -->
-        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">⚙️ Opciones adicionales</div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <label id="lbl_ver_salarios" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-            <span style="font-size:.85rem;font-weight:600">💰 Ver salarios de empleados</span>
-            <input type="checkbox" id="ue_ver_salarios" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_ver_salarios','lbl_ver_salarios')">
-          </label>
-          <label id="lbl_exportar" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-            <span style="font-size:.85rem;font-weight:600">📥 Exportar CSV</span>
-            <input type="checkbox" id="ue_exportar" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_exportar','lbl_exportar')">
-          </label>
-          <label id="lbl_ver_notif" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-            <span style="font-size:.85rem;font-weight:600">🔔 Ver notificaciones de vencimientos</span>
-            <input type="checkbox" id="ue_ver_notif" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_ver_notif','lbl_ver_notif')">
-          </label>
+        <div class="perm-row" onclick="permToggle('ue_p_exportar')">
+          <span>📥 Exportar CSV</span>
+          <input type="checkbox" id="ue_p_exportar" onclick="event.stopPropagation()">
         </div>
+        <div class="perm-row" onclick="permToggle('ue_p_notif')">
+          <span>🔔 Ver notificaciones de vencimientos</span>
+          <input type="checkbox" id="ue_p_notif" onclick="event.stopPropagation()">
+        </div>
+      </div>
 
-        <!-- ACCIONES (solo Editor) -->
-        <div id="ue_acciones_panel">
-          <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🚫 Acciones permitidas</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <label id="lbl_baja_emp" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <span>Dar de baja empleados</span><span id="ue_baja_emp_icon">⬜</span>
-              <input type="checkbox" id="ue_baja_emp" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-            </label>
-            <label id="lbl_del_emp" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <span>Eliminar empleados</span><span id="ue_del_emp_icon">⬜</span>
-              <input type="checkbox" id="ue_del_emp" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-            </label>
-            <label id="lbl_baja_veh" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <span>Dar de baja vehículos</span><span id="ue_baja_veh_icon">⬜</span>
-              <input type="checkbox" id="ue_baja_veh" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-            </label>
-            <label id="lbl_del_veh" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <span>Eliminar vehículos</span><span id="ue_del_veh_icon">⬜</span>
-              <input type="checkbox" id="ue_del_veh" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
-            </label>
+      <!-- ACCIONES (solo editor) -->
+      <div id="ue_acciones_panel" style="display:none">
+        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 6px">🚫 Acciones permitidas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="perm-row" onclick="permToggle('ue_p_baja_emp')">
+            <span>Dar de baja empleados</span>
+            <input type="checkbox" id="ue_p_baja_emp" onclick="event.stopPropagation()">
+          </div>
+          <div class="perm-row" onclick="permToggle('ue_p_del_emp')">
+            <span>Eliminar empleados</span>
+            <input type="checkbox" id="ue_p_del_emp" onclick="event.stopPropagation()">
+          </div>
+          <div class="perm-row" onclick="permToggle('ue_p_baja_veh')">
+            <span>Dar de baja vehículos</span>
+            <input type="checkbox" id="ue_p_baja_veh" onclick="event.stopPropagation()">
+          </div>
+          <div class="perm-row" onclick="permToggle('ue_p_del_veh')">
+            <span>Eliminar vehículos</span>
+            <input type="checkbox" id="ue_p_del_veh" onclick="event.stopPropagation()">
           </div>
         </div>
       </div>
     </div>
-    <button class="save-btn" onclick="saveUser()">💾 Guardar usuario</button>
-    <button class="del-btn" id="ue_del_btn" onclick="deleteUser()" style="display:none">🗑️ Eliminar usuario</button>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveUser()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem">💾 Guardar usuario</button>
+      <button onclick="closeModal('userEditModal')" style="padding:13px 18px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+    <button id="ue_del_btn" onclick="deleteUser()" style="display:none;width:100%;margin-top:8px;padding:11px;background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:10px;cursor:pointer;font-family:var(--font);font-weight:600">🗑️ Eliminar usuario</button>
   </div>
 </div>
 
@@ -3398,6 +3413,156 @@ async function openUserMgmt() {
   openModal('userMgmtModal');
 }
 
+
+// ── USER MODAL HELPERS ────────────────────────────────────────────
+const MODS = [
+  {k:'empleados',  l:'👥 Empleados'},
+  {k:'vehiculos',  l:'🚗 Vehículos'},
+  {k:'trailers',   l:'🚛 Tráileres'},
+  {k:'organigrama',l:'🗂️ Organigrama'},
+  {k:'permisos',   l:'📅 Permisos'},
+];
+
+function permToggle(id) {
+  const cb=document.getElementById(id); if(!cb)return;
+  cb.checked=!cb.checked;
+  const row=cb.closest('.perm-row');
+  if(row)row.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+}
+function permSet(id,val) {
+  const cb=document.getElementById(id); if(!cb)return;
+  cb.checked=!!val;
+  const row=cb.closest?cb.closest('.perm-row'):null;
+  if(row)row.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+}
+function onRoleChange() {
+  const role=document.getElementById('ue_role')?.value;
+  const panel=document.getElementById('ue_perms_panel');
+  const acciones=document.getElementById('ue_acciones_panel');
+  if(panel)panel.style.display=role==='admin'?'none':'block';
+  if(acciones)acciones.style.display=role==='editor'?'block':'none';
+}
+function buildModulosGrid() {
+  const g=document.getElementById('ue_modulos_grid'); if(!g)return;
+  g.innerHTML=MODS.map(m=>`<div class="perm-row" onclick="permToggle('ue_m_${m.k}')"><span>${m.l}</span><input type="checkbox" id="ue_m_${m.k}" checked onclick="event.stopPropagation()"></div>`).join('');
+}
+function buildEmpresasGrid() {
+  const g=document.getElementById('ue_empresas_grid'); if(!g)return;
+  const ems=state.empresas||[];
+  g.innerHTML=`<div class="perm-row" onclick="toggleTodasEmpresas()"><span>✅ Todas las empresas</span><input type="checkbox" id="ue_todas" checked onclick="event.stopPropagation()"></div>`
+    +ems.map((em,i)=>`<div class="perm-row" style="margin-left:16px" onclick="permToggle('ue_e_${i}')"><span>${em.nombre||'Empresa '+(i+1)}</span><input type="checkbox" id="ue_e_${i}" checked onclick="event.stopPropagation()"></div>`).join('');
+}
+function toggleTodasEmpresas() {
+  const todas=document.getElementById('ue_todas'); if(!todas)return;
+  todas.checked=!todas.checked;
+  const row=todas.closest('.perm-row');
+  if(row)row.style.borderColor=todas.checked?'var(--accent)':'var(--border)';
+  (state.empresas||[]).forEach((_,i)=>permSet('ue_e_'+i,todas.checked));
+}
+function loadPermsToModal(p,role) {
+  buildModulosGrid(); buildEmpresasGrid();
+  MODS.forEach(m=>permSet('ue_m_'+m.k,p['mod_'+m.k]!==false));
+  const hasEmpR=Object.keys(p).some(k=>k.startsWith('empresa_'));
+  permSet('ue_todas',!hasEmpR);
+  (state.empresas||[]).forEach((_,i)=>permSet('ue_e_'+i,hasEmpR?p['empresa_'+i]===true:true));
+  permSet('ue_p_salarios',p.ver_salarios||false);
+  permSet('ue_p_exportar',p.exportar||false);
+  permSet('ue_p_notif',p.ver_notif!==false);
+  permSet('ue_p_baja_emp',p.baja_emp||false);
+  permSet('ue_p_del_emp',p.del_emp||false);
+  permSet('ue_p_baja_veh',p.baja_veh||false);
+  permSet('ue_p_del_veh',p.del_veh||false);
+  onRoleChange();
+}
+function getPermsFromModal() {
+  const role=document.getElementById('ue_role')?.value;
+  if(role==='admin')return {};
+  const p={};
+  MODS.forEach(m=>{const cb=document.getElementById('ue_m_'+m.k);if(cb&&!cb.checked)p['mod_'+m.k]=false;});
+  const todasCb=document.getElementById('ue_todas');
+  if(todasCb&&!todasCb.checked)(state.empresas||[]).forEach((_,i)=>{const cb=document.getElementById('ue_e_'+i);p['empresa_'+i]=cb?cb.checked:true;});
+  p.ver_salarios=document.getElementById('ue_p_salarios')?.checked||false;
+  p.exportar=document.getElementById('ue_p_exportar')?.checked||false;
+  p.ver_notif=document.getElementById('ue_p_notif')?.checked||false;
+  if(role==='editor'){
+    p.baja_emp=document.getElementById('ue_p_baja_emp')?.checked||false;
+    p.del_emp=document.getElementById('ue_p_del_emp')?.checked||false;
+    p.baja_veh=document.getElementById('ue_p_baja_veh')?.checked||false;
+    p.del_veh=document.getElementById('ue_p_del_veh')?.checked||false;
+    (state.empresas||[]).forEach((_,i)=>{p['baja_emp_'+i]=p.baja_emp;p['del_emp_'+i]=p.del_emp;});
+  }
+  return p;
+}
+function openAddUser() {
+  editingUserId=null;
+  document.getElementById('userEditTitle').textContent='Nuevo Usuario';
+  document.getElementById('ue_username').value='';
+  document.getElementById('ue_password').value='';
+  document.getElementById('ue_del_btn').style.display='none';
+  const roleEl=document.getElementById('ue_role');
+  if(roleEl){roleEl.value='vision';Array.from(roleEl.options).forEach(o=>{if(o.value==='admin')o.disabled=!isSuperadmin();});}
+  loadPermsToModal({},'vision');
+  openModal('userEditModal');
+}
+async function openEditUser(id) {
+  editingUserId=id;
+  document.getElementById('userEditTitle').textContent='Editar Usuario';
+  document.getElementById('ue_del_btn').style.display=id===currentUser?.id?'none':'';
+  try {
+    const {data}=await sb.from('gestion_users').select('*').eq('id',id).single();
+    if(!data)return;
+    if(data.username==='HugoLaverde'&&!isSuperadmin()){toast('No tienes permiso para editar este usuario.');return;}
+    document.getElementById('ue_username').value=data.username||'';
+    document.getElementById('ue_password').value='';
+    const roleEl=document.getElementById('ue_role');
+    roleEl.value=data.role||'vision';
+    Array.from(roleEl.options).forEach(o=>{if(o.value==='admin')o.disabled=!isSuperadmin();});
+    try{parseUserData(data);}catch(e){data.permisos={};}
+    loadPermsToModal(data.permisos||{},(data.role||'vision'));
+    openModal('userEditModal');
+  }catch(e){toast('Error cargando usuario');}
+}
+async function saveUser() {
+  const username=document.getElementById('ue_username').value.trim();
+  const password=document.getElementById('ue_password').value;
+  const role=document.getElementById('ue_role').value;
+  if(!username){toast('El nombre de usuario es obligatorio.');return;}
+  if(!editingUserId&&!password){toast('La contraseña es obligatoria para nuevos usuarios.');return;}
+  if(editingUserId&&username==='HugoLaverde'&&!isSuperadmin()){toast('No tienes permiso.');return;}
+  if(role==='admin'&&!isSuperadmin()){toast('Solo el Superadmin puede crear Admins.');return;}
+  const permisos=getPermsFromModal();
+  const permStr=JSON.stringify(permisos);
+  try {
+    const payload={username,role,empresas:permStr,permisos:permStr};
+    if(password)payload.password_hash=await hashPassword(password);
+    if(editingUserId){
+      const{error}=await sb.from('gestion_users').update(payload).eq('id',editingUserId);
+      if(error)throw error;
+    } else {
+      payload.id='usr_'+Date.now();
+      const{error}=await sb.from('gestion_users').insert(payload);
+      if(error)throw error;
+    }
+    const wasEditing=editingUserId!==null;
+    editingUserId=null;
+    closeModal('userEditModal');
+    await renderUserList();
+    toast(wasEditing?'✅ Usuario actualizado':'✅ Usuario creado');
+  }catch(e){toast('Error: '+(e.message||JSON.stringify(e)));}
+}
+async function deleteUser() {
+  if(!editingUserId)return;
+  if(!confirm('¿Eliminar este usuario?'))return;
+  try{
+    const{error}=await sb.from('gestion_users').delete().eq('id',editingUserId);
+    if(error)throw error;
+    editingUserId=null;
+    closeModal('userEditModal');
+    await renderUserList();
+    toast('🗑️ Usuario eliminado');
+  }catch(e){toast('Error: '+e.message);}
+}
+
 async function renderUserList() {
   const listEl = document.getElementById('userList');
   if(!listEl) return;
@@ -3427,264 +3592,8 @@ async function renderUserList() {
   } catch(e) { listEl.innerHTML='<div style="color:var(--danger);font-size:.85rem">Error cargando usuarios.</div>'; }
 }
 
-function openAddUser() {
-  try {
-    editingUserId = null;
-    document.getElementById('userEditTitle').textContent = 'Nuevo Usuario';
-    document.getElementById('ue_username').value = '';
-    document.getElementById('ue_password').value = '';
-    document.getElementById('ue_del_btn').style.display = 'none';
-    const roleEl = document.getElementById('ue_role');
-    if(roleEl) {
-      roleEl.value = 'vision';
-      Array.from(roleEl.options).forEach(o=>{ if(o.value==='admin') o.disabled=!isSuperadmin(); });
-    }
-    loadPermsToForm({}, 'vision');
-    toggleUserPerms();
-    openModal('userEditModal');
-  } catch(e) {
-    console.error('openAddUser error:', e);
-    toast('Error: ' + e.message);
-  }
-}
-
-async function openEditUser(id) {
-  editingUserId = id;
-  document.getElementById('userEditTitle').textContent = 'Editar Usuario';
-  document.getElementById('ue_del_btn').style.display = (id===currentUser?.id||id==='superadmin') ? 'none' : '';
-  try {
-    const {data} = await sb.from('gestion_users').select('*').eq('id',id).single();
-    if(!data) return;
-    // Block editing superadmin if not superadmin
-    if(data.username==='HugoLaverde' && !isSuperadmin()) {
-      toast('No tienes permiso para editar este usuario.'); return;
-    }
-    document.getElementById('ue_username').value = data.username||'';
-    document.getElementById('ue_password').value = '';
-    const roleEl = document.getElementById('ue_role');
-    roleEl.value = data.role||'vision';
-    // Disable Admin option if not superadmin
-    Array.from(roleEl.options).forEach(o=>{
-      if(o.value==='admin') o.disabled = !isSuperadmin();
-    });
-    // Use same logic as parseUserData - fall back to empresas if permisos is empty
-    let permisos = {};
-    try {
-      const permIsEmpty = !data.permisos || data.permisos === '{}' ||
-        (typeof data.permisos === 'object' && Object.keys(data.permisos).length === 0);
-      const permSrc = permIsEmpty ? (data.empresas || data.permisos) : data.permisos;
-      if(permSrc && typeof permSrc === 'string') permisos = JSON.parse(permSrc);
-      else if(permSrc && typeof permSrc === 'object') permisos = permSrc;
-    } catch(e) { permisos = {}; }
-    loadPermsToForm(permisos, data.role);
-    toggleUserPerms();
-    openModal('userEditModal');
-  } catch(e) { toast('Error cargando usuario'); }
-}
 
 
-// ── User management (new system) ─────────────────────────────────
-const MODULOS = [
-  {key:'empleados',   label:'👥 Empleados'},
-  {key:'vehiculos',   label:'🚗 Vehículos'},
-  {key:'trailers',    label:'🚛 Tráileres'},
-  {key:'organigrama', label:'🗂️ Organigrama'},
-  {key:'permisos',    label:'📅 Permisos'},
-];
-
-function toggleCheck(cbId, lblId, forceVal) {
-  const cb=document.getElementById(cbId);
-  if(!cb)return;
-  if(forceVal!==undefined) cb.checked=forceVal;
-  // Don't toggle if called from onchange (checkbox already updated)
-  // Update icon if exists
-  const icon=document.getElementById(cbId+'_icon');
-  if(icon)icon.textContent=cb.checked?'☑️':'⬜';
-  // Update border
-  const lbl=document.getElementById(lblId);
-  if(lbl)lbl.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
-}
-
-function buildModulosGrid() {
-  const grid = document.getElementById('ue_modulos_grid');
-  if(!grid) return;
-  grid.innerHTML = MODULOS.map(m=>`
-    <label id="lbl_mod_${m.key}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--accent);font-size:.82rem" onclick="toggleCheck('ue_mod_${m.key}','lbl_mod_${m.key}')">
-      <span>${m.label}</span><span id="ue_mod_${m.key}_icon">☑️</span>
-      <input type="checkbox" id="ue_mod_${m.key}" style="display:none" checked>
-    </label>`).join('');
-}
-
-function buildEmpresasList() {
-  const list = document.getElementById('ue_empresas_list');
-  if(!list) return;
-  list.innerHTML = (state.empresas||[]).map((em,i)=>`
-    <label id="lbl_empresa_${i}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--accent);font-size:.82rem" onclick="toggleCheck('ue_empresa_${i}','lbl_empresa_${i}')">
-      <span>${em.nombre||'Empresa '+(i+1)}</span><span id="ue_empresa_${i}_icon">☑️</span>
-      <input type="checkbox" id="ue_empresa_${i}" style="display:none" checked>
-    </label>`).join('');
-}
-
-function toggleTodasEmpresas(checked) {
-  const icon=document.getElementById('ue_todas_icon');
-  if(icon)icon.textContent=checked?'☑️':'⬜';
-  (state.empresas||[]).forEach((_,i)=>toggleCheck('ue_empresa_'+i,'lbl_empresa_'+i,checked));
-}
-
-function toggleUserPerms() {
-  const role=document.getElementById('ue_role')?.value;
-  const permsDiv=document.getElementById('ue_perms');
-  if(!permsDiv) return;
-  // Admin = full access, no need to configure
-  permsDiv.style.display=role==='admin'?'none':'block';
-  // Acciones visible for both editor and vision
-  const accionesDiv=document.getElementById('ue_acciones_panel');
-  if(accionesDiv) accionesDiv.style.display=role==='editor'?'block':'none';
-}
-
-function getPermsFromForm() {
-  const role=document.getElementById('ue_role')?.value;
-  if(role==='admin') return {};
-  const p={};
-  MODULOS.forEach(m=>{const cb=document.getElementById('ue_mod_'+m.key);if(cb&&!cb.checked)p['mod_'+m.key]=false;});
-  const todasCb=document.getElementById('ue_todas_empresas');
-  if(todasCb&&!todasCb.checked){
-    (state.empresas||[]).forEach((_,i)=>{const cb=document.getElementById('ue_empresa_'+i);p['empresa_'+i]=cb?cb.checked:true;});
-  }
-  p.ver_salarios=document.getElementById('ue_ver_salarios')?.checked||false;
-  p.exportar=document.getElementById('ue_exportar')?.checked||false;
-  p.ver_notif=document.getElementById('ue_ver_notif')?.checked||false;
-  if(role==='editor'){
-    p.baja_emp=document.getElementById('ue_baja_emp')?.checked||false;
-    p.del_emp=document.getElementById('ue_del_emp')?.checked||false;
-    p.baja_veh=document.getElementById('ue_baja_veh')?.checked||false;
-    p.del_veh=document.getElementById('ue_del_veh')?.checked||false;
-    (state.empresas||[]).forEach((_,i)=>{p['baja_emp_'+i]=p.baja_emp;p['del_emp_'+i]=p.del_emp;});
-  }
-  return p;
-}
-
-function loadPermsToForm(permisos={}, role='vision') {
-  buildModulosGrid();
-  buildEmpresasList();
-  MODULOS.forEach(m=>{const cb=document.getElementById('ue_mod_'+m.key);if(cb)cb.checked=permisos['mod_'+m.key]!==false;});
-  const hasEmpRestriction=Object.keys(permisos).some(k=>k.startsWith('empresa_'));
-  const todasCb=document.getElementById('ue_todas_empresas');
-  if(todasCb) todasCb.checked=!hasEmpRestriction;
-  (state.empresas||[]).forEach((_,i)=>{const cb=document.getElementById('ue_empresa_'+i);if(cb)cb.checked=hasEmpRestriction?(permisos['empresa_'+i]===true):true;});
-  // Set checkbox values and update borders
-  const setChk = (id, lblId, val) => {
-    const cb=document.getElementById(id); if(!cb)return;
-    cb.checked=val;
-    const lbl=document.getElementById(lblId);
-    if(lbl)lbl.style.borderColor=val?'var(--accent)':'var(--border)';
-    const icon=document.getElementById(id+'_icon');
-    if(icon)icon.textContent=val?'☑️':'⬜';
-  };
-  setChk('ue_ver_salarios','lbl_ver_salarios', permisos.ver_salarios===true);
-  setChk('ue_exportar','lbl_exportar', permisos.exportar===true);
-  setChk('ue_ver_notif','lbl_ver_notif', permisos.ver_notif===true || (role==='editor' && permisos.ver_notif===undefined));
-  setChk('ue_baja_emp','lbl_baja_emp', permisos.baja_emp===true);
-  setChk('ue_del_emp','lbl_del_emp', permisos.del_emp===true);
-  setChk('ue_baja_veh','lbl_baja_veh', permisos.baja_veh===true);
-  setChk('ue_del_veh','lbl_del_veh', permisos.del_veh===true);
-  MODULOS.forEach(m=>setChk('ue_mod_'+m.key,'lbl_mod_'+m.key, permisos['mod_'+m.key]!==false));
-  const hasEmpR=Object.keys(permisos).some(k=>k.startsWith('empresa_'));
-  const todasCb2=document.getElementById('ue_todas_empresas');
-  if(todasCb2){ todasCb2.checked=!hasEmpR; const ti=document.getElementById('ue_todas_icon'); if(ti)ti.textContent=!hasEmpR?'☑️':'⬜'; }
-  if(hasEmpR)(state.empresas||[]).forEach((_,i)=>setChk('ue_empresa_'+i,'lbl_empresa_'+i,permisos['empresa_'+i]===true));
-}
-
-function openAddUser() { openNewUser(); }
-function openNewUser() {
-  editingUserId = null;
-  document.getElementById('userEditTitle').textContent = 'Nuevo Usuario';
-  document.getElementById('ue_username').value = '';
-  document.getElementById('ue_password').value = '';
-  const passGroup = document.getElementById('ue_pass_group');
-  if(passGroup) passGroup.style.display = 'block';
-  const delBtn = document.getElementById('ue_del_btn');
-  if(delBtn) delBtn.style.display = 'none';
-  const roleEl = document.getElementById('ue_role');
-  if(roleEl) {
-    roleEl.value = 'vision';
-    Array.from(roleEl.options).forEach(o=>{ if(o.value==='admin') o.disabled=!isSuperadmin(); });
-  }
-  loadPermsToForm({}, 'vision');
-  toggleUserPerms();
-  openModal('userEditModal');
-}
-async function saveUser() {
-  const username = document.getElementById('ue_username').value.trim();
-  const password = document.getElementById('ue_password').value;
-  const role     = document.getElementById('ue_role').value;
-
-  if(!username) { toast('El nombre de usuario es obligatorio.'); return; }
-  if(!editingUserId && !password) { toast('La contraseña es obligatoria para nuevos usuarios.'); return; }
-
-  // Superadmin protection
-  if(editingUserId && username === 'HugoLaverde' && !isSuperadmin()) {
-    toast('No tienes permiso para editar este usuario.'); return;
-  }
-  if(role === 'admin' && !isSuperadmin()) {
-    toast('Solo el Superadmin puede crear usuarios Admin.'); return;
-  }
-
-  const permisos = getPermsFromForm();
-
-  try {
-    const permStr = JSON.stringify(permisos);
-    const payload = { username, role };
-    if(password) payload.password_hash = await hashPassword(password);
-
-
-    editingUserId = null;
-    closeModal('userEditModal');
-    await renderUserList();
-    toast(editingUserId !== null ? '✅ Usuario actualizado' : '✅ Usuario guardado');
-  } catch(e) {
-    toast('Error: ' + (e.message||JSON.stringify(e)));
-  }
-}
-
-
-async function deleteUser() {
-  if(!confirm('¿Eliminar este usuario?')) return;
-  try {
-    await sb.from('gestion_users').delete().eq('id', editingUserId);
-    closeModal('userEditModal');
-    await renderUserList();
-    toast('🗑️ Usuario eliminado');
-  } catch(e) { alert('Error: '+e.message); }
-}
-
-// Draw login icon
-function drawLoginIcon() {
-  try {
-    const sc = document.getElementById('loginIcon');
-    if(!sc) return;
-    const ctx = sc.getContext('2d');
-    const s = 90;
-    const grad = ctx.createLinearGradient(0,0,s,s);
-    grad.addColorStop(0,'#2a2d3a'); grad.addColorStop(1,'#1a1d27');
-    ctx.fillStyle=grad; ctx.beginPath(); ctx.roundRect(0,0,s,s,16); ctx.fill();
-    ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=6; ctx.shadowOffsetY=3;
-    ctx.fillStyle='#e8dcc8'; ctx.beginPath(); ctx.roundRect(16,21,24,28,[4,0,0,4]); ctx.fill();
-    ctx.fillStyle='#f0e6d0'; ctx.beginPath(); ctx.roundRect(50,21,24,28,[0,4,4,0]); ctx.fill();
-    ctx.shadowColor='transparent';
-    const sg=ctx.createLinearGradient(41,0,49,0);
-    sg.addColorStop(0,'#5b8df6'); sg.addColorStop(0.5,'#7ba8ff'); sg.addColorStop(1,'#4a7ae0');
-    ctx.fillStyle=sg; ctx.beginPath(); ctx.roundRect(41,20,8,30,2); ctx.fill();
-    ctx.fillStyle='#fb923c'; ctx.beginPath();
-    ctx.moveTo(43,20); ctx.lineTo(47,20); ctx.lineTo(47,28); ctx.lineTo(45,26); ctx.lineTo(43,28);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(160,140,110,0.4)'; ctx.lineWidth=1.5; ctx.lineCap='round';
-    [29,34,39,44].forEach((ly,i)=>{
-      ctx.beginPath(); ctx.moveTo(19,ly); ctx.lineTo(i===3?32:39,ly); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(51,ly); ctx.lineTo(i===3?62:69,ly); ctx.stroke();
-    });
-  } catch(e){}
-}
 
 
 // ===================== NOTIFICATIONS =====================
