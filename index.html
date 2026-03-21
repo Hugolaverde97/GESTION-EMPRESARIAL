@@ -2475,6 +2475,7 @@ function openAddEmployee() {
 }
 
 function openEditEmployee() {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
   const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
   editingEmployee=true;
   document.getElementById('empModalTitle').textContent='Editar Empleado';
@@ -2535,7 +2536,8 @@ function deleteEmployee() {
 
 // ===================== ACTIVO / INACTIVO =====================
 function openRetiroModal(type, id) {
-  if(!canBajaEmp() && !canBajaVeh()){toast('⛔ Sin permiso');return;}
+  if(type==='emp' && !canBajaEmp()){toast('⛔ Sin permiso');return;}
+  if(type==='veh' && !canBajaVeh()){toast('⛔ Sin permiso');return;}
   retiroTarget={type,id};
   document.getElementById('retiroTitle').textContent=type==='emp'?'Dar de Baja Empleado':'Dar de Baja Vehículo';
   document.getElementById('retiro_fecha').value=new Date().toISOString().split('T')[0];
@@ -2560,10 +2562,12 @@ function confirmRetiro() {
 
 function toggleActivo(type, id, activo) {
   if(type==='emp') {
+    if(!canBajaEmp()){toast('⛔ Sin permiso');return;}
     const e=state.employees.find(x=>x.id===id);
     if(e){e.activo=true;delete e.fechaRetiro;delete e.motivoRetiro;}
     save(); openEmployee(id); toast('✅ Empleado reactivado');
   } else {
+    if(!canBajaVeh()){toast('⛔ Sin permiso');return;}
     const v=state.vehicles.find(x=>x.id===id);
     if(v){v.activo=true;delete v.fechaRetiro;delete v.motivoRetiro;}
     save(); openVehicle(id); toast('✅ Vehículo reactivado');
@@ -2794,6 +2798,7 @@ function deleteVehDoc(idx){const v=state.vehicles.find(x=>x.id===currentVehicleI
 function openAddVehicle(){setLeasing(false);document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipoIdPropietario').value='';document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
 
 function openEditVehicle(){
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
   ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
@@ -3022,6 +3027,7 @@ function openAddTrailer() {
 
 
 function openEditTrailer(id) {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
   const t = state.trailers.find(x=>x.id===id);
   if(!t) return;
   editingTrailerId = id;
@@ -3084,6 +3090,7 @@ function saveTrailer() {
 
 
 function toggleTrailerActivo(id) {
+  if(!canBajaVeh()){toast('⛔ Sin permiso');return;}
   const t = (state.trailers||[]).find(t=>t.id===id);
   if(!t) return;
   const isInactive = t.activo===false;
