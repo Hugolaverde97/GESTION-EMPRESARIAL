@@ -485,7 +485,7 @@
         </div>
 
         <!-- ACCIONES (solo Editor) -->
-        <div id="ue_acciones_panel" style="display:none">
+        <div id="ue_acciones_panel">
           <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🚫 Acciones permitidas</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
             <label id="lbl_baja_emp" onclick="toggleCheck('ue_baja_emp','lbl_baja_emp')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
@@ -3178,21 +3178,32 @@ async function hashPassword(pwd) {
 
 function parseUserData(data) {
   try {
-    // Parse permisos (new system)
-    if(data.permisos && typeof data.permisos === 'string') {
-      data.permisos = JSON.parse(data.permisos);
-    } else if(!data.permisos) {
-      // Legacy: convert old empresas/sub_perms format
-      const raw = typeof data.empresas==='string' ? JSON.parse(data.empresas||'[]') : (data.empresas||[]);
-      const p = {};
-      if(Array.isArray(raw)) {
-        raw.forEach(e=>{ const m=e.match(/empresa(\d+)/); if(m) p['empresa_'+m[1]]=true; });
+    // Try permisos column first, then empresas field (fallback)
+    const permSource = data.permisos || data.empresas;
+    if(permSource && typeof permSource === 'string') {
+      const parsed = JSON.parse(permSource);
+      // New format: object with mod_* keys
+      if(parsed && !Array.isArray(parsed) && (Object.keys(parsed).length===0 || Object.keys(parsed).some(k=>k.startsWith('mod_')||k.startsWith('empresa_')||k==='ver_salarios'||k==='exportar'||k==='ver_notif'))) {
+        data.permisos = parsed;
+      } else if(Array.isArray(parsed)) {
+        // Legacy array format
+        const p = {};
+        parsed.forEach(e=>{ const m=e.match(/empresa(\d+)/); if(m) p['empresa_'+m[1]]=true; });
         p.exportar = data.puede_excel||false;
+        data.permisos = p;
+      } else if(parsed && parsed.accesos) {
+        // Legacy object format {accesos, puede_excel, sub_perms}
+        const p = {};
+        (parsed.accesos||[]).forEach(e=>{ const m=e.match(/empresa(\d+)/); if(m) p['empresa_'+m[1]]=true; });
+        p.exportar = parsed.puede_excel||false;
+        data.permisos = p;
+      } else {
+        data.permisos = parsed||{};
       }
-      data.permisos = p;
+    } else if(!data.permisos) {
+      data.permisos = {};
     }
   } catch(e) { data.permisos = {}; }
-  // Superadmin always gets full access
   if(data.username==='HugoLaverde') data.role='superadmin';
   return data;
 }
@@ -3527,9 +3538,11 @@ function toggleTodasEmpresas(checked) {
 function toggleUserPerms() {
   const role=document.getElementById('ue_role')?.value;
   const permsDiv=document.getElementById('ue_perms');
-  const accionesDiv=document.getElementById('ue_acciones_panel');
   if(!permsDiv) return;
+  // Admin = full access, no need to configure
   permsDiv.style.display=role==='admin'?'none':'block';
+  // Acciones visible for both editor and vision
+  const accionesDiv=document.getElementById('ue_acciones_panel');
   if(accionesDiv) accionesDiv.style.display=role==='editor'?'block':'none';
 }
 
@@ -3614,17 +3627,42 @@ async function saveUser() {
   const permisos = getPermsFromForm();
 
   try {
-    const payload = { username, role, permisos: JSON.stringify(permisos) };
+    const permStr = JSON.stringify(permisos);
+    const payload = { username, role };
     if(password) payload.password_hash = await hashPassword(password);
 
-    if(editingUserId) {
-      const {error} = await sb.from('gestion_users').update(payload).eq('id', editingUserId);
-      if(error) throw error;
-    } else {
-      payload.id = 'usr_' + Date.now();
-      const {error} = await sb.from('gestion_users').insert(payload);
-      if(error) throw error;
+    // Try with permisos column, fall back to empresas if column missing
+    const tryWithPermisos = async (pl) => {
+      pl.permisos = permStr;
+      if(editingUserId) {
+        const {error} = await sb.from('gestion_users').update(pl).eq('id', editingUserId);
+        return error;
+      } else {
+        pl.id = 'usr_' + Date.now();
+        const {error} = await sb.from('gestion_users').insert(pl);
+        return error;
+      }
+    };
+    const tryWithoutPermisos = async (pl) => {
+      // Store permisos inside empresas field for backwards compat
+      pl.empresas = permStr;
+      delete pl.permisos;
+      if(editingUserId) {
+        const {error} = await sb.from('gestion_users').update(pl).eq('id', editingUserId);
+        return error;
+      } else {
+        pl.id = 'usr_' + Date.now();
+        const {error} = await sb.from('gestion_users').insert(pl);
+        return error;
+      }
+    };
+
+    let err = await tryWithPermisos({...payload});
+    if(err && err.message && err.message.includes('permisos')) {
+      // Column doesn't exist yet - use empresas field
+      err = await tryWithoutPermisos({...payload});
     }
+    if(err) throw err;
     editingUserId = null;
     closeModal('userEditModal');
     await renderUserList();
