@@ -3380,11 +3380,6 @@ function togglePassVis(inputId, btn) {
 // ===================== USER MANAGEMENT =====================
 async function openUserMgmt() {
   if(!canManageUsers()) return;
-  // Update company name labels
-  const s = state.settings || {};
-  document.getElementById('ue_acc0_lbl').textContent = s.company1 || 'Empresa 1';
-  document.getElementById('ue_acc1_lbl').textContent = s.company2 || 'Empresa 2';
-  document.getElementById('ue_acc2_lbl').textContent = s.company3 || 'Empresa 3';
   await renderUserList();
   openModal('userMgmtModal');
 }
@@ -3400,15 +3395,20 @@ async function renderUserList() {
     const roleColors = { superadmin:'#f59e0b', admin:'var(--accent1)', editor:'var(--accent3)', readonly:'var(--text2)', supervisor:'var(--accent2)' };
     listEl.innerHTML = data.map(u => {
       parseUserData(u);
-      const empNames = (state.empresas||[]).map((em,i)=>em.nombre||'Emp'+(i+1));
-      const accesos = u.empresas.length ? u.empresas.map(e=>e==='vehiculos'?'🚗':e==='empresa0'?(empNames[0]||'E1'):e==='empresa1'?(empNames[1]||'E2'):e==='empresa2'?(empNames[2]||'E3'):e).join(' · ') : (u.role==='admin'?'Todo':'Ninguno');
+      const roleLabel = {superadmin:'⭐ Superadmin',admin:'🔑 Admin',editor:'✏️ Editor',vision:'👁 Visión'}[u.role]||u.role;
+      const roleColor = {superadmin:'#f59e0b',admin:'var(--accent1)',editor:'#22c55e',vision:'var(--text2)'}[u.role]||'var(--text2)';
+      const perms = u.permisos||{};
+      const modCount = Object.keys(perms).filter(k=>k.startsWith('mod_')&&perms[k]===false).length;
+      const empCount = Object.keys(perms).filter(k=>k.startsWith('empresa_')).length;
+      const descr = u.role==='admin'||u.role==='superadmin' ? 'Acceso completo' :
+        (modCount>0?`${5-modCount}/5 módulos`:'Todos los módulos') + (empCount>0?` · ${empCount} empresas`:'');
+      const canEdit2 = isSuperadmin() || (isAdmin() && u.role!=='admin' && u.role!=='superadmin');
       return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">
         <div style="flex:1">
-          <div style="font-weight:700;font-size:.92rem">${u.username} ${u.id===currentUser?.id?'<span style="font-size:.7rem;color:var(--accent3)">(tú)</span>':''}</div>
-          <div style="font-size:.75rem;color:var(--text2);margin-top:2px"><span style="color:${roleColors[u.role]||'var(--text2)'};font-weight:600">${roleLabels[u.role]||u.role}</span> · Acceso: ${accesos}${u.puede_ver_salarios?' · 💰':''}
-          </div>
+          <div style="font-weight:700;font-size:.92rem">${u.username}${u.id===currentUser?.id?' <span style="font-size:.7rem;color:var(--accent3)">(tú)</span>':''}</div>
+          <div style="font-size:.75rem;color:var(--text2);margin-top:3px"><span style="color:${roleColor};font-weight:600">${roleLabel}</span> · ${descr}</div>
         </div>
-        <button class="action-btn" onclick="openEditUser('${u.id}')">✏️</button>
+        ${canEdit2?`<button class="action-btn" onclick="openEditUser('${u.id}')">✏️</button>`:''}
       </div>`;
     }).join('');
   } catch(e) { listEl.innerHTML='<div style="color:var(--danger);font-size:.85rem">Error cargando usuarios.</div>'; }
