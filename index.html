@@ -2996,7 +2996,7 @@ function renderTrailerList() {
   const q = (document.getElementById('trailerSearch')?.value||'').toLowerCase();
   const sortBy = document.getElementById('trailer_sort')?.value||'placa';
   let items = state.trailers||[];
-  if(q) items = items.filter(t=>(t.placa||'').toLowerCase().includes(q)||(t.tipo||'').toLowerCase().includes(q));
+  if(q) items = items.filter(t=>(t.placa||'').toLowerCase().includes(q)||(t.clase||t.tipo||'').toLowerCase().includes(q));
   if(trailerFilter==='activos') items=items.filter(t=>t.activo!==false);
   if(trailerFilter==='inactivos') items=items.filter(t=>t.activo===false);
   items.sort((a,b)=>{
@@ -3016,7 +3016,7 @@ function renderTrailerList() {
       <div class="list-avatar${isInactive?' inactive-avatar':''}" style="background:#64748b;font-size:1.3rem">🚛</div>
       <div class="list-info">
         <div class="list-name">${t.placa||'Sin placa'} ${hasWarn?'⚠️':''} <span class="badge ${isInactive?'badge-inactive':'badge-active'}">${isInactive?'Inactivo':'Activo'}</span></div>
-        <div class="list-sub">${t.tipo||'Sin tipo'} · ${t.marca||'—'}${t.capacidad?' · '+t.capacidad+'t':''}</div>
+        <div class="list-sub">${t.clase||t.tipo||'Sin tipo'} · ${t.marca||'—'}${t.capacidad?' · '+t.capacidad+'t':''}</div>
       </div>
       <span class="list-arrow">›</span>
     </div>`;
@@ -3040,7 +3040,7 @@ function openTrailerDetail(id) {
     <div class="detail-section">
       <div class="section-title">📋 Datos del Tráiler</div>
       <div class="field-card"><div class="field-label">Placa</div><div class="field-value">${t.placa||'—'}</div></div>
-      <div class="field-card"><div class="field-label">Clase de vehículo</div><div class="field-value">${t.clase||t.tipo||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Clase de vehículo</div><div class="field-value">${t.clase||t.clase||t.tipo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Marca</div><div class="field-value">${t.marca||'—'}</div></div>
       <div class="field-card"><div class="field-label">Modelo (año)</div><div class="field-value">${t.modelo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Número de serie</div><div class="field-value">${t.serie||'—'}</div></div>
