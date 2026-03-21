@@ -1032,6 +1032,23 @@
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="tr_propietario" placeholder="Propietario"></div>
       <div class="form-group"><label class="form-label">Tipo ID Propietario</label><select class="form-select" id="tr_tipoIdPropietario"><option value="">Seleccionar...</option><option value="CC">Cédula</option><option value="NIT">NIT</option><option value="CE">Cédula Extranjería</option><option value="PAS">Pasaporte</option></select></div>
       <div class="form-group"><label class="form-label">No. ID Propietario</label><input class="form-input" id="tr_noIdPropietario" placeholder="Número de identificación"></div>
+            <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">🏦 Leasing</div>
+      <div class="form-group full">
+        <label class="form-label">¿Tiene leasing?</label>
+        <div style="display:flex;gap:8px">
+          <label id="lbl_tr_leasing_no" onclick="setTrailerLeasing(false)" style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 14px;border-radius:10px;border:2px solid var(--accent);flex:1;font-size:.85rem;font-weight:600;transition:all .15s"><span>No</span></label>
+          <label id="lbl_tr_leasing_si" onclick="setTrailerLeasing(true)" style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 14px;border-radius:10px;border:2px solid var(--border);flex:1;font-size:.85rem;font-weight:600;transition:all .15s"><span>Sí</span></label>
+        </div>
+        <input type="checkbox" id="tr_leasing" style="display:none">
+      </div>
+      <div class="form-group full" id="grupo_tr_leasing" style="display:none">
+        <label class="form-label">Banco / Entidad financiera</label>
+        <input class="form-input" id="tr_leasingEntidad" placeholder="Ej: Bancolombia, Davivienda...">
+      </div>
+      <div class="form-group full" id="grupo_tr_leasing_id" style="display:none">
+        <label class="form-label">No. ID / NIT de la entidad</label>
+        <input class="form-input" id="tr_leasingIdEntidad" placeholder="Ej: 890.123.456-7">
+      </div>
       <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza</div>
       <div class="form-group full">
         <label class="form-label">¿Tiene póliza?</label>
@@ -2809,6 +2826,8 @@ function openEditVehicle(){
   document.getElementById('veh_tipo').value=v.tipo||'';
   setLeasing(v.leasing||false);
   document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
+  {const _li=document.getElementById('veh_leasingIdEntidad');if(_li)_li.value=v.leasingIdEntidad||'';}
+  const liEl=document.getElementById('veh_leasingIdEntidad');if(liEl)liEl.value=v.leasingIdEntidad||'';
   const esTractomula=(v.tipo||'').toLowerCase().includes('tractoc')||(v.tipo||'').toLowerCase().includes('tractom');
   document.getElementById('grupo_trailer_asignado').style.display=esTractomula?'':'none';
   if(esTractomula) populateTrailerSelect(v.trailerAsignado);
@@ -2819,9 +2838,10 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','leasingIdEntidad'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
+  data.leasing=document.getElementById('veh_leasing')?.checked||false;
   if(editingVehicle){
     const v=state.vehicles.find(x=>x.id===currentVehicleId);if(v)Object.assign(v,data);
     save();closeModal('vehicleModal');openVehicle(currentVehicleId);toast('✅ Vehículo actualizado');
@@ -2995,6 +3015,14 @@ function openTrailerDetail(id) {
       <div class="field-card"><div class="field-label">No. ID</div><div class="field-value">${t.noIdPropietario||'—'}</div></div>
     </div>
     <div class="detail-section">
+      <div class="section-title">🏦 Leasing</div>
+      <div class="field-card"><div class="field-label">¿Tiene leasing?</div><div class="field-value" style="color:${t.leasing?'#22c55e':'var(--text2)'}">${t.leasing?'✅ Sí':'No'}</div></div>
+      ${t.leasing?`
+      <div class="field-card"><div class="field-label">Entidad</div><div class="field-value">${t.leasingEntidad||'—'}</div></div>
+      <div class="field-card"><div class="field-label">No. ID Entidad</div><div class="field-value">${t.leasingIdEntidad||'—'}</div></div>
+      `:''}
+    </div>
+    <div class="detail-section">
       <div class="section-title">📄 Póliza Todo Riesgo</div>
       ${t.tienePoliza==='no' ? '<div class="field-card"><div class="field-label">Estado</div><div class="field-value" style="color:#ef4444;font-weight:700">❌ No asegurado</div></div>' : `
       <div class="field-card"><div class="field-label">Aseguradora</div><div class="field-value">${t.aseguradora||'—'}</div></div>
@@ -3038,6 +3066,9 @@ function openEditTrailer(id) {
   document.getElementById('trailerModalTitle').textContent = 'Editar Tráiler';
   document.getElementById('tr_placa').value = t.placa||'';
   document.getElementById('tr_clase').value = t.clase||t.tipo||'';
+  setTrailerLeasing(t.leasing||false);
+  const tle=document.getElementById('tr_leasingEntidad');if(tle)tle.value=t.leasingEntidad||'';
+  const tli=document.getElementById('tr_leasingIdEntidad');if(tli)tli.value=t.leasingIdEntidad||'';
   document.getElementById('tr_marca').value = t.marca||'';
   document.getElementById('tr_modelo').value = t.modelo||'';
   document.getElementById('tr_serie').value = t.serie||'';
@@ -3069,6 +3100,9 @@ function saveTrailer() {
     id: editingTrailerId||('tr_'+Date.now()),
     placa,
     clase: document.getElementById('tr_clase').value,
+    leasing: document.getElementById('tr_leasing')?.checked||false,
+    leasingEntidad: document.getElementById('tr_leasingEntidad')?.value.trim()||'',
+    leasingIdEntidad: document.getElementById('tr_leasingIdEntidad')?.value.trim()||'',
     tipo: document.getElementById('tr_clase').value,
     marca: document.getElementById('tr_marca').value.trim(),
     modelo: document.getElementById('tr_modelo').value.trim(),
@@ -3092,6 +3126,21 @@ function saveTrailer() {
   toast('Tráiler guardado');
 }
 
+
+
+function setTrailerLeasing(val) {
+  document.getElementById('tr_leasing').checked = val;
+  const si = document.getElementById('lbl_tr_leasing_si');
+  const no = document.getElementById('lbl_tr_leasing_no');
+  if(si) si.style.borderColor = val ? 'var(--accent)' : 'var(--border)';
+  if(no) no.style.borderColor = !val ? 'var(--accent)' : 'var(--border)';
+  document.getElementById('grupo_tr_leasing').style.display = val ? '' : 'none';
+  document.getElementById('grupo_tr_leasing_id').style.display = val ? '' : 'none';
+  if(!val) { 
+    const e=document.getElementById('tr_leasingEntidad'); if(e) e.value='';
+    const i=document.getElementById('tr_leasingIdEntidad'); if(i) i.value='';
+  }
+}
 
 function toggleTrailerActivo(id) {
   if(!canBajaVeh()){toast('⛔ Sin permiso');return;}
