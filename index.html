@@ -1597,10 +1597,41 @@ function persistData() { save(); updateNotifBadge(); }
 function saveLocal() { try { localStorage.setItem('gestion_state', JSON.stringify(state)); } catch(e){} }
 function loadLocal() { try { const d=localStorage.getItem('gestion_state'); if(d) state=JSON.parse(d); } catch(e){} }
 
+async 
+// ── Collaborative sync: poll every 30s for remote changes ─────────
+let lastKnownUpdatedAt = null;
+let isSyncPollingActive = false;
+
+async function startSyncPolling() {
+  if(isSyncPollingActive) return;
+  isSyncPollingActive = true;
+  setInterval(async () => {
+    if(!currentUser) return;
+    try {
+      const {data} = await sb.from('gestion_data').select('updated_at').eq('key','main').single();
+      if(!data?.updated_at) return;
+      if(lastKnownUpdatedAt && data.updated_at !== lastKnownUpdatedAt) {
+        // Someone else made changes - reload
+        await loadFromCloud();
+        lastKnownUpdatedAt = data.updated_at;
+        showSyncStatus('🔄 Datos actualizados');
+        // Refresh current screen
+        if(document.getElementById('companyList')?.classList.contains('active')) renderEmployeeList();
+        if(document.getElementById('vehiclesList')?.classList.contains('active')) renderVehicleList();
+        if(document.getElementById('trailersList')?.classList.contains('active')) renderTrailerList();
+      } else if(!lastKnownUpdatedAt) {
+        lastKnownUpdatedAt = data.updated_at;
+      }
+    } catch(e) {}
+  }, 30000); // every 30 seconds
+}
+
 async function syncToCloud() {
   try {
     await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
+    // Track what we just saved
+    const now = new Date().toISOString(); lastKnownUpdatedAt = now;
   } catch(e) { showSyncStatus('⚠️ Sin conexión (guardado local)'); }
 }
 async function loadFromCloud() {
@@ -3337,6 +3368,7 @@ function onLoginSuccess() {
   badge.style.display = 'flex';
   // Navigate to home (applies permissions, shows all correct elements)
   goHome();
+  startSyncPolling();
 }
 
 function doLogout() {
