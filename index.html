@@ -30,7 +30,8 @@
   #splash-dots span:nth-child(3) { animation-delay: 0.4s; background: #34d399; }
   @keyframes pulse { 0%,80%,100%{transform:scale(0.6);opacity:0.4} 40%{transform:scale(1);opacity:1} }
 
-  .perm-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-size:.85rem;font-weight:600;transition:border-color .15s;user-select:none}
+  .perm-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);cursor:pointer;font-size:.85rem;font-weight:600;transition:all .15s;user-select:none}
+  .perm-row input[type=checkbox]{width:20px;height:20px;cursor:pointer;accent-color:#5b8df6;flex-shrink:0;pointer-events:none}
   .perm-row:hover{border-color:var(--accent)}
   .perm-row input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
   .perm-row.checked{border-color:var(--accent)}
@@ -520,8 +521,8 @@
     </div>
 
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button onclick="saveUser()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem">💾 Guardar usuario</button>
-      <button onclick="closeModal('userEditModal')" style="padding:13px 18px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+      <button onclick="saveUser()" style="flex:1;padding:16px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:1rem;min-height:52px">💾 Guardar usuario</button>
+      <button onclick="closeModal('userEditModal')" style="padding:16px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:var(--font);min-height:52px">Cancelar</button>
     </div>
     <button id="ue_del_btn" onclick="deleteUser()" style="display:none;width:100%;margin-top:8px;padding:11px;background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:10px;cursor:pointer;font-family:var(--font);font-weight:600">🗑️ Eliminar usuario</button>
   </div>
@@ -3425,15 +3426,22 @@ const MODS = [
 function permToggle(id) {
   const cb=document.getElementById(id); if(!cb)return;
   cb.checked=!cb.checked;
-  const row=cb.closest('.perm-row');
-  if(row)row.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+  const row=cb.closest?cb.closest('.perm-row'):null;
+  if(row){
+    row.style.borderColor=cb.checked?'#5b8df6':'var(--border)';
+    row.style.background=cb.checked?'rgba(91,141,246,.1)':'var(--surface2)';
+  }
 }
 function permSet(id,val) {
   const cb=document.getElementById(id); if(!cb)return;
   cb.checked=!!val;
   const row=cb.closest?cb.closest('.perm-row'):null;
-  if(row)row.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+  if(row){
+    row.style.borderColor=cb.checked?'#5b8df6':'var(--border)';
+    row.style.background=cb.checked?'rgba(91,141,246,.1)':'var(--surface2)';
+  }
 }
+
 function onRoleChange() {
   const role=document.getElementById('ue_role')?.value;
   const panel=document.getElementById('ue_perms_panel');
@@ -3532,7 +3540,7 @@ async function saveUser() {
   const permisos=getPermsFromModal();
   const permStr=JSON.stringify(permisos);
   try {
-    const payload={username,role,empresas:permStr,permisos:permStr};
+    const payload={username,role,empresas:permStr};
     if(password)payload.password_hash=await hashPassword(password);
     if(editingUserId){
       const{error}=await sb.from('gestion_users').update(payload).eq('id',editingUserId);
