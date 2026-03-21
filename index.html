@@ -2385,7 +2385,7 @@ function openEmployee(id) {
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px">
           <div style="width:32px;height:32px;border-radius:50%;background:${r.tipo==='no_renueva'?'#ef444422':'#22c55e22'};display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">${r.tipo==='no_renueva'?'⛔':r.tipo==='prorroga'?'📋':'🔄'}</div>
           <div style="flex:1">
-            <div style="font-size:.88rem;font-weight:700;color:var(--text1)">${r.tipo==='automatica'?'Renovación automática':r.tipo==='prorroga'?'Prórroga especial':'No se renueva'}${r.meses?' · '+r.meses+' meses':''}</div>
+            <div style="font-size:.88rem;font-weight:700;color:var(--text1)">${r.tipo==='automatica'?'Renovación automática':r.tipo==='automatica_diff'?'Renovación automática':r.tipo==='prorroga'?'Prórroga especial':'No se renueva'}${r.meses?' · '+r.meses+' meses':''}</div>
             <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${fmtDate(r.fecha)}${r.nota?' · '+r.nota:''}</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
@@ -4458,6 +4458,7 @@ function calcTotalMeses(e) {
   (e.renovaciones || []).forEach(r => {
     if(r.tipo !== 'no_renueva' && r.meses) total += parseInt(r.meses);
     if(r.tipo === 'automatica' && !r.meses) total += parseInt(e.duracion || 0);
+    if(r.tipo === 'automatica_diff' && !r.meses) total += parseInt(e.duracion || 0);
   });
   return total;
 }
@@ -4499,8 +4500,9 @@ function toggleRenewalMeses() {
     if(e) mesesInput.value = e.duracion || '';
     mesesInput.readOnly = true;
     mesesInput.style.opacity = '0.6';
-  } else if(tipo === 'prorroga') {
+  } else if(tipo === 'automatica_diff' || tipo === 'prorroga') {
     grupo.style.display = '';
+    mesesInput.value = '';
     mesesInput.readOnly = false;
     mesesInput.style.opacity = '1';
   } else {
