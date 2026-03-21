@@ -3127,6 +3127,7 @@ function saveTrailer() {
     id: editingTrailerId||('tr_'+Date.now()),
     placa,
     clase: document.getElementById('tr_clase').value,
+    tipo: document.getElementById('tr_clase').value,
     marca: document.getElementById('tr_marca').value.trim(),
     modelo: document.getElementById('tr_modelo').value.trim(),
     serie: document.getElementById('tr_serie').value.trim(),
@@ -3135,13 +3136,14 @@ function saveTrailer() {
     propietario: document.getElementById('tr_propietario').value.trim(),
     tipoIdPropietario: document.getElementById('tr_tipoIdPropietario').value,
     noIdPropietario: document.getElementById('tr_noIdPropietario').value.trim(),
-    aseguradora: document.getElementById('tr_aseguradora').value.trim(),
-    poliza_ini: document.getElementById('tr_poliza_ini').value,
-    poliza_fin: document.getElementById('tr_poliza_fin').value,
+    tienePoliza: document.getElementById('tr_tiene_poliza')?.value||'si',
+    aseguradora: document.getElementById('tr_tiene_poliza')?.value==='no' ? '' : document.getElementById('tr_aseguradora').value.trim(),
+    poliza_ini: document.getElementById('tr_tiene_poliza')?.value==='no' ? '' : document.getElementById('tr_poliza_ini').value,
+    poliza_fin: document.getElementById('tr_tiene_poliza')?.value==='no' ? '' : document.getElementById('tr_poliza_fin').value,
   };
   if(editingTrailerId!==null){
     const i=state.trailers.findIndex(t=>t.id===editingTrailerId);
-    if(i>=0) state.trailers[i]=data;
+    if(i>=0) state.trailers[i]={...state.trailers[i],...data};
   } else { state.trailers.push(data); }
   editingTrailerId=null;
   save(); closeModal('trailerModal'); renderTrailerList();
