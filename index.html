@@ -3389,13 +3389,12 @@ async function renderUserList() {
   if(!listEl) return;
   listEl.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:8px">Cargando...</div>';
   try {
-    const { data, error } = await sb.from('gestion_users').select('id,username,role,permisos').order('username');
+    const { data, error } = await sb.from('gestion_users').select('*').order('username');
     if(error) throw error;
     if(!data?.length) { listEl.innerHTML='<div style="color:var(--text2);font-size:.85rem;padding:8px">No hay usuarios.</div>'; return; }
-    const roleColors = { superadmin:'#f59e0b', admin:'var(--accent1)', editor:'var(--accent3)', readonly:'var(--text2)', supervisor:'var(--accent2)' };
     listEl.innerHTML = data.map(u => {
-      parseUserData(u);
-      const roleLabel = {superadmin:'⭐ Superadmin',admin:'🔑 Admin',editor:'✏️ Editor',vision:'👁 Visión'}[u.role]||u.role;
+      try { parseUserData(u); } catch(e) { u.permisos={}; }
+      const roleLabel = {superadmin:'⭐ Superadmin',admin:'🔑 Admin',editor:'✏️ Editor',vision:'👁 Visión',readonly:'👁 Solo lectura',supervisor:'📊 Supervisor'}[u.role]||u.role;
       const roleColor = {superadmin:'#f59e0b',admin:'var(--accent1)',editor:'#22c55e',vision:'var(--text2)'}[u.role]||'var(--text2)';
       const perms = u.permisos||{};
       const modCount = Object.keys(perms).filter(k=>k.startsWith('mod_')&&perms[k]===false).length;
