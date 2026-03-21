@@ -3276,49 +3276,35 @@ const roleLabels = { superadmin:'⭐ Superadmin', admin:'🔑 Admin', editor:'�
 
 function applyUserPermissions() {
   if(!currentUser) return;
-  const role = currentUser.role;
-  const isAdmin = role === 'admin';
-  const isEditor = role === 'editor';
-  const isReadonly = role === 'readonly';
-  const isSupervisor = role === 'supervisor';
-  const empresas = currentUser.empresas || [];
 
-  // ── Show/hide home buttons based on access ──────────────
-  // btn1 = Empresas, btn4 = Vehículos (only 2 remain in new home)
+  // ── Home buttons ─────────────────────────────────────────
   const empBtn = document.querySelector('.btn1');
-  if(empBtn) {
-    const hasAnyEmpresa = isAdmin || empresas.some(e=>e.startsWith('empresa'));
-    empBtn.style.display = hasAnyEmpresa ? 'flex' : 'none';
-  }
-  const vehBtn2 = document.querySelector('.btn4');
-  if(vehBtn2) {
-    vehBtn2.style.display = (isAdmin || empresas.includes('vehiculos')) ? 'flex' : 'none';
-  }
+  if(empBtn) empBtn.style.display = 'flex'; // Empresas always visible if logged in
 
-  // ── FAB container always visible ────────────────────────────────
+  const vehBtn2 = document.querySelector('.btn4');
+  if(vehBtn2) vehBtn2.style.display = canSeeModule('vehiculos') ? 'flex' : 'none';
+
+  // ── FAB ──────────────────────────────────────────────────
   const fabCont = document.getElementById('fabContainer');
   if(fabCont) fabCont.style.display = 'flex';
-  // Show/hide users button inside FAB based on role
+
   const fabUsers = document.getElementById('fabUsersBtn');
-  if(fabUsers) fabUsers.style.display = isAdmin ? 'flex' : 'none';
-  // Show/hide settings button inside FAB based on role
+  if(fabUsers) fabUsers.style.display = canManageUsers() ? 'flex' : 'none';
+
   const fabSett = document.getElementById('fabSettingsBtn');
-  if(fabSett) fabSett.style.display = (isAdmin || isEditor) ? 'flex' : 'none';
+  if(fabSett) fabSett.style.display = (isSuperadmin()||isAdmin()||isEditor()) ? 'flex' : 'none';
 
-  // ── Users FAB (admin only)
   const usersFabEl = document.getElementById('usersFab');
-  if(usersFabEl) usersFabEl.style.display = (currentUser?.role==='admin') ? 'flex' : 'none';
+  if(usersFabEl) usersFabEl.style.display = canManageUsers() ? 'flex' : 'none';
 
-  // ── Export button ────────────────────────────────────────────────────
   const fabExport = document.getElementById('fabExportBtn');
   if(fabExport) fabExport.style.display = canExcel() ? 'flex' : 'none';
 
-  // Module visibility on home
-  const vehBtn = document.querySelector('[onclick="openVehicles()"]');
-  if(vehBtn) vehBtn.closest('.main-btn') && (vehBtn.closest('button').style.display = canSeeModule('vehiculos') ? '' : 'none');
+  const fabNotif = document.getElementById('fabNotifBtn');
+  if(fabNotif) fabNotif.style.display = canSeeNotif() ? 'flex' : 'none';
 
-  // ── Add/Edit buttons: admin and editor only ──────────────────────
-  const showAdd = isAdmin || isEditor;
+  // ── Add/Edit buttons ──────────────────────────────────────
+  const showAdd = isSuperadmin() || isAdmin() || isEditor();
   document.querySelectorAll('.add-btn').forEach(el => el.style.display = showAdd ? '' : 'none');
   const addEmp = document.getElementById('addEmpTopBtn');
   const addVeh = document.getElementById('addVehTopBtn');
