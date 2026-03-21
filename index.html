@@ -470,17 +470,17 @@
         <!-- OPCIONES ADICIONALES -->
         <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">⚙️ Opciones adicionales</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <label id="lbl_ver_salarios" onclick="toggleCheck('ue_ver_salarios','lbl_ver_salarios')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+          <label id="lbl_ver_salarios" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
             <span style="font-size:.85rem;font-weight:600">💰 Ver salarios de empleados</span>
-            <input type="checkbox" id="ue_ver_salarios" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
+            <input type="checkbox" id="ue_ver_salarios" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_ver_salarios','lbl_ver_salarios')">
           </label>
-          <label id="lbl_exportar" onclick="toggleCheck('ue_exportar','lbl_exportar')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+          <label id="lbl_exportar" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
             <span style="font-size:.85rem;font-weight:600">📥 Exportar CSV</span>
-            <input type="checkbox" id="ue_exportar" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
+            <input type="checkbox" id="ue_exportar" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_exportar','lbl_exportar')">
           </label>
-          <label id="lbl_ver_notif" onclick="toggleCheck('ue_ver_notif','lbl_ver_notif')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+          <label id="lbl_ver_notif" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
             <span style="font-size:.85rem;font-weight:600">🔔 Ver notificaciones de vencimientos</span>
-            <input type="checkbox" id="ue_ver_notif" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
+            <input type="checkbox" id="ue_ver_notif" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0" onchange="toggleCheck('ue_ver_notif','lbl_ver_notif')">
           </label>
         </div>
 
@@ -488,21 +488,21 @@
         <div id="ue_acciones_panel">
           <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🚫 Acciones permitidas</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <label id="lbl_baja_emp" onclick="toggleCheck('ue_baja_emp','lbl_baja_emp')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+            <label id="lbl_baja_emp" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
               <span>Dar de baja empleados</span><span id="ue_baja_emp_icon">⬜</span>
-              <input type="checkbox" id="ue_baja_emp" style="display:none">
+              <input type="checkbox" id="ue_baja_emp" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
             </label>
-            <label id="lbl_del_emp" onclick="toggleCheck('ue_del_emp','lbl_del_emp')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+            <label id="lbl_del_emp" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
               <span>Eliminar empleados</span><span id="ue_del_emp_icon">⬜</span>
-              <input type="checkbox" id="ue_del_emp" style="display:none">
+              <input type="checkbox" id="ue_del_emp" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
             </label>
-            <label id="lbl_baja_veh" onclick="toggleCheck('ue_baja_veh','lbl_baja_veh')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+            <label id="lbl_baja_veh" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
               <span>Dar de baja vehículos</span><span id="ue_baja_veh_icon">⬜</span>
-              <input type="checkbox" id="ue_baja_veh" style="display:none">
+              <input type="checkbox" id="ue_baja_veh" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
             </label>
-            <label id="lbl_del_veh" onclick="toggleCheck('ue_del_veh','lbl_del_veh')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+            <label id="lbl_del_veh" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
               <span>Eliminar vehículos</span><span id="ue_del_veh_icon">⬜</span>
-              <input type="checkbox" id="ue_del_veh" style="display:none">
+              <input type="checkbox" id="ue_del_veh" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
             </label>
           </div>
         </div>
@@ -3467,7 +3467,15 @@ async function openEditUser(id) {
     Array.from(roleEl.options).forEach(o=>{
       if(o.value==='admin') o.disabled = !isSuperadmin();
     });
-    const permisos = typeof data.permisos==='string' ? JSON.parse(data.permisos||'{}') : (data.permisos||{});
+    // Use same logic as parseUserData - fall back to empresas if permisos is empty
+    let permisos = {};
+    try {
+      const permIsEmpty = !data.permisos || data.permisos === '{}' ||
+        (typeof data.permisos === 'object' && Object.keys(data.permisos).length === 0);
+      const permSrc = permIsEmpty ? (data.empresas || data.permisos) : data.permisos;
+      if(permSrc && typeof permSrc === 'string') permisos = JSON.parse(permSrc);
+      else if(permSrc && typeof permSrc === 'object') permisos = permSrc;
+    } catch(e) { permisos = {}; }
     loadPermsToForm(permisos, data.role);
     toggleUserPerms();
     openModal('userEditModal');
@@ -3488,7 +3496,7 @@ function toggleCheck(cbId, lblId, forceVal) {
   const cb=document.getElementById(cbId);
   if(!cb)return;
   if(forceVal!==undefined) cb.checked=forceVal;
-  else cb.checked=!cb.checked;
+  // Don't toggle if called from onchange (checkbox already updated)
   // Update icon if exists
   const icon=document.getElementById(cbId+'_icon');
   if(icon)icon.textContent=cb.checked?'☑️':'⬜';
@@ -3564,17 +3572,27 @@ function loadPermsToForm(permisos={}, role='vision') {
   const todasCb=document.getElementById('ue_todas_empresas');
   if(todasCb) todasCb.checked=!hasEmpRestriction;
   (state.empresas||[]).forEach((_,i)=>{const cb=document.getElementById('ue_empresa_'+i);if(cb)cb.checked=hasEmpRestriction?(permisos['empresa_'+i]===true):true;});
-  toggleCheck('ue_ver_salarios','lbl_ver_salarios',permisos.ver_salarios||false);
-  toggleCheck('ue_exportar','lbl_exportar',permisos.exportar||false);
-  toggleCheck('ue_ver_notif','lbl_ver_notif',permisos.ver_notif!==false&&role==='editor');
-  toggleCheck('ue_baja_emp','lbl_baja_emp',permisos.baja_emp||false);
-  toggleCheck('ue_del_emp','lbl_del_emp',permisos.del_emp||false);
-  toggleCheck('ue_baja_veh','lbl_baja_veh',permisos.baja_veh||false);
-  toggleCheck('ue_del_veh','lbl_del_veh',permisos.del_veh||false);
-  MODULOS.forEach(m=>toggleCheck('ue_mod_'+m.key,'lbl_mod_'+m.key,permisos['mod_'+m.key]!==false));
+  // Set checkbox values and update borders
+  const setChk = (id, lblId, val) => {
+    const cb=document.getElementById(id); if(!cb)return;
+    cb.checked=val;
+    const lbl=document.getElementById(lblId);
+    if(lbl)lbl.style.borderColor=val?'var(--accent)':'var(--border)';
+    const icon=document.getElementById(id+'_icon');
+    if(icon)icon.textContent=val?'☑️':'⬜';
+  };
+  setChk('ue_ver_salarios','lbl_ver_salarios', permisos.ver_salarios===true);
+  setChk('ue_exportar','lbl_exportar', permisos.exportar===true);
+  setChk('ue_ver_notif','lbl_ver_notif', permisos.ver_notif===true || (role==='editor' && permisos.ver_notif===undefined));
+  setChk('ue_baja_emp','lbl_baja_emp', permisos.baja_emp===true);
+  setChk('ue_del_emp','lbl_del_emp', permisos.del_emp===true);
+  setChk('ue_baja_veh','lbl_baja_veh', permisos.baja_veh===true);
+  setChk('ue_del_veh','lbl_del_veh', permisos.del_veh===true);
+  MODULOS.forEach(m=>setChk('ue_mod_'+m.key,'lbl_mod_'+m.key, permisos['mod_'+m.key]!==false));
   const hasEmpR=Object.keys(permisos).some(k=>k.startsWith('empresa_'));
-  toggleTodasEmpresas(!hasEmpR);
-  if(hasEmpR)(state.empresas||[]).forEach((_,i)=>toggleCheck('ue_empresa_'+i,'lbl_empresa_'+i,permisos['empresa_'+i]===true));
+  const todasCb2=document.getElementById('ue_todas_empresas');
+  if(todasCb2){ todasCb2.checked=!hasEmpR; const ti=document.getElementById('ue_todas_icon'); if(ti)ti.textContent=!hasEmpR?'☑️':'⬜'; }
+  if(hasEmpR)(state.empresas||[]).forEach((_,i)=>setChk('ue_empresa_'+i,'lbl_empresa_'+i,permisos['empresa_'+i]===true));
 }
 
 function openAddUser() { openNewUser(); }
@@ -3619,38 +3637,7 @@ async function saveUser() {
     const payload = { username, role };
     if(password) payload.password_hash = await hashPassword(password);
 
-    // Try with permisos column, fall back to empresas if column missing
-    const tryWithPermisos = async (pl) => {
-      pl.permisos = permStr;
-      if(editingUserId) {
-        const {error} = await sb.from('gestion_users').update(pl).eq('id', editingUserId);
-        return error;
-      } else {
-        pl.id = 'usr_' + Date.now();
-        const {error} = await sb.from('gestion_users').insert(pl);
-        return error;
-      }
-    };
-    const tryWithoutPermisos = async (pl) => {
-      // Store permisos inside empresas field for backwards compat
-      pl.empresas = permStr;
-      delete pl.permisos;
-      if(editingUserId) {
-        const {error} = await sb.from('gestion_users').update(pl).eq('id', editingUserId);
-        return error;
-      } else {
-        pl.id = 'usr_' + Date.now();
-        const {error} = await sb.from('gestion_users').insert(pl);
-        return error;
-      }
-    };
 
-    let err = await tryWithPermisos({...payload});
-    if(err && err.message && err.message.includes('permisos')) {
-      // Column doesn't exist yet - use empresas field
-      err = await tryWithoutPermisos({...payload});
-    }
-    if(err) throw err;
     editingUserId = null;
     closeModal('userEditModal');
     await renderUserList();
