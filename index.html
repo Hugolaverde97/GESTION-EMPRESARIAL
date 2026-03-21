@@ -470,29 +470,39 @@
         <!-- OPCIONES ADICIONALES -->
         <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">⚙️ Opciones adicionales</div>
         <div style="display:flex;flex-direction:column;gap:6px">
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-            <input type="checkbox" id="ue_ver_salarios"> <span style="font-size:.85rem;font-weight:600">💰 Ver salarios de empleados</span>
+          <label id="lbl_ver_salarios" onclick="toggleCheck('ue_ver_salarios','lbl_ver_salarios')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+            <span style="font-size:.85rem;font-weight:600">💰 Ver salarios de empleados</span>
+            <input type="checkbox" id="ue_ver_salarios" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
           </label>
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
-            <input type="checkbox" id="ue_exportar"> <span style="font-size:.85rem;font-weight:600">📥 Exportar CSV</span>
+          <label id="lbl_exportar" onclick="toggleCheck('ue_exportar','lbl_exportar')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+            <span style="font-size:.85rem;font-weight:600">📥 Exportar CSV</span>
+            <input type="checkbox" id="ue_exportar" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
+          </label>
+          <label id="lbl_ver_notif" onclick="toggleCheck('ue_ver_notif','lbl_ver_notif')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:10px 14px;border-radius:10px;border:1px solid var(--border)">
+            <span style="font-size:.85rem;font-weight:600">🔔 Ver notificaciones de vencimientos</span>
+            <input type="checkbox" id="ue_ver_notif" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0">
           </label>
         </div>
 
         <!-- ACCIONES (solo Editor) -->
-        <div id="ue_acciones_panel">
-          <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🚫 Acciones permitidas (Editor)</div>
+        <div id="ue_acciones_panel" style="display:none">
+          <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin:12px 0 8px">🚫 Acciones permitidas</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <input type="checkbox" id="ue_baja_emp"> <span>Dar de baja empleados</span>
+            <label id="lbl_baja_emp" onclick="toggleCheck('ue_baja_emp','lbl_baja_emp')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+              <span>Dar de baja empleados</span><span id="ue_baja_emp_icon">⬜</span>
+              <input type="checkbox" id="ue_baja_emp" style="display:none">
             </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <input type="checkbox" id="ue_del_emp"> <span>Eliminar empleados</span>
+            <label id="lbl_del_emp" onclick="toggleCheck('ue_del_emp','lbl_del_emp')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+              <span>Eliminar empleados</span><span id="ue_del_emp_icon">⬜</span>
+              <input type="checkbox" id="ue_del_emp" style="display:none">
             </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <input type="checkbox" id="ue_baja_veh"> <span>Dar de baja vehículos</span>
+            <label id="lbl_baja_veh" onclick="toggleCheck('ue_baja_veh','lbl_baja_veh')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+              <span>Dar de baja vehículos</span><span id="ue_baja_veh_icon">⬜</span>
+              <input type="checkbox" id="ue_baja_veh" style="display:none">
             </label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
-              <input type="checkbox" id="ue_del_veh"> <span>Eliminar vehículos</span>
+            <label id="lbl_del_veh" onclick="toggleCheck('ue_del_veh','lbl_del_veh')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--surface2);padding:9px 12px;border-radius:10px;border:1px solid var(--border);font-size:.82rem">
+              <span>Eliminar vehículos</span><span id="ue_del_veh_icon">⬜</span>
+              <input type="checkbox" id="ue_del_veh" style="display:none">
             </label>
           </div>
         </div>
@@ -3477,10 +3487,13 @@ const MODULOS = [
 
 function toggleCheck(cbId, lblId, forceVal) {
   const cb=document.getElementById(cbId);
-  const icon=document.getElementById(cbId+'_icon');
   if(!cb)return;
-  cb.checked=forceVal!==undefined?forceVal:!cb.checked;
+  if(forceVal!==undefined) cb.checked=forceVal;
+  else cb.checked=!cb.checked;
+  // Update icon if exists
+  const icon=document.getElementById(cbId+'_icon');
   if(icon)icon.textContent=cb.checked?'☑️':'⬜';
+  // Update border
   const lbl=document.getElementById(lblId);
   if(lbl)lbl.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
 }
@@ -3563,43 +3576,64 @@ function loadPermsToForm(permisos={}, role='vision') {
   if(hasEmpR)(state.empresas||[]).forEach((_,i)=>toggleCheck('ue_empresa_'+i,'lbl_empresa_'+i,permisos['empresa_'+i]===true));
 }
 
+function openAddUser() { openNewUser(); }
+function openNewUser() {
+  editingUserId = null;
+  document.getElementById('userEditTitle').textContent = 'Nuevo Usuario';
+  document.getElementById('ue_username').value = '';
+  document.getElementById('ue_password').value = '';
+  const passGroup = document.getElementById('ue_pass_group');
+  if(passGroup) passGroup.style.display = 'block';
+  const delBtn = document.getElementById('ue_del_btn');
+  if(delBtn) delBtn.style.display = 'none';
+  const roleEl = document.getElementById('ue_role');
+  if(roleEl) {
+    roleEl.value = 'vision';
+    Array.from(roleEl.options).forEach(o=>{ if(o.value==='admin') o.disabled=!isSuperadmin(); });
+  }
+  loadPermsToForm({}, 'vision');
+  toggleUserPerms();
+  openModal('userEditModal');
+}
 async function saveUser() {
   const username = document.getElementById('ue_username').value.trim();
   const password = document.getElementById('ue_password').value;
-  const role = document.getElementById('ue_role').value;
-  if(!username) { alert('El nombre de usuario es obligatorio.'); return; }
-  if(!editingUserId && !password) { alert('La contraseña es obligatoria para nuevos usuarios.'); return; }
-  const empresas = [];
-  if(document.getElementById('ue_acc0').checked) empresas.push('empresa0');
-  if(document.getElementById('ue_acc1').checked) empresas.push('empresa1');
-  if(document.getElementById('ue_acc2').checked) empresas.push('empresa2');
-  if(document.getElementById('ue_acc3').checked) empresas.push('vehiculos');
-  const puede_ver_salarios = document.getElementById('ue_salarios').checked;
-  const puede_excel = document.getElementById('ue_excel')?.checked || false;
-  const getChk = id => { const el=document.getElementById(id); return el?el.checked:false; };
-  const sub_perms = {
-    baja_emp0:getChk('ue_baja_emp0'),del_emp0:getChk('ue_del_emp0'),stats0:getChk('ue_stats0'),
-    baja_emp1:getChk('ue_baja_emp1'),del_emp1:getChk('ue_del_emp1'),stats1:getChk('ue_stats1'),
-    baja_emp2:getChk('ue_baja_emp2'),del_emp2:getChk('ue_del_emp2'),stats2:getChk('ue_stats2'),
-    baja_veh:getChk('ue_baja_veh'),del_veh:getChk('ue_del_veh'),
-    baja_tr:getChk('ue_baja_tr'),del_tr:getChk('ue_del_tr'),
-  };
-  // Store extra perms inside empresas JSON to avoid needing new DB columns
-  const permData = { accesos: empresas, puede_excel, sub_perms };
+  const role     = document.getElementById('ue_role').value;
+
+  if(!username) { toast('El nombre de usuario es obligatorio.'); return; }
+  if(!editingUserId && !password) { toast('La contraseña es obligatoria para nuevos usuarios.'); return; }
+
+  // Superadmin protection
+  if(editingUserId && username === 'HugoLaverde' && !isSuperadmin()) {
+    toast('No tienes permiso para editar este usuario.'); return;
+  }
+  if(role === 'admin' && !isSuperadmin()) {
+    toast('Solo el Superadmin puede crear usuarios Admin.'); return;
+  }
+
+  const permisos = getPermsFromForm();
+
   try {
-    const payload = { username, role, empresas: JSON.stringify(permData), puede_ver_salarios };
+    const payload = { username, role, permisos: JSON.stringify(permisos) };
     if(password) payload.password_hash = await hashPassword(password);
+
     if(editingUserId) {
-      await sb.from('gestion_users').update(payload).eq('id', editingUserId);
+      const {error} = await sb.from('gestion_users').update(payload).eq('id', editingUserId);
+      if(error) throw error;
     } else {
       payload.id = 'usr_' + Date.now();
-      await sb.from('gestion_users').insert(payload);
+      const {error} = await sb.from('gestion_users').insert(payload);
+      if(error) throw error;
     }
+    editingUserId = null;
     closeModal('userEditModal');
     await renderUserList();
-    toast(editingUserId ? '✅ Usuario actualizado' : '✅ Usuario creado');
-  } catch(e) { alert('Error: '+e.message); }
+    toast(editingUserId !== null ? '✅ Usuario actualizado' : '✅ Usuario guardado');
+  } catch(e) {
+    toast('Error: ' + (e.message||JSON.stringify(e)));
+  }
 }
+
 
 async function deleteUser() {
   if(!confirm('¿Eliminar este usuario?')) return;
