@@ -3027,7 +3027,7 @@ function openTrailerDetail(id) {
       ${t.tienePoliza==='no' ? '<div class="field-card"><div class="field-label">Estado</div><div class="field-value" style="color:#ef4444;font-weight:700">❌ No asegurado</div></div>' : `
       <div class="field-card"><div class="field-label">Aseguradora</div><div class="field-value">${t.aseguradora||'—'}</div></div>
       <div class="field-card"><div class="field-label">Vigencia inicio</div><div class="field-value">${fmtDate(t.poliza_ini)}</div></div>
-      <div class="field-card" style="background:${docStatus(t.poliza_fin).bg}"><div class="field-label">Vigencia fin</div><div class="field-value" style="color:${docStatus(t.poliza_fin).color}">${fmtDate(t.poliza_fin)} ${docStatus(t.poliza_fin).icon}</div></div>
+      <div class="field-card"><div class="field-label">Vigencia fin</div><div class="field-value">${fmtDate(t.poliza_fin)} ${docStatus(t.poliza_fin)}</div></div>
       `}
     </div>
     ${veh?`<div class="detail-section"><div class="section-title">🚗 Vehículo enganchado</div><div class="field-card"><div class="field-label">Placa</div><div class="field-value">${veh.placa||'—'}</div></div></div>`:''}
