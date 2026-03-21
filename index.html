@@ -2337,7 +2337,7 @@ function openEmployee(id) {
         <div class="detail-actions">
           ${canEdit()?`<button class="action-btn" onclick="openEditEmployee()">✏️ Editar</button>`:''}
           ${isInactive
-            ? `<button class="action-btn success" onclick="toggleActivo('emp','${e.id}',true)">✅ Reactivar</button>`
+            ? (canBajaEmp()?`<button class="action-btn success" onclick="toggleActivo('emp','${e.id}',true)">✅ Reactivar</button>`:'')
             : canBajaEmp()?`<button class="action-btn" onclick="openRetiroModal('emp','${e.id}')">⛔ Dar de baja</button>`:''}
           ${canDelEmp()?`<button class="action-btn danger" onclick="deleteEmployee()">🗑️ Eliminar</button>`:''}
         </div>
@@ -2724,7 +2724,7 @@ function openVehicle(id) {
         <div class="detail-actions">
           ${canEdit()?`<button class="action-btn" onclick="openEditVehicle()">✏️ Editar</button>`:''}
           ${isInactive
-            ? `<button class="action-btn success" onclick="toggleActivo('veh','${v.id}',true)">✅ Reactivar</button>`
+            ? (canBajaVeh()?`<button class="action-btn success" onclick="toggleActivo('veh','${v.id}',true)">✅ Reactivar</button>`:'')
             : canBajaVeh()?`<button class="action-btn" onclick="openRetiroModal('veh','${v.id}')">⛔ Dar de baja</button>`:''}
           ${canDelVeh()?`<button class="action-btn danger" onclick="deleteVehicle()">🗑️ Eliminar</button>`:''}
         </div>
@@ -3000,9 +3000,9 @@ function openTrailerDetail(id) {
     </div>
     ${veh?`<div class="detail-section"><div class="section-title">🚗 Vehículo enganchado</div><div class="field-card"><div class="field-label">Placa</div><div class="field-value">${veh.placa||'—'}</div></div></div>`:''}
     <div class="detail-actions">
-      <button class="action-btn" onclick="openEditTrailer('${id}')">✏️ Editar</button>
-      <button class="action-btn ${isInactive?'':'action-btn-danger'}" onclick="toggleTrailerActivo('${id}')">${isInactive?'✅ Activar':'🚫 Dar de baja'}</button>
-      <button class="action-btn action-btn-danger" onclick="deleteTrailer()">🗑️ Eliminar</button>
+      ${canEdit()?`<button class="action-btn" onclick="openEditTrailer('${id}')">✏️ Editar</button>`:''}
+      ${canBajaVeh()?`<button class="action-btn ${isInactive?'':'action-btn-danger'}" onclick="toggleTrailerActivo('${id}')">${isInactive?'✅ Activar':'🚫 Dar de baja'}</button>`:''}
+      ${canDelVeh()?`<button class="action-btn action-btn-danger" onclick="deleteTrailer()">🗑️ Eliminar</button>`:''}
     </div>
   `;
   showScreen('trailerDetail');
@@ -3102,6 +3102,7 @@ function toggleTrailerActivo(id) {
 }
 
 function deleteTrailer() {
+  if(!canDelVeh()){toast('⛔ Sin permiso');return;}
   if(!confirm('¿Eliminar este tráiler?')) return;
   state.trailers=(state.trailers||[]).filter(t=>t.id!==currentTrailerId);
   // Unassign from any vehicle
