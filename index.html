@@ -3179,7 +3179,10 @@ async function hashPassword(pwd) {
 function parseUserData(data) {
   try {
     // Try permisos column first, then empresas field (fallback)
-    const permSource = data.permisos || data.empresas;
+    // If permisos is empty {}, check empresas field as fallback
+    const permIsEmpty = !data.permisos || data.permisos === '{}' || 
+      (typeof data.permisos === 'object' && Object.keys(data.permisos).length === 0);
+    const permSource = permIsEmpty ? (data.empresas || data.permisos) : data.permisos;
     if(permSource && typeof permSource === 'string') {
       const parsed = JSON.parse(permSource);
       // New format: object with mod_* keys
@@ -3379,8 +3382,7 @@ function canSeeModule(mod) {
 }
 function checkVehiculosAccess() {
   if(!currentUser) return false;
-  if(currentUser.role==='admin') return true;
-  return (currentUser.empresas||[]).includes('vehiculos');
+  return isSuperadmin() || isAdmin() || canSeeModule('vehiculos');
 }
 
 function togglePassVis(inputId, btn) {
