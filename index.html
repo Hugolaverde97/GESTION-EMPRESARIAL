@@ -437,8 +437,7 @@
   </div>
 </div>
 
-<!-- ADD/EDIT USER MODAL -->
-<div class="modal<!-- USER EDIT MODAL -->
+<!-- USER EDIT MODAL -->
 <div class="modal-overlay" id="userEditModal">
   <div class="modal" style="max-width:520px">
     <div class="modal-title">
@@ -4935,7 +4934,7 @@ function drawLoginIcon() {
 <script>
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'gestion-v1';
+const CACHE = 'gestion-v4';
 const ASSETS = ['.'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
 self.addEventListener('fetch', e => e.respondWith(
