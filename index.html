@@ -1101,9 +1101,18 @@
       <div class="form-group"><label class="form-label">Tipo ID Propietario</label><select class="form-select" id="tr_tipoIdPropietario"><option value="">Seleccionar...</option><option value="CC">Cédula</option><option value="NIT">NIT</option><option value="CE">Cédula Extranjería</option><option value="PAS">Pasaporte</option></select></div>
       <div class="form-group"><label class="form-label">No. ID Propietario</label><input class="form-input" id="tr_noIdPropietario" placeholder="Número de identificación"></div>
       <div style="grid-column:1/-1;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent1);font-weight:600;margin:4px 0 2px">📄 Póliza</div>
-      <div class="form-group full"><label class="form-label">Aseguradora</label><input class="form-input" id="tr_aseguradora" placeholder="Ej: Sura, Bolívar, Allianz..."></div>
-      <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="tr_poliza_ini"></div>
-      <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="tr_poliza_fin"></div>
+      <div class="form-group full">
+        <label class="form-label">¿Tiene póliza?</label>
+        <select class="form-select" id="tr_tiene_poliza" onchange="document.getElementById('tr_poliza_fields').style.display=this.value==='si'?'block':'none'">
+          <option value="si">✅ Sí, está asegurado</option>
+          <option value="no">❌ No asegurado</option>
+        </select>
+      </div>
+      <div id="tr_poliza_fields">
+        <div class="form-group full"><label class="form-label">Aseguradora</label><input class="form-input" id="tr_aseguradora" placeholder="Ej: Sura, Bolívar, Allianz..."></div>
+        <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="tr_poliza_ini"></div>
+        <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="tr_poliza_fin"></div>
+      </div>
     </div>
     <button class="save-btn" onclick="saveTrailer()">💾 Guardar tráiler</button>
     <button class="del-btn" id="tr_del_btn" onclick="deleteTrailer()" style="display:none">🗑️ Eliminar tráiler</button>
@@ -3046,9 +3055,11 @@ function openTrailerDetail(id) {
     </div>
     <div class="detail-section">
       <div class="section-title">📄 Póliza Todo Riesgo</div>
+      ${t.tienePoliza==='no' ? '<div class="field-card"><div class="field-label">Estado</div><div class="field-value" style="color:#ef4444;font-weight:700">❌ No asegurado</div></div>' : `
       <div class="field-card"><div class="field-label">Aseguradora</div><div class="field-value">${t.aseguradora||'—'}</div></div>
       <div class="field-card"><div class="field-label">Vigencia inicio</div><div class="field-value">${fmtDate(t.poliza_ini)}</div></div>
       <div class="field-card" style="background:${docStatus(t.poliza_fin).bg}"><div class="field-label">Vigencia fin</div><div class="field-value" style="color:${docStatus(t.poliza_fin).color}">${fmtDate(t.poliza_fin)} ${docStatus(t.poliza_fin).icon}</div></div>
+      `}
     </div>
     ${veh?`<div class="detail-section"><div class="section-title">🚗 Vehículo enganchado</div><div class="field-card"><div class="field-label">Placa</div><div class="field-value">${veh.placa||'—'}</div></div></div>`:''}
     <div class="detail-actions">
@@ -3093,6 +3104,13 @@ function openEditTrailer(id) {
   document.getElementById('tr_propietario').value = t.propietario||'';
   document.getElementById('tr_tipoIdPropietario').value = t.tipoIdPropietario||'';
   document.getElementById('tr_noIdPropietario').value = t.noIdPropietario||'';
+  const tienePoliza = document.getElementById('tr_tiene_poliza');
+  if(tienePoliza) {
+    tienePoliza.value = (t.aseguradora||t.poliza_ini||t.poliza_fin) ? 'si' : 'no';
+    document.getElementById('tr_poliza_fields').style.display = tienePoliza.value==='si' ? 'contents' : 'none';
+  }
+  const tp=document.getElementById('tr_tiene_poliza');
+  if(tp){tp.value=t.tienePoliza||'si';document.getElementById('tr_poliza_fields').style.display=tp.value==='si'?'block':'none';}
   document.getElementById('tr_aseguradora').value = t.aseguradora||'';
   document.getElementById('tr_poliza_ini').value = t.poliza_ini||'';
   document.getElementById('tr_poliza_fin').value = t.poliza_fin||'';
