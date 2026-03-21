@@ -1597,7 +1597,6 @@ function persistData() { save(); updateNotifBadge(); }
 function saveLocal() { try { localStorage.setItem('gestion_state', JSON.stringify(state)); } catch(e){} }
 function loadLocal() { try { const d=localStorage.getItem('gestion_state'); if(d) state=JSON.parse(d); } catch(e){} }
 
-async 
 // ── Collaborative sync: poll every 30s for remote changes ─────────
 let lastKnownUpdatedAt = null;
 let isSyncPollingActive = false;
@@ -3386,7 +3385,7 @@ function doLogout() {
   goHome();
 }
 
-const roleLabels = { superadmin:'⭐ Superadmin', admin:'🔑 Admin', editor:'✏️ Editor', vision:'👁 Visión', admin:'Admin', editor:'Editor', readonly:'Solo lectura', supervisor:'Supervisor' };
+const roleLabels = { superadmin:'⭐ Superadmin', admin:'🔑 Admin', editor:'✏️ Editor', vision:'👁 Visión', readonly:'Solo lectura', supervisor:'Supervisor' };
 
 function applyUserPermissions() {
   if(!currentUser) return;
@@ -5040,7 +5039,7 @@ function drawLoginIcon() {
 <script>
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'gestion-v4';
+const CACHE = 'gestion-v5';
 const ASSETS = ['.'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
 self.addEventListener('fetch', e => e.respondWith(
