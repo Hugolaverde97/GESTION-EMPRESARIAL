@@ -2879,6 +2879,8 @@ function saveVehicle(){
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
   data.leasing=document.getElementById('veh_leasing')?.checked||false;
   data.leasingIdEntidad=document.getElementById('veh_leasingIdEntidad')?.value.trim()||'';
+  const _esTrac=(data.tipo||'').toLowerCase().includes('tractomula')||(data.tipo||'').toLowerCase().includes('tracto');
+  data.trailerAsignado=_esTrac?(document.getElementById('veh_trailerAsignado')?.value||''):'';
   if(editingVehicle){
     const v=state.vehicles.find(x=>x.id===currentVehicleId);if(v)Object.assign(v,data);
     save();closeModal('vehicleModal');openVehicle(currentVehicleId);toast('✅ Vehículo actualizado');
