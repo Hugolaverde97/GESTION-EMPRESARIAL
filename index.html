@@ -952,7 +952,7 @@
     <button class="back-btn" onclick="showScreen('vehiclesModule');updateVehModuleCounts()">← Vehículos</button>
     <span class="bar-title">Tráileres</span>
     <div class="bar-actions" style="display:flex;align-items:center;gap:4px">
-      
+      <button class="icon-btn" onclick="exportMode='trailers';openExportModal()" title="Exportar" id="exportTrailerBtn">📥</button>
       <button class="icon-btn" onclick="openAddTrailer()" title="Agregar" id="addTrailerTopBtn">➕</button>
     </div>
   </div>
@@ -1544,10 +1544,15 @@
         <label class="form-label">Banco / Entidad financiera</label>
         <input class="form-input" id="veh_leasingEntidad" placeholder="Ej: Bancolombia, Davivienda...">
       </div>
+      <div class="form-group full" id="grupo_leasing_id" style="display:none">
+        <label class="form-label">No. ID / NIT de la entidad</label>
+        <input class="form-input" id="veh_leasingIdEntidad" placeholder="Ej: 890.123.456-7">
+      </div>
       <div class="form-group"><label class="form-label">SOAT – Inicio</label><input type="date" class="form-input" id="veh_soat_ini"></div>
       <div class="form-group"><label class="form-label">SOAT – Fin</label><input type="date" class="form-input" id="veh_soat_fin"></div>
       <div class="form-group"><label class="form-label">RTM – Inicio</label><input type="date" class="form-input" id="veh_rtm_ini"></div>
       <div class="form-group"><label class="form-label">RTM – Fin</label><input type="date" class="form-input" id="veh_rtm_fin"></div>
+      <div class="form-group full"><label class="form-label">Aseguradora</label><input class="form-input" id="veh_aseguradora" placeholder="Ej: Sura, Bolívar, Allianz..."></div>
       <div class="form-group"><label class="form-label">Póliza – Inicio</label><input type="date" class="form-input" id="veh_poliza_ini"></div>
       <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="veh_poliza_fin"></div>
     </div>
@@ -2812,6 +2817,7 @@ function openVehicle(id) {
     </div>
     <div class="doc-card">
       <div class="doc-row"><div class="doc-name">🛡️ Póliza Todo Riesgo</div>${docStatus(v.poliza_fin)}</div>
+      ${v.aseguradora?`<div class="field-card"><div class="field-label">Aseguradora</div><div class="field-value">${v.aseguradora}</div></div>`:''}
       <div class="doc-dates">
         <div class="date-group"><div class="date-label">Inicio</div><div class="field-value">${fmtDate(v.poliza_ini)}</div></div>
         <div class="date-group"><div class="date-label">Fin</div><div class="field-value">${fmtDate(v.poliza_fin)}</div></div>
@@ -2852,7 +2858,7 @@ function openEditVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso');return;}
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
-  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
   document.getElementById('veh_tipo').value=v.tipo||'';
   setLeasing(v.leasing||false);
   document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
@@ -2868,10 +2874,11 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','leasingIdEntidad'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
   data.leasing=document.getElementById('veh_leasing')?.checked||false;
+  data.leasingIdEntidad=document.getElementById('veh_leasingIdEntidad')?.value.trim()||'';
   if(editingVehicle){
     const v=state.vehicles.find(x=>x.id===currentVehicleId);if(v)Object.assign(v,data);
     save();closeModal('vehicleModal');openVehicle(currentVehicleId);toast('✅ Vehículo actualizado');
@@ -4681,31 +4688,37 @@ const VEH_COLS = [
   {id:'tipoIdPropietario', label:'Tipo ID'},
   {id:'noIdPropietario',   label:'No. ID'},
   {id:'leasing',      label:'Leasing', computed: v => v.leasing?'Sí':'No'},
-  {id:'leasingEntidad',label:'Entidad Leasing'},
+  {id:'leasingEntidad',    label:'Entidad Leasing'},
+  {id:'leasingIdEntidad',  label:'No. ID Entidad Leasing'},
   {id:'trailer',      label:'Tráiler', computed: v => getTrailerName(v.trailerAsignado)},
   {id:'soat_ini',     label:'SOAT Inicio'},
   {id:'soat_fin',     label:'SOAT Fin'},
   {id:'rtm_ini',      label:'RTM Inicio'},
   {id:'rtm_fin',      label:'RTM Fin'},
+  {id:'aseguradora',  label:'Aseguradora'},
   {id:'poliza_ini',   label:'Póliza Inicio'},
   {id:'poliza_fin',   label:'Póliza Fin'},
   {id:'estado',       label:'Estado', computed: v => v.activo===false?'Inactivo':'Activo'},
 ];
 
 const TR_COLS = [
-  {id:'placa',        label:'Placa'},
-  {id:'tipo',         label:'Tipo Carrocería'},
-  {id:'marca',        label:'Marca'},
-  {id:'modelo',       label:'Modelo'},
-  {id:'color',        label:'Color'},
-  {id:'capacidad',    label:'Capacidad (t)'},
-  {id:'ejes',         label:'Ejes'},
-  {id:'propietario',  label:'Propietario'},
+  {id:'placa',             label:'Placa'},
+  {id:'clase',             label:'Clase'},
+  {id:'carroceria',        label:'Carrocería'},
+  {id:'marca',             label:'Marca'},
+  {id:'modelo',            label:'Modelo'},
+  {id:'serie',             label:'No. Serie'},
+  {id:'matricula',         label:'Matrícula'},
+  {id:'propietario',       label:'Propietario'},
   {id:'tipoIdPropietario', label:'Tipo ID'},
   {id:'noIdPropietario',   label:'No. ID'},
-  {id:'poliza_ini',   label:'Póliza Inicio'},
-  {id:'poliza_fin',   label:'Póliza Fin'},
-  {id:'estado',       label:'Estado', computed: t => t.activo===false?'Inactivo':'Activo'},
+  {id:'leasing',           label:'Leasing', computed: t => t.leasing?'Sí':'No'},
+  {id:'leasingEntidad',    label:'Entidad Leasing'},
+  {id:'leasingIdEntidad',  label:'No. ID Entidad Leasing'},
+  {id:'aseguradora',       label:'Aseguradora'},
+  {id:'poliza_ini',        label:'Póliza Inicio'},
+  {id:'poliza_fin',        label:'Póliza Fin'},
+  {id:'estado',            label:'Estado', computed: t => t.activo===false?'Inactivo':'Activo'},
 ];
 
 let exportSelectedCols = new Set();
