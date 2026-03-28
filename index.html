@@ -2173,7 +2173,13 @@ function renderEmpresasList() {
     list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">No hay empresas.<br>Toca ➕ para agregar.</div></div>`;
     return;
   }
-  list.innerHTML = empresas.map((em, i) => {
+  // Filter empresas by access
+  const visibleEmpresas = empresas.map((em,i)=>({em,i})).filter(({i})=>checkEmpresaAccess(i));
+  if(!visibleEmpresas.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">Sin acceso a empresas.</div></div>';
+    return;
+  }
+  list.innerHTML = visibleEmpresas.map(({em, i}) => {
     const empCount = getEmployees(i).length;
     const active = getEmployees(i).filter(e=>e.activo!==false).length;
     return `<div class="list-item" onclick="openEmpresaModule(${i})" style="border-left:4px solid ${em.color||'#5b8df6'}">
@@ -2482,11 +2488,11 @@ function openEmployee(id) {
     </div>
 
     <div class="section-title">Documentos</div>
-    <div class="upload-zone" onclick="document.getElementById('empFileInput').click()">
+    ${canEdit()?`<div class="upload-zone" onclick="document.getElementById('empFileInput').click()">
       <input type="file" id="empFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleEmpFiles(this)">
       <div class="upload-icon">📎</div>
       <div class="upload-text">Toca para subir documentos<br><small>PDF, imágenes, Word</small></div>
-    </div>
+    </div>`:''}
     <div class="doc-list" id="empDocList"></div>
   `;
   renderEmpDocs();
@@ -2494,6 +2500,9 @@ function openEmployee(id) {
 }
 
 function renderEmpDocs() {
+  // Hide upload zone for vision
+  const uz=document.getElementById('empUploadZone');
+  if(uz) uz.style.display=canEdit()?'':'none';
   const e=state.employees.find(x=>x.id===currentEmployeeId);
   const list=document.getElementById('empDocList');
   if(!list||!e) return;
@@ -2825,11 +2834,11 @@ function openVehicle(id) {
     </div>
 
     <div class="section-title">Archivos Adjuntos</div>
-    <div class="upload-zone" onclick="document.getElementById('vehFileInput').click()">
+    ${canEdit()?`<div class="upload-zone" onclick="document.getElementById('vehFileInput').click()">
       <input type="file" id="vehFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleVehFiles(this)">
       <div class="upload-icon">📎</div>
       <div class="upload-text">Toca para subir documentos</div>
-    </div>
+    </div>`:''}
     <div class="doc-list" id="vehDocList"></div>
   `;
   renderVehDocs();
@@ -2837,6 +2846,8 @@ function openVehicle(id) {
 }
 
 function renderVehDocs() {
+  const vz=document.getElementById('vehUploadZone');
+  if(vz) vz.style.display=canEdit()?'':'none';
   const v=state.vehicles.find(x=>x.id===currentVehicleId);
   const list=document.getElementById('vehDocList');
   if(!list||!v) return;
@@ -4223,6 +4234,9 @@ function openOrganigrama(idx) {
   document.getElementById('orgEditBtn').style.background = '';
   document.getElementById('orgEditBtn').style.color = '';
   renderOrganigrama();
+  // Hide edit button for non-editors
+  const eb=document.getElementById('orgEditBtn');
+  if(eb) eb.style.display=canEdit()?'':'none';
   showScreen('organigramaScreen');
 }
 
