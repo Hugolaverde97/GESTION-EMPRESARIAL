@@ -1450,9 +1450,9 @@
             <input type="date" class="form-input" id="emp_vencLicencia">
           </div>
           <div class="form-group full"><label class="form-label">Vehículo asignado</label>
-            <input class="form-input" id="emp_vehiculoSearch" placeholder="🔍 Buscar vehículo por placa..." oninput="filterVehicleSelect(this.value)" autocomplete="off">
-            <div id="emp_vehiculoResults" style="display:none;position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;max-height:180px;overflow-y:auto;width:100%;margin-top:4px"></div>
-            <input type="hidden" id="emp_vehiculoAsignado">
+            <select class="form-select" id="emp_vehiculoAsignado">
+              <option value="">— Sin asignar —</option>
+            </select>
           </div>
         </div>
       </div>
@@ -2948,7 +2948,11 @@ function toggleConductorFields() {
 }
 
 function populateVehicleSelect(selectedId) {
-  initVehicleSearch(selectedId||"");
+  const sel = document.getElementById('emp_vehiculoAsignado');
+  if(!sel) return;
+  const vehs = (state.vehicles||[]).filter(v=>v.activo!==false);
+  sel.innerHTML = '<option value="">— Sin asignar —</option>' +
+    vehs.map(v=>`<option value="${v.id}" ${selectedId===v.id?'selected':''}>${v.placa||'Sin placa'} · ${v.tipo||''} · ${v.marca||''}</option>`).join('');
 }
 
 function calcAntiguedad(fechaIngreso) {
