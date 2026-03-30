@@ -2948,8 +2948,9 @@ function toggleConductorFields() {
 }
 
 function populateVehicleSelect(selectedId) {
-  initVehicleSearch(selectedId||'');
+  initVehicleSearch(selectedId||"");
 }
+
 function calcAntiguedad(fechaIngreso) {
   if(!fechaIngreso) return '—';
   const ini=new Date(fechaIngreso+'T00:00:00'), now=new Date();
@@ -3248,9 +3249,79 @@ function toggleTrailerField() {
   if(esTractomula) populateTrailerSelect();
 }
 
-function populateTrailerSelect(selectedId) {
-  initTrailerSearch(selectedId||'');
+
+// ── Searchable selects ────────────────────────────────────────
+function filterTrailerSelect(q) {
+  const res = document.getElementById('veh_trailerResults');
+  if(!res) return;
+  const trailers = (state.trailers||[]).filter(t=>t.activo!==false);
+  const filtered = q
+    ? trailers.filter(t=>(t.placa||'').toLowerCase().includes(q.toLowerCase())||(t.clase||t.tipo||'').toLowerCase().includes(q.toLowerCase()))
+    : trailers;
+  res.style.display = 'block';
+  res.innerHTML = [
+    `<div onclick="selectTrailer('','')" style="padding:10px 14px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);color:var(--text2)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">— Sin tráiler —</div>`,
+    ...filtered.map(t=>`<div onclick="selectTrailer('${t.id}','${(t.placa||'').replace(/'/g,'')}')" style="padding:10px 14px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"><strong>${t.placa||'—'}</strong> · ${t.clase||t.tipo||'—'} · ${t.marca||'—'}</div>`)
+  ].join('');
 }
+function selectTrailer(id, placa) {
+  document.getElementById('veh_trailerAsignado').value = id;
+  document.getElementById('veh_trailerSearch').value = placa;
+  document.getElementById('veh_trailerResults').style.display = 'none';
+}
+function initTrailerSearch(selectedId) {
+  const t = (state.trailers||[]).find(x=>x.id===selectedId);
+  const si = document.getElementById('veh_trailerSearch');
+  const hi = document.getElementById('veh_trailerAsignado');
+  if(si) si.value = t ? (t.placa||'') : '';
+  if(hi) hi.value = selectedId||'';
+  // Show all on focus
+  const inp = document.getElementById('veh_trailerSearch');
+  if(inp) inp.onfocus = () => filterTrailerSelect(inp.value);
+}
+function filterVehicleSelect(q) {
+  const res = document.getElementById('emp_vehiculoResults');
+  if(!res) return;
+  const vehs = (state.vehicles||[]).filter(v=>v.activo!==false);
+  const filtered = q
+    ? vehs.filter(v=>(v.placa||'').toLowerCase().includes(q.toLowerCase())||(v.tipo||'').toLowerCase().includes(q.toLowerCase()))
+    : vehs;
+  res.style.display = 'block';
+  res.innerHTML = [
+    `<div onclick="selectVehicle('','')" style="padding:10px 14px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border);color:var(--text2)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">— Sin asignar —</div>`,
+    ...filtered.map(v=>`<div onclick="selectVehicle('${v.id}','${(v.placa||'').replace(/'/g,'')}')" style="padding:10px 14px;cursor:pointer;font-size:.85rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''"><strong>${v.placa||'—'}</strong> · ${v.tipo||'—'} · ${v.marca||'—'}</div>`)
+  ].join('');
+}
+function selectVehicle(id, placa) {
+  document.getElementById('emp_vehiculoAsignado').value = id;
+  document.getElementById('emp_vehiculoSearch').value = placa;
+  document.getElementById('emp_vehiculoResults').style.display = 'none';
+}
+function initVehicleSearch(selectedId) {
+  const v = (state.vehicles||[]).find(x=>x.id===selectedId);
+  const si = document.getElementById('emp_vehiculoSearch');
+  const hi = document.getElementById('emp_vehiculoAsignado');
+  if(si) si.value = v ? (v.placa||'') : '';
+  if(hi) hi.value = selectedId||'';
+  const inp = document.getElementById('emp_vehiculoSearch');
+  if(inp) inp.onfocus = () => filterVehicleSelect(inp.value);
+}
+// Hide dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#grupo_trailer_asignado')) {
+    const r = document.getElementById('veh_trailerResults');
+    if(r) r.style.display = 'none';
+  }
+  if(!e.target.closest('[id*="vehiculoSearch"],[id*="vehiculoResults"]')) {
+    const r = document.getElementById('emp_vehiculoResults');
+    if(r) r.style.display = 'none';
+  }
+});
+
+function populateTrailerSelect(selectedId) {
+  initTrailerSearch(selectedId||"");
+}
+
 function getTrailerName(tid) {
   if(!tid) return '— Sin tráiler';
   const t=(state.trailers||[]).find(t=>t.id===tid);
@@ -4396,6 +4467,16 @@ function handleNodeClick(nodeId) {
   }
 }
 
+
+function orgClickEmployee(empId) {
+  if(orgEditMode) return;
+  closeOrgDetail();
+  setTimeout(() => {
+    const empIdx = (state.empresas||[]).findIndex((_,i) => getEmployees(i).some(e => e.id === empId));
+    if(empIdx >= 0) { currentCompany = empIdx; currentEmpresaIdx = empIdx; }
+    openEmployee(empId);
+  }, 200);
+}
 function openOrgDetail(nodeId) {
   const org = getOrg(orgCompanyIdx);
   const node = org.nodes.find(n=>n.id===nodeId);
@@ -4412,7 +4493,7 @@ function openOrgDetail(nodeId) {
     const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
     const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
     const isInactive = e.activo===false;
-    return `<div onclick="${orgEditMode?'':"closeOrgDetail();setTimeout(()=>openEmployee('${e.id}'),300)"}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px;cursor:${orgEditMode?'default':'pointer'};border:1px solid var(--border)">
+    return `<div onclick="orgClickEmployee('${e.id}')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--surface2);border-radius:10px;cursor:${orgEditMode?'default':'pointer'};border:1px solid var(--border)">
       <div style="width:36px;height:36px;border-radius:50%;background:${node.color||'#5b8df6'}22;border:2px solid ${node.color||'#5b8df6'};display:flex;align-items:center;justify-content:center;font-weight:700;color:${node.color||'#5b8df6'};flex-shrink:0">${init}</div>
       <div style="flex:1">
         <div style="font-weight:600;font-size:.88rem">${name}</div>
