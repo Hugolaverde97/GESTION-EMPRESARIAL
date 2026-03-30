@@ -1446,13 +1446,13 @@
               <option value="C3">C3</option>
             </select>
           </div>
-          <div class="form-group"><label class="form-label">Vencimiento licencia</label>
+          <div class="form-group" style="position:relative"><label class="form-label">Vencimiento licencia</label>
             <input type="date" class="form-input" id="emp_vencLicencia">
           </div>
           <div class="form-group full"><label class="form-label">Vehículo asignado</label>
-            <select class="form-select" id="emp_vehiculoAsignado">
-              <option value="">— Sin asignar —</option>
-            </select>
+            <input class="form-input" id="emp_vehiculoSearch" placeholder="🔍 Buscar vehículo por placa..." oninput="filterVehicleSelect(this.value)" autocomplete="off">
+            <div id="emp_vehiculoResults" style="display:none;position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;max-height:180px;overflow-y:auto;width:100%;margin-top:4px"></div>
+            <input type="hidden" id="emp_vehiculoAsignado">
           </div>
         </div>
       </div>
@@ -2948,13 +2948,8 @@ function toggleConductorFields() {
 }
 
 function populateVehicleSelect(selectedId) {
-  const sel = document.getElementById('emp_vehiculoAsignado');
-  if(!sel) return;
-  const vehs = (state.vehicles||[]).filter(v=>v.activo!==false);
-  sel.innerHTML = '<option value="">— Sin asignar —</option>' +
-    vehs.map(v=>`<option value="${v.id}" ${selectedId===v.id?'selected':''}>${v.placa||'?'} · ${v.marca||''} ${v.modelo||''} · ${v.tipo||''}</option>`).join('');
+  initVehicleSearch(selectedId||'');
 }
-
 function calcAntiguedad(fechaIngreso) {
   if(!fechaIngreso) return '—';
   const ini=new Date(fechaIngreso+'T00:00:00'), now=new Date();
@@ -3254,13 +3249,8 @@ function toggleTrailerField() {
 }
 
 function populateTrailerSelect(selectedId) {
-  const sel=document.getElementById('veh_trailerAsignado');
-  if(!sel) return;
-  const trailers=(state.trailers||[]).filter(t=>t.activo!==false);
-  sel.innerHTML='<option value="">— Sin tráiler —</option>'+
-    trailers.map(t=>`<option value="${t.id}" ${selectedId===t.id?'selected':''}>${t.placa||'?'} · ${t.tipo||''} ${t.capacidad?'('+t.capacidad+'t)':''}</option>`).join('');
+  initTrailerSearch(selectedId||'');
 }
-
 function getTrailerName(tid) {
   if(!tid) return '— Sin tráiler';
   const t=(state.trailers||[]).find(t=>t.id===tid);
@@ -3589,7 +3579,8 @@ function loadPermsToModal(p,role) {
   (state.empresas||[]).forEach((_,i)=>permSet('ue_e_'+i,hasEmpR?p['empresa_'+i]===true:true));
   permSet('ue_p_salarios',p.ver_salarios||false);
   permSet('ue_p_exportar',p.exportar||false);
-  permSet('ue_p_notif',p.ver_notif!==false);
+  const roleVal=document.getElementById('ue_role')?.value||role;
+  permSet('ue_p_notif', roleVal==='vision' ? (p.ver_notif===true) : (p.ver_notif!==false));
   permSet('ue_p_baja_emp',p.baja_emp||false);
   permSet('ue_p_del_emp',p.del_emp||false);
   permSet('ue_p_baja_veh',p.baja_veh||false);
@@ -3841,6 +3832,7 @@ function updateNotifBadge() {
 }
 
 function openNotifCenter() {
+  if(!canSeeNotif()){toast('⛔ Sin permiso');return;}
   notifFilter = 'todas';
   ['todas','vencimientos','cumple'].forEach(f=>{
     const b=document.getElementById('nf-'+f);
@@ -3978,8 +3970,8 @@ function renderGlobalSearch() {
   }
 
   res.style.display='block';
-  res.innerHTML = results.slice(0,12).map(r=>`
-    <div onclick="closeGlobalSearch();(${r.action.toString()})()" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+  res.innerHTML = (window._searchResults=results.slice(0,12)).map((r,idx)=>`
+    <div onclick="closeGlobalSearch();window._searchResults[${idx}].action()" style="display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
       <span style="font-size:1.3rem">${r.icon}</span>
       <div><div style="font-weight:600;font-size:.88rem">${r.title}</div><div style="font-size:.75rem;color:var(--text2)">${r.sub}</div></div>
     </div>`).join('');
