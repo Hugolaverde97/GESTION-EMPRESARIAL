@@ -3275,9 +3275,11 @@ function initTrailerSearch(selectedId) {
   const hi = document.getElementById('veh_trailerAsignado');
   if(si) si.value = t ? (t.placa||'') : '';
   if(hi) hi.value = selectedId||'';
-  // Show all on focus
-  const inp = document.getElementById('veh_trailerSearch');
-  if(inp) inp.onfocus = () => filterTrailerSelect(inp.value);
+  if(si) {
+    si.onfocus = () => filterTrailerSelect(si.value);
+    si.oninput = () => filterTrailerSelect(si.value);
+    setTimeout(() => filterTrailerSelect(si.value), 100);
+  }
 }
 function filterVehicleSelect(q) {
   const res = document.getElementById('emp_vehiculoResults');
@@ -3303,8 +3305,12 @@ function initVehicleSearch(selectedId) {
   const hi = document.getElementById('emp_vehiculoAsignado');
   if(si) si.value = v ? (v.placa||'') : '';
   if(hi) hi.value = selectedId||'';
-  const inp = document.getElementById('emp_vehiculoSearch');
-  if(inp) inp.onfocus = () => filterVehicleSelect(inp.value);
+  if(si) {
+    si.onfocus = () => filterVehicleSelect(si.value);
+    si.oninput = () => filterVehicleSelect(si.value);
+    // Show all immediately
+    setTimeout(() => filterVehicleSelect(si.value), 100);
+  }
 }
 // Hide dropdowns when clicking outside
 document.addEventListener('click', (e) => {
@@ -3923,6 +3929,16 @@ function setNotifFilter(f) {
 }
 
 
+
+function handleNotifClick(notifId, subjectId, notifType) {
+  readNotifs.add(notifId);
+  updateNotifBadge();
+  if(subjectId && notifType) {
+    closeModal('notifCenter');
+    navigateFromNotif(notifId, subjectId, notifType);
+  }
+}
+
 function navigateFromNotif(notifId, subjectId, notifType) {
   // Mark as read
   readNotifs.add(notifId);
@@ -3978,7 +3994,7 @@ function renderNotifList() {
   el.innerHTML = notifs.map(n=>{
     const isRead = readNotifs.has(n.id);
     const hasAction = n.subjectId && n.notifType;
-    return `<div onclick="${hasAction ? `navigateFromNotif('${n.id}','${n.subjectId}','${n.notifType}')` : `readNotif('${n.id}')`}" style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;margin-bottom:10px;cursor:pointer;border:1px solid ${n.urgent&&!isRead?'rgba(239,68,68,.4)':'var(--border)'};background:${isRead?'var(--surface2)':n.urgent?'rgba(239,68,68,.07)':'rgba(91,141,246,.07)'};transition:all .2s;opacity:${isRead?.6:1}">
+    return `<div onclick="handleNotifClick('${n.id}','${n.subjectId||''}','${n.notifType||''}')"  style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;margin-bottom:10px;cursor:pointer;border:1px solid ${n.urgent&&!isRead?'rgba(239,68,68,.4)':'var(--border)'};background:${isRead?'var(--surface2)':n.urgent?'rgba(239,68,68,.07)':'rgba(91,141,246,.07)'};transition:all .2s;opacity:${isRead?.6:1}">
       <div style="font-size:1.6rem;flex-shrink:0;margin-top:2px">${n.icon}</div>
       <div style="flex:1">
         <div style="font-weight:700;font-size:.9rem;color:${isRead?'var(--text2)':n.urgent?'#ef4444':'var(--text1)'}">${n.title}</div>
