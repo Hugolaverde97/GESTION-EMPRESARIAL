@@ -1244,6 +1244,20 @@
         <input type="date" class="form-input" id="ren_fecha">
       </div>
       <div class="form-group full">
+        <label class="form-label">Tipo de contrato resultante (opcional)</label>
+        <select class="form-select" id="ren_tipo_actual" onchange="toggleRenTipoActual()">
+          <option value="">— Sin cambio —</option>
+          <option value="Fijo">Término fijo</option>
+          <option value="Indefinido">Término indefinido</option>
+          <option value="Obra">Obra o labor</option>
+          <option value="Aprendizaje">Aprendizaje</option>
+        </select>
+      </div>
+      <div class="form-group full" id="ren_duracion_actual_grupo" style="display:none">
+        <label class="form-label">Nueva duración del contrato (meses)</label>
+        <input type="number" class="form-input" id="ren_duracion_actual" placeholder="Ej: 12" min="1">
+      </div>
+      <div class="form-group full">
         <label class="form-label">Nota (opcional)</label>
         <input class="form-input" id="ren_nota" placeholder="Observación...">
       </div>
@@ -2433,7 +2447,8 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Cargo</div><div class="field-value">${e.cargo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Fecha de ingreso</div><div class="field-value">${fmtDate(e.fechaIngreso)}</div></div>
       <div class="field-card"><div class="field-label">Antigüedad</div><div class="field-value" style="color:var(--accent2)">${e.fechaIngreso?calcAntiguedad(e.fechaIngreso):'—'}</div></div>
-      <div class="field-card"><div class="field-label">Tipo de contrato</div><div class="field-value">${e.tipoContrato||'—'}</div></div>
+      <div class="field-card"><div class="field-label">Tipo contrato original</div><div class="field-value">${e.tipoContrato||'—'}</div></div>
+      ${(()=>{const c=getCurrentContrato(e);return c.tipo&&c.tipo!==e.tipoContrato?`<div class="field-card" style="background:rgba(91,141,246,.08)"><div class="field-label">Tipo contrato actual</div><div class="field-value" style="color:var(--accent1);font-weight:700">${c.tipo}${c.duracion?' · '+c.duracion+' meses':''}</div></div>`:'';})()}
       ${e.tipoContrato==='Fijo'&&e.duracion?`<div class="field-card"><div class="field-label">Duración inicial</div><div class="field-value">${e.duracion} meses</div></div>`:''}
       ${e.tipoContrato==='Fijo'&&e.fechaIngreso?`<div class="field-card"><div class="field-label">Vencimiento calculado</div><div class="field-value" style="color:${calcVencContrato(e)<7?'var(--danger)':calcVencContrato(e)<30?'var(--accent2)':'var(--accent3)'}">${fmtDate(calcFechaVencContrato(e))}${calcVencContrato(e)!==null?' · '+(calcVencContrato(e)<0?'⚠️ Vencido hace '+Math.abs(calcVencContrato(e))+' días':calcVencContrato(e)===0?'⚠️ Vence hoy':calcVencContrato(e)+' días restantes'):''}
       </div></div>`:''}
@@ -4670,13 +4685,25 @@ function deleteOrgNode() {
 }
 
 // ===================== CONTRACT RENEWALS =====================
+
+function getCurrentContrato(e) {
+  // Get the most recent tipoActual from renovaciones
+  const rens = (e.renovaciones||[]).filter(r=>r.tipoActual);
+  if(rens.length) {
+    const last = rens[rens.length-1];
+    return { tipo: last.tipoActual, duracion: last.duracionActual||e.duracion };
+  }
+  return { tipo: e.tipoContrato, duracion: e.duracion };
+}
+
 function calcTotalMeses(e) {
-  // Total months = initial duration + all renewals that add time
   let total = parseInt(e.duracion || 0);
+  let currentDur = parseInt(e.duracion || 0); // tracks current duration
   (e.renovaciones || []).forEach(r => {
+    if(r.duracionActual) currentDur = parseInt(r.duracionActual); // update current duration
     if(r.tipo !== 'no_renueva' && r.meses) total += parseInt(r.meses);
-    if(r.tipo === 'automatica' && !r.meses) total += parseInt(e.duracion || 0);
-    if(r.tipo === 'automatica_diff' && !r.meses) total += parseInt(e.duracion || 0);
+    if(r.tipo === 'automatica' && !r.meses) total += currentDur;
+    if(r.tipo === 'automatica_diff' && !r.meses) total += currentDur;
   });
   return total;
 }
@@ -4688,6 +4715,11 @@ function calcFechaVencContrato(e) {
   const venc = new Date(ini);
   venc.setMonth(venc.getMonth() + totalMeses);
   return venc.toISOString().split('T')[0];
+}
+function getCurrentDuracion(e) {
+  // Returns the effective current duration (from last tipoActual renewal or original)
+  const curr = getCurrentContrato(e);
+  return curr.duracion || e.duracion;
 }
 
 function calcVencContrato(e) {
@@ -4708,6 +4740,11 @@ function openRenewalModal() {
   openModal('renewalModal');
 }
 
+function toggleRenTipoActual() {
+  const val=document.getElementById('ren_tipo_actual')?.value;
+  const dg=document.getElementById('ren_duracion_actual_grupo');
+  if(dg) dg.style.display=val==='Fijo'?'':'none';
+}
 function toggleRenewalMeses() {
   const tipo = document.getElementById('ren_tipo').value;
   const grupo = document.getElementById('ren_meses_grupo');
@@ -4738,11 +4775,15 @@ function saveRenewal() {
   if(!fecha) { alert('Selecciona la fecha de renovación.'); return; }
   if(tipo !== 'no_renueva' && !meses) { alert('Ingresa la duración en meses.'); return; }
   if(!e.renovaciones) e.renovaciones = [];
+  const tipoActual = document.getElementById('ren_tipo_actual')?.value||'';
+  const duracionActual = document.getElementById('ren_duracion_actual')?.value;
   e.renovaciones.push({
     tipo,
     meses: tipo !== 'no_renueva' ? parseInt(meses) : null,
     fecha,
     nota: nota || null,
+    tipoActual: tipoActual||null,
+    duracionActual: (tipoActual && duracionActual) ? parseInt(duracionActual) : null,
     createdAt: new Date().toISOString()
   });
   save();
