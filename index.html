@@ -2341,7 +2341,7 @@ function renderEmployeeList() {
   const sortEl=document.getElementById('emp_sort');
   const sortBy=sortEl?sortEl.value:'nombre';
   let emps=getEmployees(currentCompany);
-  if(q) emps=emps.filter(e=>(e.nombre||'').toLowerCase().includes(q)||(e.apellidos||'').toLowerCase().includes(q)||(e.cedula||'').includes(q));
+  if(q) emps=emps.filter(e=>(e.nombre||'').toLowerCase().includes(q)||(e.nombres||'').toLowerCase().includes(q)||(e.apellidos||'').toLowerCase().includes(q)||(e.cedula||'').includes(q)||(e.cargo||'').toLowerCase().includes(q));
   if(empFilter==='activos') emps=emps.filter(e=>e.activo!==false);
   if(empFilter==='inactivos') emps=emps.filter(e=>e.activo===false);
   // Sort
@@ -3329,7 +3329,11 @@ document.addEventListener('click', (e) => {
 });
 
 function populateTrailerSelect(selectedId) {
-  initTrailerSearch(selectedId||"");
+  const sel = document.getElementById('veh_trailerAsignado');
+  if(!sel) return;
+  const trailers = (state.trailers||[]).filter(t=>t.activo!==false);
+  sel.innerHTML = '<option value="">— Sin tráiler —</option>' +
+    trailers.map(t=>`<option value="${t.id}" ${selectedId===t.id?'selected':''}>${t.placa||'Sin placa'} · ${t.clase||t.tipo||''} · ${t.marca||''}</option>`).join('');
 }
 
 function getTrailerName(tid) {
@@ -3942,6 +3946,20 @@ function handleNotifClick(notifId, subjectId, notifType) {
     navigateFromNotif(notifId, subjectId, notifType);
   }
 }
+function handleNotifClickEl(el) {
+  const notifId = el.dataset.nid;
+  const subjectId = el.dataset.sid;
+  const notifType = el.dataset.ntype;
+  readNotifs.add(notifId);
+  updateNotifBadge();
+  if(subjectId && notifType) {
+    closeModal('notifCenter');
+    navigateFromNotif(notifId, subjectId, notifType);
+  } else {
+    // just mark as read and refresh
+    renderNotifList();
+  }
+}
 
 function navigateFromNotif(notifId, subjectId, notifType) {
   // Mark as read
@@ -3998,7 +4016,7 @@ function renderNotifList() {
   el.innerHTML = notifs.map(n=>{
     const isRead = readNotifs.has(n.id);
     const hasAction = n.subjectId && n.notifType;
-    return `<div onclick="handleNotifClick('${n.id}','${n.subjectId||''}','${n.notifType||''}')"  style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;margin-bottom:10px;cursor:pointer;border:1px solid ${n.urgent&&!isRead?'rgba(239,68,68,.4)':'var(--border)'};background:${isRead?'var(--surface2)':n.urgent?'rgba(239,68,68,.07)':'rgba(91,141,246,.07)'};transition:all .2s;opacity:${isRead?.6:1}">
+    return `<div data-nid="${n.id}" data-sid="${n.subjectId||''}" data-ntype="${n.notifType||''}" onclick="handleNotifClickEl(this)"   style="display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:14px;margin-bottom:10px;cursor:pointer;border:1px solid ${n.urgent&&!isRead?'rgba(239,68,68,.4)':'var(--border)'};background:${isRead?'var(--surface2)':n.urgent?'rgba(239,68,68,.07)':'rgba(91,141,246,.07)'};transition:all .2s;opacity:${isRead?.6:1}">
       <div style="font-size:1.6rem;flex-shrink:0;margin-top:2px">${n.icon}</div>
       <div style="flex:1">
         <div style="font-weight:700;font-size:.9rem;color:${isRead?'var(--text2)':n.urgent?'#ef4444':'var(--text1)'}">${n.title}</div>
