@@ -2524,8 +2524,14 @@ function renderVacaciones() {
             </div>
             <div style="display:none">${periodosHtml}</div>
           </div>
-          <!-- Vacation records -->
-          ${vacsEmp.length ? vacsEmp.map(v => renderVacCard(v)).join('') : '<div style="font-size:.75rem;color:var(--text2);padding:4px 0">Sin registros de vacaciones.</div>'}
+          <!-- Vacation records (collapsible) -->
+          <div style="margin-bottom:6px">
+            <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.vac-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'" style="cursor:pointer;font-size:.72rem;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:6px;padding:6px 0">
+              <span class="vac-arrow">▶</span> Registros de vacaciones
+              <span style="background:var(--surface2);color:var(--accent1);padding:1px 7px;border-radius:20px;font-size:.68rem;font-weight:700">${vacsEmp.length}</span>
+            </div>
+            <div style="display:none">${vacsEmp.length ? vacsEmp.map(v => renderVacCard(v)).join('') : '<div style="font-size:.75rem;color:var(--text2);padding:4px 0">Sin registros de vacaciones.</div>'}</div>
+          </div>
           ${canEdit()?`<button onclick="openNuevaVacacion('${e.id}')" style="width:100%;margin-top:10px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar vacación</button>`:''}
         </div>`;
     });
