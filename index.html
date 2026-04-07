@@ -2450,6 +2450,7 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Tipo contrato original</div><div class="field-value">${e.tipoContrato||'—'}</div></div>
       ${(()=>{const c=getCurrentContrato(e);return c.tipo&&c.tipo!==e.tipoContrato?`<div class="field-card" style="background:rgba(91,141,246,.08)"><div class="field-label">Tipo contrato actual</div><div class="field-value" style="color:var(--accent1);font-weight:700">${c.tipo}${c.duracion?' · '+c.duracion+' meses':''}</div></div>`:'';})()}
       ${e.tipoContrato==='Fijo'&&e.duracion?`<div class="field-card"><div class="field-label">Duración inicial</div><div class="field-value">${e.duracion} meses</div></div>`:''}
+      ${(()=>{const c=getCurrentContrato(e);const durAct=getCurrentDuracion(e);const showTipoAct=c.tipo&&c.tipo!==e.tipoContrato;const showDurAct=durAct&&String(durAct)!==String(e.duracion);return (showTipoAct?`<div class="field-card" style="background:rgba(91,141,246,.08)"><div class="field-label">Tipo contrato actual</div><div class="field-value" style="color:var(--accent1);font-weight:700">${c.tipo}</div></div>`:'')+(showDurAct||durAct?`<div class="field-card" style="background:rgba(91,141,246,.08)"><div class="field-label">Duración actual</div><div class="field-value" style="color:var(--accent1);font-weight:700">${durAct} meses</div></div>`:'');})()}
       ${e.tipoContrato==='Fijo'&&e.fechaIngreso?`<div class="field-card"><div class="field-label">Vencimiento calculado</div><div class="field-value" style="color:${calcVencContrato(e)<7?'var(--danger)':calcVencContrato(e)<30?'var(--accent2)':'var(--accent3)'}">${fmtDate(calcFechaVencContrato(e))}${calcVencContrato(e)!==null?' · '+(calcVencContrato(e)<0?'⚠️ Vencido hace '+Math.abs(calcVencContrato(e))+' días':calcVencContrato(e)===0?'⚠️ Vence hoy':calcVencContrato(e)+' días restantes'):''}
       </div></div>`:''}
       ${canSeeSalary()?`<div class="field-card"><div class="field-label">Salario mensual</div><div class="field-value" style="color:var(--accent3)">${e.salario?'$'+e.salario:'—'}</div></div>`:''}
@@ -4717,9 +4718,13 @@ function calcFechaVencContrato(e) {
   return venc.toISOString().split('T')[0];
 }
 function getCurrentDuracion(e) {
-  // Returns the effective current duration (from last tipoActual renewal or original)
+  // Check for explicit duracionActual first
   const curr = getCurrentContrato(e);
-  return curr.duracion || e.duracion;
+  if(curr.duracion && String(curr.duracion) !== String(e.duracion)) return curr.duracion;
+  // Otherwise: last renewal that has meses defined
+  const rens = (e.renovaciones||[]).filter(r=>r.tipo!=='no_renueva'&&r.meses);
+  if(rens.length) return parseInt(rens[rens.length-1].meses);
+  return parseInt(e.duracion||0);
 }
 
 function calcVencContrato(e) {
