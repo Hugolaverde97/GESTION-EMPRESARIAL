@@ -640,7 +640,7 @@
         <option value="canceladas">Canceladas</option>
       </select>
     </div>
-    <button onclick="document.getElementById('vacFiltroQ').value='';document.getElementById('vacFiltroEmp').value='';document.getElementById('vacFiltroCargo').value='';document.getElementById('vacFiltroEstado').value='';renderVacaciones()" style="align-self:flex-start;padding:5px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font)">✕ Limpiar filtros</button>
+    <button onclick="document.getElementById('vacFiltroQ').value='';document.getElementById('vacFiltroEmp').value='';document.getElementById('vacFiltroCargo').value='';document.getElementById('vacFiltroEstado').value='';document.getElementById('vacFiltroActivo').value='';renderVacaciones()" style="align-self:flex-start;padding:5px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font)">✕ Limpiar filtros</button>
   </div>
   <div class="screen-content pb-safe" id="vacacionesContent"></div>
 </div>
@@ -2083,7 +2083,8 @@ function toggleVacFiltro() {
 }
 
 function poblarFiltrosVacaciones() {
-  const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+  // Include all employees (active + inactive), filter via filtroActivo
+  const emps = getEmployees(currentVacEmpresaIdx);
   // Empleado
   const selEmp = document.getElementById('vacFiltroEmp');
   if(selEmp) selEmp.innerHTML = '<option value="">Todos los empleados</option>' +
@@ -2101,7 +2102,10 @@ function getPeriodos(emp) {
   // Returns array of periods: [{num, desde, hasta, completado, diasGanados}]
   if(!emp.fechaIngreso) return [];
   const ini = new Date(emp.fechaIngreso + 'T00:00:00');
-  const now = new Date();
+  // For inactive employees, stop accrual at retiro date
+  const now = (emp.activo===false && emp.fechaRetiro)
+    ? new Date(emp.fechaRetiro + 'T23:59:59')
+    : new Date();
   const periodos = [];
   let p = 1;
   let desde = new Date(ini);
@@ -2183,6 +2187,139 @@ function calcResumenVacaciones(emp, empresaIdx, excludeId) {
 }
 
 // ── Render ───────────────────────────────────────────────
+
+function switchVacTab(tab) {
+  const lista = document.getElementById('vacacionesContent');
+  const stats = document.getElementById('vacacionesStats');
+  const tl = document.getElementById('vac-tab-lista');
+  const ts = document.getElementById('vac-tab-stats');
+  if(!lista||!stats) return;
+  lista.style.display = tab==='lista' ? '' : 'none';
+  stats.style.display = tab==='stats' ? '' : 'none';
+  if(tl) { tl.classList.toggle('active', tab==='lista'); }
+  if(ts) { ts.classList.toggle('active', tab==='stats'); }
+  if(tab==='stats') renderVacStats();
+}
+
+function renderVacStats() {
+  const container = document.getElementById('vacacionesStats');
+  if(!container) return;
+  const emps = getEmployees(currentVacEmpresaIdx);
+  const vacs = getVacaciones(currentVacEmpresaIdx);
+
+  if(!emps.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Sin datos.</div></div>'; return; }
+
+  // Build per-employee stats
+  const stats = emps.map(e => {
+    const res = calcResumenVacaciones(e, currentVacEmpresaIdx, null);
+    return { e, res };
+  });
+
+  const totalGanados  = stats.reduce((s,x)=>s+x.res.totalGanados, 0);
+  const totalTomados  = stats.reduce((s,x)=>s+x.res.totalTomados, 0);
+  const totalSaldo    = stats.reduce((s,x)=>s+Math.max(0,x.res.saldo), 0);
+  const conDeuda      = stats.filter(x=>x.res.saldo<0).length;
+  const sinVacaciones = stats.filter(x=>x.res.totalTomados===0 && x.res.totalGanados>0).length;
+
+  // Top empleados con más saldo pendiente
+  const topSaldo = [...stats].filter(x=>x.res.saldo>0).sort((a,b)=>b.res.saldo-a.res.saldo).slice(0,5);
+  // Top tomados
+  const topTomados = [...stats].filter(x=>x.res.totalTomados>0).sort((a,b)=>b.res.totalTomados-a.res.totalTomados).slice(0,5);
+  // Modalidad breakdown
+  const byModalidad = {disfrutadas:0, pagadas:0, mixtas:0};
+  vacs.filter(v=>v.estado==='tomadas').forEach(v=>{ byModalidad[v.modalidad||'disfrutadas']+=parseInt(v.dias)||0; });
+
+  container.innerHTML = `
+    <div style="padding:16px">
+      <!-- Summary cards -->
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Resumen general</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+          <div style="font-size:1.5rem;font-weight:800;color:var(--accent1)">${totalGanados}</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Días ganados total</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+          <div style="font-size:1.5rem;font-weight:800;color:#22c55e">${totalTomados}</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Días tomados total</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+          <div style="font-size:1.5rem;font-weight:800;color:#f59e0b">${totalSaldo}</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Días pendientes por tomar</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+          <div style="font-size:1.5rem;font-weight:800;color:#ef4444">${conDeuda}</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Empleados con deuda de vac.</div>
+        </div>
+      </div>
+
+      <!-- Modalidad breakdown -->
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Días tomados por modalidad</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:20px;display:flex;gap:16px;flex-wrap:wrap">
+        <div style="text-align:center;flex:1">
+          <div style="font-size:1.3rem">🏖️</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--accent1)">${byModalidad.disfrutadas}</div>
+          <div style="font-size:.7rem;color:var(--text2)">Disfrutadas</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:1.3rem">💰</div>
+          <div style="font-size:1.1rem;font-weight:800;color:#22c55e">${byModalidad.pagadas}</div>
+          <div style="font-size:.7rem;color:var(--text2)">Pagadas</div>
+        </div>
+        <div style="text-align:center;flex:1">
+          <div style="font-size:1.3rem">🔀</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--accent2)">${byModalidad.mixtas}</div>
+          <div style="font-size:.7rem;color:var(--text2)">Mixtas</div>
+        </div>
+      </div>
+
+      <!-- Top saldo pendiente -->
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Mayor saldo pendiente</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px">
+        ${topSaldo.length ? topSaldo.map(({e,res},i)=>{
+          const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+          const pct = res.totalGanados>0 ? Math.round((res.saldo/res.totalGanados)*100) : 0;
+          return `<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+            <div style="width:28px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text2)">${i+1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+              <div style="font-size:.7rem;color:var(--text2)">${e.cargo||'Sin cargo'}${e.activo===false?' · ⛔ Inactivo':''}</div>
+              <div style="background:var(--surface2);border-radius:20px;height:4px;margin-top:5px"><div style="height:100%;background:#f59e0b;border-radius:20px;width:${pct}%"></div></div>
+            </div>
+            <div style="font-size:1.1rem;font-weight:800;color:#f59e0b;flex-shrink:0">+${res.saldo}</div>
+          </div>`;
+        }).join('') : '<div style="padding:14px;color:var(--text2);font-size:.85rem;text-align:center">Sin datos</div>'}
+      </div>
+
+      <!-- Top tomados -->
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Más días tomados</div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px">
+        ${topTomados.length ? topTomados.map(({e,res},i)=>{
+          const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+          return `<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
+            <div style="width:28px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text2)">${i+1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+              <div style="font-size:.7rem;color:var(--text2)">${e.cargo||'Sin cargo'}${e.activo===false?' · ⛔ Inactivo':''}</div>
+            </div>
+            <div style="font-size:1.1rem;font-weight:800;color:#22c55e;flex-shrink:0">${res.totalTomados}</div>
+          </div>`;
+        }).join('') : '<div style="padding:14px;color:var(--text2);font-size:.85rem;text-align:center">Sin datos</div>'}
+      </div>
+
+      <!-- Sin vacaciones -->
+      ${sinVacaciones>0?`
+      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;margin-bottom:20px">
+        <div style="font-size:.82rem;font-weight:700;color:#ef4444;margin-bottom:8px">⚠️ ${sinVacaciones} empleado${sinVacaciones!==1?'s':''} con días ganados pero sin vacaciones registradas</div>
+        ${stats.filter(x=>x.res.totalTomados===0&&x.res.totalGanados>0).map(({e,res})=>{
+          const name=(e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+          return `<div style="font-size:.78rem;color:var(--text2);padding:3px 0">• ${name} — ${res.totalGanados} días ganados${e.activo===false?' (inactivo)':''}</div>`;
+        }).join('')}
+      </div>`:''
+      }
+    </div>
+  `;
+}
+
 function renderVacaciones() {
   const container = document.getElementById('vacacionesContent');
   if(!container) return;
@@ -2194,7 +2331,10 @@ function renderVacaciones() {
   const filtroCargo = document.getElementById('vacFiltroCargo')?.value||'';
   const filtroQ     = (document.getElementById('vacFiltroQ')?.value||'').toLowerCase().trim();
 
+  const filtroActivo = document.getElementById('vacFiltroActivo')?.value||'';
   let empList = [...emps];
+  if(filtroActivo==='activos')   empList = empList.filter(e=>e.activo!==false);
+  if(filtroActivo==='inactivos') empList = empList.filter(e=>e.activo===false);
   if(filtroEmp)   empList = empList.filter(e=>e.id===filtroEmp);
   if(filtroCargo) empList = empList.filter(e=>e.cargo===filtroCargo);
   if(filtroQ)     empList = empList.filter(e=>
@@ -2274,6 +2414,7 @@ function renderVacaciones() {
             <div style="flex:1;min-width:0">
               <div style="font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
               <div style="font-size:.72rem;color:var(--text2)">${e.cargo||'Sin cargo'} · Ingreso: ${fmtDate(e.fechaIngreso)}</div>
+            ${e.activo===false?`<div style="font-size:.7rem;color:#ef4444;font-weight:600">⛔ Inactivo desde ${fmtDate(e.fechaRetiro)}</div>`:''}
             </div>
             <div style="text-align:right;flex-shrink:0">
               <div style="font-size:1.2rem;font-weight:800;color:${saldoColor}">${res.saldo>0?'+'+res.saldo:res.saldo}</div>
