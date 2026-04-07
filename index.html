@@ -4848,7 +4848,9 @@ const EMP_COLS = [
   {id:'emergCelular',  label:'Tel. Emergencia'},
   {id:'estado',        label:'Estado', computed: e => e.activo===false?'Inactivo':'Activo'},
   {id:'venc_contrato',  label:'Venc. Contrato', computed: e => e.tipoContrato==='Fijo'?calcFechaVencContrato(e)||'':''},
-  {id:'num_renovaciones', label:'# Renovaciones', computed: e => (e.renovaciones||[]).length},
+  {id:'num_renovaciones',  label:'# Renovaciones',   computed: e => (e.renovaciones||[]).length},
+  {id:'tipo_actual',       label:'Tipo Contrato Actual', computed: e => {const c=getCurrentContrato(e);return c.tipo&&c.tipo!==e.tipoContrato?c.tipo:e.tipoContrato||'';}},
+  {id:'duracion_actual',   label:'Duración Actual (meses)', computed: e => getCurrentDuracion(e)||''},
 ];
 
 const VEH_COLS = [
