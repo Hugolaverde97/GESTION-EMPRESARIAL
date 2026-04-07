@@ -2354,6 +2354,7 @@ function deleteVacacion(id) {
 }
 
 function openPermisos(idx) {
+  currentPermisosEmpresaIdx = idx;
   currentPermisosEmpresaIdx2 = idx;
   const em = (state.empresas||[])[idx]||{};
   document.getElementById('permisosTitle').textContent = (em.nombre||'Empresa') + ' · Permisos';
