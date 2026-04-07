@@ -624,10 +624,14 @@
     </div>
   </div>
   <!-- Filtro panel -->
-  <div id="vacFiltroPanel" style="display:none;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:none">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <select class="form-select" id="vacFiltroEmp" onchange="renderVacaciones()" style="flex:1;min-width:140px;font-size:.82rem;padding:7px 10px">
+  <div id="vacFiltroPanel" style="display:none;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-direction:column;gap:8px">
+    <input class="form-input" id="vacFiltroQ" placeholder="🔍 Buscar por nombre o cargo..." oninput="renderVacaciones()" style="font-size:.85rem">
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select class="form-select" id="vacFiltroEmp" onchange="renderVacaciones()" style="flex:1;min-width:130px;font-size:.82rem;padding:7px 10px">
         <option value="">Todos los empleados</option>
+      </select>
+      <select class="form-select" id="vacFiltroCargo" onchange="renderVacaciones()" style="flex:1;min-width:130px;font-size:.82rem;padding:7px 10px">
+        <option value="">Todos los cargos</option>
       </select>
       <select class="form-select" id="vacFiltroEstado" onchange="renderVacaciones()" style="width:auto;font-size:.82rem;padding:7px 10px">
         <option value="">Todos los estados</option>
@@ -636,6 +640,7 @@
         <option value="canceladas">Canceladas</option>
       </select>
     </div>
+    <button onclick="document.getElementById('vacFiltroQ').value='';document.getElementById('vacFiltroEmp').value='';document.getElementById('vacFiltroCargo').value='';document.getElementById('vacFiltroEstado').value='';renderVacaciones()" style="align-self:flex-start;padding:5px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font)">✕ Limpiar filtros</button>
   </div>
   <div class="screen-content pb-safe" id="vacacionesContent"></div>
 </div>
@@ -693,6 +698,11 @@
           <label id="vac_est_can" onclick="setVacEstado('canceladas')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:9px 10px;border-radius:10px;border:2px solid var(--border);font-size:.82rem;font-weight:600;transition:all .15s">❌ Canceladas</label>
         </div>
         <input type="hidden" id="vac_estado" value="programadas">
+      </div>
+      <div class="form-group full" id="vac_periodo_grupo" style="display:none">
+        <label class="form-label">Período de vacaciones</label>
+        <select class="form-select" id="vac_periodo"></select>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:4px">Indica a qué año de trabajo corresponden estas vacaciones</div>
       </div>
       <div class="form-group full">
         <label class="form-label">¿Cómo se disfrutaron?</label>
@@ -2046,6 +2056,7 @@ function deletePermisoSub() {
 }
 
 
+
 // ══════════════════════════════════════════════
 // MÓDULO VACACIONES
 // ══════════════════════════════════════════════
@@ -2054,17 +2065,11 @@ let editingVacId = null;
 let currentVacEstado = 'programadas';
 
 function openSubmodulo(tipo) {
+  currentVacEmpresaIdx = currentPermisosEmpresaIdx;
+  const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
   if(tipo === 'vacaciones') {
-    currentVacEmpresaIdx = currentPermisosEmpresaIdx;
-    const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
     document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
-    // Populate filtro empleado
-    const sel = document.getElementById('vacFiltroEmp');
-    if(sel) {
-      const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
-      sel.innerHTML = '<option value="">Todos los empleados</option>' +
-        emps.map(e=>`<option value="${e.id}">${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
-    }
+    poblarFiltrosVacaciones();
     renderVacaciones();
     showScreen('vacacionesScreen');
   }
@@ -2073,33 +2078,60 @@ function openSubmodulo(tipo) {
 function toggleVacFiltro() {
   const p = document.getElementById('vacFiltroPanel');
   if(!p) return;
-  const visible = p.style.display === 'flex' || p.style.display === 'block';
+  const visible = p.style.display !== 'none' && p.style.display !== '';
   p.style.display = visible ? 'none' : 'flex';
 }
 
-// ── Saldo calculator ─────────────────────────────────────
-function calcDiasAcumulados(emp) {
-  if(!emp.fechaIngreso) return 0;
+function poblarFiltrosVacaciones() {
+  const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+  // Empleado
+  const selEmp = document.getElementById('vacFiltroEmp');
+  if(selEmp) selEmp.innerHTML = '<option value="">Todos los empleados</option>' +
+    emps.map(e=>`<option value="${e.id}">${(e.apellidos?e.apellidos+', ':'')+e.nombres||''}</option>`).join('');
+  // Cargo
+  const cargos = [...new Set(emps.map(e=>e.cargo).filter(Boolean))].sort();
+  const selCargo = document.getElementById('vacFiltroCargo');
+  if(selCargo) selCargo.innerHTML = '<option value="">Todos los cargos</option>' +
+    cargos.map(c=>`<option value="${c}">${c}</option>`).join('');
+  // Periodo - will be populated dynamically
+}
+
+// ── Periodos (aniversario) ───────────────────────────────
+function getPeriodos(emp) {
+  // Returns array of periods: [{num, desde, hasta, completado, diasGanados}]
+  if(!emp.fechaIngreso) return [];
   const ini = new Date(emp.fechaIngreso + 'T00:00:00');
   const now = new Date();
-  const diffMs = now - ini;
-  const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-  return Math.floor(years * 15 * 10) / 10; // 15 días/año, 1 decimal
-}
-
-function calcDiasTomados(empId, empresaIdx, excludeId) {
-  const vacs = getVacaciones(empresaIdx).filter(v =>
-    v.empleadoId === empId &&
-    v.estado === 'tomadas' &&
-    v.id !== excludeId
-  );
-  return vacs.reduce((s, v) => s + (parseInt(v.dias)||0), 0);
-}
-
-function calcSaldoVacaciones(emp, empresaIdx, excludeId) {
-  const acum = calcDiasAcumulados(emp);
-  const tomados = calcDiasTomados(emp.id, empresaIdx, excludeId);
-  return Math.round((acum - tomados) * 10) / 10;
+  const periodos = [];
+  let p = 1;
+  let desde = new Date(ini);
+  while(desde <= now) {
+    const hasta = new Date(desde);
+    hasta.setFullYear(hasta.getFullYear() + 1);
+    hasta.setDate(hasta.getDate() - 1);
+    const completado = hasta < now;
+    const diasGanados = completado ? 15 : 0; // Only full years get 15 days
+    // Días acumulados en periodo parcial (proporcional, solo para mostrar)
+    let diasParciales = 0;
+    if(!completado) {
+      const mesesTranscurridos = (now - desde) / (1000*60*60*24*30.44);
+      diasParciales = Math.floor(mesesTranscurridos * 1.25 * 10) / 10;
+    }
+    periodos.push({
+      num: p,
+      desde: desde.toISOString().split('T')[0],
+      hasta: hasta.toISOString().split('T')[0],
+      completado,
+      diasGanados,
+      diasParciales,
+      label: `Período ${p} (${fmtDate(desde.toISOString().split('T')[0])} → ${fmtDate(hasta.toISOString().split('T')[0])})`
+    });
+    desde = new Date(hasta);
+    desde.setDate(desde.getDate() + 1);
+    p++;
+    if(p > 50) break; // safety
+  }
+  return periodos;
 }
 
 function getVacaciones(empresaIdx) {
@@ -2108,26 +2140,75 @@ function getVacaciones(empresaIdx) {
   return state.vacaciones[empresaIdx];
 }
 
-// ── Render vacaciones list ───────────────────────────────
+function getDiasTomadosPorPeriodo(empId, empresaIdx, periodos, excludeId) {
+  const vacs = getVacaciones(empresaIdx).filter(v => v.empleadoId===empId && v.estado==='tomadas' && v.id!==excludeId);
+  const map = {};
+  periodos.forEach(p => map[p.num] = 0);
+  vacs.forEach(v => {
+    const pNum = parseInt(v.periodo)||1;
+    if(map[pNum] !== undefined) map[pNum] += parseInt(v.dias)||0;
+    else map[pNum] = parseInt(v.dias)||0;
+  });
+  return map;
+}
+
+function calcResumenVacaciones(emp, empresaIdx, excludeId) {
+  const periodos = getPeriodos(emp);
+  const tomadosPorPeriodo = getDiasTomadosPorPeriodo(emp.id, empresaIdx, periodos, excludeId);
+  const completados = periodos.filter(p=>p.completado);
+  const parcial = periodos.find(p=>!p.completado);
+  
+  let totalGanados = completados.reduce((s,p)=>s+p.diasGanados, 0);
+  let totalTomados = Object.values(tomadosPorPeriodo).reduce((s,v)=>s+v, 0);
+  let saldo = totalGanados - totalTomados;
+  
+  const detallePeriodos = completados.map(p => ({
+    ...p,
+    tomados: tomadosPorPeriodo[p.num]||0,
+    saldo: p.diasGanados - (tomadosPorPeriodo[p.num]||0)
+  }));
+
+  return {
+    periodos: detallePeriodos,
+    periodoParcial: parcial ? {
+      ...parcial,
+      tomados: tomadosPorPeriodo[parcial.num]||0,
+      saldo: -((tomadosPorPeriodo[parcial.num]||0)) // anticipated
+    } : null,
+    totalGanados,
+    totalTomados,
+    saldo,
+    periodoActual: parcial ? parcial.num : (completados.length + 1)
+  };
+}
+
+// ── Render ───────────────────────────────────────────────
 function renderVacaciones() {
   const container = document.getElementById('vacacionesContent');
   if(!container) return;
   const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
   const vacs = getVacaciones(currentVacEmpresaIdx);
 
-  const filtroEmp = document.getElementById('vacFiltroEmp')?.value||'';
-  const filtroEst = document.getElementById('vacFiltroEstado')?.value||'';
+  const filtroEmp   = document.getElementById('vacFiltroEmp')?.value||'';
+  const filtroEst   = document.getElementById('vacFiltroEstado')?.value||'';
+  const filtroCargo = document.getElementById('vacFiltroCargo')?.value||'';
+  const filtroQ     = (document.getElementById('vacFiltroQ')?.value||'').toLowerCase().trim();
 
-  // Build employee saldo cards
-  const empList = filtroEmp ? emps.filter(e=>e.id===filtroEmp) : emps;
+  let empList = [...emps];
+  if(filtroEmp)   empList = empList.filter(e=>e.id===filtroEmp);
+  if(filtroCargo) empList = empList.filter(e=>e.cargo===filtroCargo);
+  if(filtroQ)     empList = empList.filter(e=>
+    (e.nombres||'').toLowerCase().includes(filtroQ)||
+    (e.apellidos||'').toLowerCase().includes(filtroQ)||
+    (e.cargo||'').toLowerCase().includes(filtroQ)
+  );
 
-  // Stats bar
+  // Global stats
   const totalProg = vacs.filter(v=>v.estado==='programadas').length;
-  const totalTom = vacs.filter(v=>v.estado==='tomadas').length;
-  const conSaldo = empList.filter(e=>calcSaldoVacaciones(e,currentVacEmpresaIdx,null)>0).length;
+  const totalTom  = vacs.filter(v=>v.estado==='tomadas').length;
+  const conSaldo  = emps.filter(e=>{ const r=calcResumenVacaciones(e,currentVacEmpresaIdx,null); return r.saldo>0; }).length;
 
   let html = `
-    <!-- Stats bar -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 16px 0">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
         <div style="font-size:1.4rem;font-weight:800;color:var(--accent1)">${totalProg}</div>
@@ -2142,94 +2223,115 @@ function renderVacaciones() {
         <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Con saldo</div>
       </div>
     </div>
+    <div style="padding:12px 16px 0">
   `;
 
   if(!empList.length) {
-    html += '<div class="empty-state" style="margin-top:20px"><div class="empty-icon">🏖️</div><div class="empty-text">No hay empleados activos.</div></div>';
-    container.innerHTML = html;
-    return;
+    html += '<div class="empty-state" style="margin-top:20px"><div class="empty-icon">🏖️</div><div class="empty-text">No hay empleados con los filtros seleccionados.</div></div>';
+  } else {
+    empList.forEach(e => {
+      const res = calcResumenVacaciones(e, currentVacEmpresaIdx, null);
+      const saldoColor = res.saldo <= 0 ? '#ef4444' : res.saldo < 5 ? '#f59e0b' : '#22c55e';
+      const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+      const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
+      const pct = res.totalGanados > 0 ? Math.min(100, (res.totalTomados/res.totalGanados)*100) : 0;
+
+      // Period detail rows
+      let periodosHtml = '';
+      res.periodos.forEach(p => {
+        const sc = p.saldo <= 0 ? '#ef4444' : p.saldo < 5 ? '#f59e0b' : '#22c55e';
+        periodosHtml += `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface2);border-radius:8px;margin-bottom:4px;font-size:.75rem">
+            <span style="background:var(--accent1)22;color:var(--accent1);padding:2px 7px;border-radius:20px;font-weight:700;flex-shrink:0">Año ${p.num}</span>
+            <span style="color:var(--text2);flex:1">${fmtDate(p.desde)} → ${fmtDate(p.hasta)}</span>
+            <span style="color:var(--text2)">✅ ${p.tomados} tomados</span>
+            <span style="color:${sc};font-weight:700">📊 ${p.saldo} disponibles</span>
+          </div>`;
+      });
+
+      // Partial period
+      if(res.periodoParcial) {
+        const pp = res.periodoParcial;
+        periodosHtml += `
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(245,158,11,.06);border:1px dashed rgba(245,158,11,.3);border-radius:8px;margin-bottom:4px;font-size:.75rem">
+            <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:2px 7px;border-radius:20px;font-weight:700;flex-shrink:0">Año ${pp.num} ⏳</span>
+            <span style="color:var(--text2);flex:1">${fmtDate(pp.desde)} → ${fmtDate(pp.hasta)}</span>
+            <span style="color:var(--text2)">${pp.diasParciales} días acumulando</span>
+            ${pp.tomados>0?`<span style="color:#ef4444;font-weight:700">⚠️ ${pp.tomados} anticipadas</span>`:'<span style="color:#f59e0b;font-size:.7rem">No completo</span>'}
+          </div>`;
+      }
+
+      // Vacaciones records
+      let vacsEmp = getVacaciones(currentVacEmpresaIdx).filter(v=>v.empleadoId===e.id);
+      if(filtroEst) vacsEmp = vacsEmp.filter(v=>v.estado===filtroEst);
+      vacsEmp.sort((a,b)=>(b.fechaIni||'').localeCompare(a.fechaIni||''));
+
+      html += `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div style="width:38px;height:38px;border-radius:50%;background:var(--accent1)22;border:2px solid var(--accent1);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent1);font-size:1rem;flex-shrink:0">${init}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+              <div style="font-size:.72rem;color:var(--text2)">${e.cargo||'Sin cargo'} · Ingreso: ${fmtDate(e.fechaIngreso)}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-size:1.2rem;font-weight:800;color:${saldoColor}">${res.saldo>0?'+'+res.saldo:res.saldo}</div>
+              <div style="font-size:.62rem;color:var(--text2)">días disponibles</div>
+            </div>
+          </div>
+          <!-- Progress -->
+          <div style="background:var(--surface2);border-radius:20px;height:5px;overflow:hidden;margin-bottom:8px">
+            <div style="height:100%;border-radius:20px;background:linear-gradient(90deg,var(--accent1),${saldoColor});width:${pct}%;transition:width .5s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text2);margin-bottom:12px">
+            <span>🏆 ${res.totalGanados} días ganados (${res.periodos.length} período${res.periodos.length!==1?'s':''})</span>
+            <span>✅ ${res.totalTomados} tomados</span>
+            <span style="color:${saldoColor};font-weight:700">📊 ${res.saldo} disponibles</span>
+          </div>
+          <!-- Periodos detail (collapsible) -->
+          <div style="margin-bottom:10px">
+            <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('span').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'" style="cursor:pointer;font-size:.72rem;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span>▶</span> Detalle por período
+            </div>
+            <div style="display:none">${periodosHtml}</div>
+          </div>
+          <!-- Vacation records -->
+          ${vacsEmp.length ? vacsEmp.map(v => renderVacCard(v)).join('') : '<div style="font-size:.75rem;color:var(--text2);padding:4px 0">Sin registros de vacaciones.</div>'}
+          ${canEdit()?`<button onclick="openNuevaVacacion('${e.id}')" style="width:100%;margin-top:10px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar vacación</button>`:''}
+        </div>`;
+    });
   }
-
-  // Employee saldo cards
-  html += '<div style="padding:14px 16px 0"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Saldo por empleado</div>';
-
-  empList.forEach(e => {
-    const acum = calcDiasAcumulados(e);
-    const tomados = calcDiasTomados(e.id, currentVacEmpresaIdx, null);
-    const saldo = Math.round((acum - tomados) * 10) / 10;
-    const pct = acum > 0 ? Math.min(100, (tomados/acum)*100) : 0;
-    const saldoColor = saldo <= 0 ? '#ef4444' : saldo < 5 ? '#f59e0b' : '#22c55e';
-    const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
-    const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
-
-    html += `
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent1)22;border:2px solid var(--accent1);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent1);flex-shrink:0">${init}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-            <div style="font-size:.72rem;color:var(--text2)">${e.cargo||'Sin cargo'}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:1.1rem;font-weight:800;color:${saldoColor}">${saldo > 0 ? '+'+saldo : saldo}</div>
-            <div style="font-size:.65rem;color:var(--text2)">días disponibles</div>
-          </div>
-        </div>
-        <!-- Progress bar -->
-        <div style="background:var(--surface2);border-radius:20px;height:6px;overflow:hidden;margin-bottom:8px">
-          <div style="height:100%;border-radius:20px;background:linear-gradient(90deg,var(--accent1),${saldoColor});width:${pct}%;transition:width .5s"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text2);margin-bottom:10px">
-          <span>🏖️ ${acum.toFixed(1)} acumulados</span>
-          <span>✅ ${tomados} tomados</span>
-          <span style="color:${saldoColor};font-weight:700">📊 ${saldo} disponibles</span>
-        </div>
-        <!-- Vacation records for this employee -->
-        ${renderEmpVacList(e.id, filtroEst)}
-        ${canEdit()?`<button onclick="openNuevaVacacion('${e.id}')" style="width:100%;margin-top:8px;padding:8px;background:rgba(91,141,246,.1);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar vacación</button>`:''}
-      </div>`;
-  });
-
   html += '</div>';
-
-  if(canEdit()) {
-    html += `<div style="padding:0 16px 80px"><button class="add-btn" onclick="openNuevaVacacion()">➕ Nueva vacación</button></div>`;
-  }
-
+  if(canEdit()) html += `<div style="padding:0 16px 80px"><button class="add-btn" onclick="openNuevaVacacion()">➕ Nueva vacación</button></div>`;
   container.innerHTML = html;
 }
 
-function renderEmpVacList(empId, filtroEst) {
-  let vacs = getVacaciones(currentVacEmpresaIdx).filter(v=>v.empleadoId===empId);
-  if(filtroEst) vacs = vacs.filter(v=>v.estado===filtroEst);
-  vacs.sort((a,b)=>(b.fechaIni||'').localeCompare(a.fechaIni||''));
-  if(!vacs.length) return '<div style="font-size:.75rem;color:var(--text2);padding:4px 0">Sin registros de vacaciones.</div>';
-
+function renderVacCard(v) {
   const estadoStyle = {
-    programadas: {bg:'rgba(91,141,246,.12)',color:'#5b8df6',label:'📅 Programadas'},
-    tomadas:     {bg:'rgba(34,197,94,.12)', color:'#22c55e',label:'✅ Tomadas'},
-    canceladas:  {bg:'rgba(239,68,68,.12)', color:'#ef4444',label:'❌ Canceladas'},
+    programadas: {bg:'rgba(91,141,246,.1)', color:'#5b8df6', label:'📅 Programadas'},
+    tomadas:     {bg:'rgba(34,197,94,.1)',  color:'#22c55e', label:'✅ Tomadas'},
+    canceladas:  {bg:'rgba(239,68,68,.1)',  color:'#ef4444', label:'❌ Canceladas'},
   };
-
-  return vacs.map(v => {
-    const est = estadoStyle[v.estado]||{bg:'var(--surface2)',color:'var(--text2)',label:v.estado};
-    const dateRange = v.fechaIni + (v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+v.fechaFin:'');
-    const fmtR = d => d?d.split('-').reverse().join('/'):'—';
-    return `<div style="background:${est.bg};border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:.72rem;color:${est.color};font-weight:700">${est.label}</span>
-          <span style="font-size:.72rem;color:var(--text2)">${fmtR(v.fechaIni)}${v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+fmtR(v.fechaFin):''}</span>
-        </div>
-        <div style="font-size:.78rem;font-weight:700;color:var(--text1);margin-top:2px">🗓️ ${v.dias||'?'} días hábiles · ${v.modalidad==='pagadas'?'💰 Pagadas':v.modalidad==='mixtas'?'🔀 Mixtas':'🏖️ Disfrutadas'}</div>
-        ${v.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:2px;font-style:italic">"${v.obs}"</div>`:''}
+  const est = estadoStyle[v.estado]||{bg:'var(--surface2)',color:'var(--text2)',label:v.estado};
+  const modLabel = v.modalidad==='pagadas'?'💰 Pagadas':v.modalidad==='mixtas'?'🔀 Mixtas':'🏖️ Disfrutadas';
+  const anticipada = v.anticipada ? '<span style="font-size:.68rem;background:rgba(245,158,11,.15);color:#f59e0b;padding:1px 6px;border-radius:10px;font-weight:700">⚠️ Anticipada</span>' : '';
+  return `<div style="background:${est.bg};border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+        <span style="font-size:.72rem;color:${est.color};font-weight:700">${est.label}</span>
+        <span style="font-size:.7rem;color:var(--text2)">${fmtDate(v.fechaIni)}${v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+fmtDate(v.fechaFin):''}</span>
+        ${v.periodo?`<span style="font-size:.68rem;background:var(--accent1)22;color:var(--accent1);padding:1px 6px;border-radius:10px">Año ${v.periodo}</span>`:''}
+        ${anticipada}
       </div>
-      ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
-        <button onclick="openEditVacacion('${v.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
-        <button onclick="deleteVacacion('${v.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
-      </div>`:''}
-    </div>`;
-  }).join('');
+      <div style="font-size:.78rem;font-weight:700;color:var(--text1)">🗓️ ${v.dias||'?'} días · ${modLabel}</div>
+      ${v.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:2px;font-style:italic">"${v.obs}"</div>`:''}
+    </div>
+    ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
+      <button onclick="openEditVacacion('${v.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
+      <button onclick="deleteVacacion('${v.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
+    </div>`:''}
+  </div>`;
 }
 
 // ── Modal ────────────────────────────────────────────────
@@ -2237,17 +2339,17 @@ function openNuevaVacacion(preEmpId) {
   if(!canEdit()) { toast('⛔ Sin permiso'); return; }
   editingVacId = null;
   document.getElementById('vacModalTitle').textContent = '🏖️ Nueva Vacación';
-  // Populate employees
   const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
   const sel = document.getElementById('vac_empleado');
   sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
-    emps.map(e=>`<option value="${e.id}" ${e.id===preEmpId?'selected':''}>${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
+    emps.map(e=>`<option value="${e.id}" ${e.id===preEmpId?'selected':''}>${(e.apellidos?e.apellidos+', ':'')+e.nombres||''}</option>`).join('');
   document.getElementById('vac_fecha_ini').value = '';
   document.getElementById('vac_fecha_fin').value = '';
   document.getElementById('vac_dias').value = '';
   document.getElementById('vac_obs').value = '';
+  const modEl = document.getElementById('vac_modalidad'); if(modEl) modEl.value='disfrutadas';
   setVacEstado('programadas');
-  updateVacSaldo();
+  document.getElementById('vac_periodo_grupo').style.display = 'none';
   if(preEmpId) { sel.value = preEmpId; updateVacSaldo(); }
   openModal('vacacionModal');
 }
@@ -2262,12 +2364,12 @@ function openEditVacacion(id) {
   const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
   const sel = document.getElementById('vac_empleado');
   sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
-    emps.map(e=>`<option value="${e.id}" ${e.id===v.empleadoId?'selected':''}>${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
+    emps.map(e=>`<option value="${e.id}" ${e.id===v.empleadoId?'selected':''}>${(e.apellidos?e.apellidos+', ':'')+e.nombres||''}</option>`).join('');
   document.getElementById('vac_fecha_ini').value = v.fechaIni||'';
   document.getElementById('vac_fecha_fin').value = v.fechaFin||'';
   document.getElementById('vac_dias').value = v.dias||'';
   document.getElementById('vac_obs').value = v.obs||'';
-  const modEl=document.getElementById('vac_modalidad');if(modEl)modEl.value=v.modalidad||'disfrutadas';
+  const modEl = document.getElementById('vac_modalidad'); if(modEl) modEl.value=v.modalidad||'disfrutadas';
   setVacEstado(v.estado||'programadas');
   updateVacSaldo();
   openModal('vacacionModal');
@@ -2281,27 +2383,39 @@ function setVacEstado(estado) {
     if(!el) return;
     const active = s === estado;
     el.style.borderColor = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--border)';
-    el.style.background = active ? (s==='tomadas'?'rgba(34,197,94,.1)':s==='canceladas'?'rgba(239,68,68,.1)':'rgba(91,141,246,.1)') : 'transparent';
-    el.style.color = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--text2)';
+    el.style.background  = active ? (s==='tomadas'?'rgba(34,197,94,.1)':s==='canceladas'?'rgba(239,68,68,.1)':'rgba(91,141,246,.1)') : 'transparent';
+    el.style.color       = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--text2)';
   });
 }
 
 function updateVacSaldo() {
   const empId = document.getElementById('vac_empleado')?.value;
   const infoEl = document.getElementById('vac_saldo_info');
-  if(!empId) { if(infoEl) infoEl.style.display='none'; return; }
+  const periodoGrupo = document.getElementById('vac_periodo_grupo');
+  if(!empId) { if(infoEl) infoEl.style.display='none'; if(periodoGrupo) periodoGrupo.style.display='none'; return; }
   const emp = getEmployees(currentVacEmpresaIdx).find(e=>e.id===empId);
   if(!emp || !emp.fechaIngreso) { if(infoEl) infoEl.style.display='none'; return; }
-  const acum = calcDiasAcumulados(emp);
-  const tomados = calcDiasTomados(empId, currentVacEmpresaIdx, editingVacId);
-  const saldo = Math.round((acum - tomados) * 10) / 10;
-  const saldoColor = saldo <= 0 ? '#ef4444' : saldo < 5 ? '#f59e0b' : '#22c55e';
-  document.getElementById('vac_info_acum').textContent = acum.toFixed(1);
-  document.getElementById('vac_info_tom').textContent = tomados;
+
+  const res = calcResumenVacaciones(emp, currentVacEmpresaIdx, editingVacId);
+  const saldoColor = res.saldo <= 0 ? '#ef4444' : res.saldo < 5 ? '#f59e0b' : '#22c55e';
+  document.getElementById('vac_info_acum').textContent = res.totalGanados;
+  document.getElementById('vac_info_tom').textContent = res.totalTomados;
   const saldoEl = document.getElementById('vac_info_saldo');
-  saldoEl.textContent = saldo > 0 ? '+'+saldo : saldo;
+  saldoEl.textContent = res.saldo > 0 ? '+'+res.saldo : res.saldo;
   saldoEl.style.color = saldoColor;
   if(infoEl) infoEl.style.display = 'block';
+
+  // Populate periodo selector
+  const selPer = document.getElementById('vac_periodo');
+  if(selPer && periodoGrupo) {
+    const allPeriodos = getPeriodos(emp);
+    selPer.innerHTML = allPeriodos.map(p =>
+      `<option value="${p.num}">${p.completado?'✅':'⏳'} Año ${p.num} · ${fmtDate(p.desde)} → ${fmtDate(p.hasta)}${!p.completado?' (en curso)':''}</option>`
+    ).join('');
+    // Default to current (last) period
+    selPer.value = res.periodoActual;
+    periodoGrupo.style.display = '';
+  }
 }
 
 function saveVacacion() {
@@ -2313,6 +2427,16 @@ function saveVacacion() {
   if(!fechaIni) { toast('⚠️ Ingresa la fecha de inicio'); return; }
   if(!dias || dias < 1) { toast('⚠️ Ingresa los días hábiles'); return; }
 
+  const periodo = parseInt(document.getElementById('vac_periodo')?.value)||1;
+  const emp = getEmployees(currentVacEmpresaIdx).find(e=>e.id===empId);
+  const allPeriodos = emp ? getPeriodos(emp) : [];
+  const per = allPeriodos.find(p=>p.num===periodo);
+  const anticipada = per && !per.completado;
+
+  if(anticipada && estado === 'tomadas') {
+    toast('⚠️ Aviso: estas son vacaciones anticipadas de un período no completado');
+  }
+
   if(!state.vacaciones) state.vacaciones = {};
   if(!state.vacaciones[currentVacEmpresaIdx]) state.vacaciones[currentVacEmpresaIdx] = [];
 
@@ -2323,6 +2447,8 @@ function saveVacacion() {
     fechaFin: document.getElementById('vac_fecha_fin').value || fechaIni,
     dias,
     estado,
+    periodo,
+    anticipada: anticipada && estado==='tomadas',
     modalidad: document.getElementById('vac_modalidad')?.value||'disfrutadas',
     obs: document.getElementById('vac_obs').value.trim(),
     creadoEn: editingVacId ? undefined : new Date().toISOString(),
@@ -2352,6 +2478,8 @@ function deleteVacacion(id) {
   renderVacaciones();
   toast('🗑️ Registro eliminado');
 }
+
+
 
 function openPermisos(idx) {
   currentPermisosEmpresaIdx = idx;
