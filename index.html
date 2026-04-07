@@ -613,82 +613,148 @@
 </div>
 
 <!-- PERMISOS SCREEN -->
-<div id="permisosScreen" class="screen" style="height:100vh">
+<!-- VACACIONES SCREEN -->
+<div id="vacacionesScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('permisosScreen')">← Permisos</button>
+    <span class="bar-title" id="vacacionesTitle">Vacaciones</span>
+    <div class="bar-actions" style="display:flex;gap:6px;align-items:center">
+      <button class="icon-btn" id="vacFiltroBtn" onclick="toggleVacFiltro()" title="Filtrar">⚙️</button>
+      <button class="icon-btn" id="addVacBtn" onclick="openNuevaVacacion()" title="Nueva">➕</button>
+    </div>
+  </div>
+  <!-- Filtro panel -->
+  <div id="vacFiltroPanel" style="display:none;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:none">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="vacFiltroEmp" onchange="renderVacaciones()" style="flex:1;min-width:140px;font-size:.82rem;padding:7px 10px">
+        <option value="">Todos los empleados</option>
+      </select>
+      <select class="form-select" id="vacFiltroEstado" onchange="renderVacaciones()" style="width:auto;font-size:.82rem;padding:7px 10px">
+        <option value="">Todos los estados</option>
+        <option value="programadas">Programadas</option>
+        <option value="tomadas">Tomadas</option>
+        <option value="canceladas">Canceladas</option>
+      </select>
+    </div>
+  </div>
+  <div class="screen-content pb-safe" id="vacacionesContent"></div>
+</div>
+
+<!-- VACACION MODAL -->
+<div class="modal-overlay" id="vacacionModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">
+      <span id="vacModalTitle">🏖️ Nueva Vacación</span>
+      <button class="modal-close" onclick="closeModal('vacacionModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Empleado</label>
+        <select class="form-select" id="vac_empleado" onchange="updateVacSaldo()"></select>
+      </div>
+      <!-- Saldo info -->
+      <div class="form-group full" id="vac_saldo_info" style="display:none">
+        <div style="background:rgba(91,141,246,.08);border:1px solid rgba(91,141,246,.2);border-radius:12px;padding:12px 14px;display:flex;gap:16px;flex-wrap:wrap">
+          <div style="text-align:center;flex:1">
+            <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Acumulados</div>
+            <div style="font-size:1.2rem;font-weight:800;color:var(--accent1)" id="vac_info_acum">—</div>
+            <div style="font-size:.65rem;color:var(--text2)">días hábiles</div>
+          </div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Tomados</div>
+            <div style="font-size:1.2rem;font-weight:800;color:var(--accent4)" id="vac_info_tom">—</div>
+            <div style="font-size:.65rem;color:var(--text2)">días hábiles</div>
+          </div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Saldo</div>
+            <div style="font-size:1.2rem;font-weight:800" id="vac_info_saldo" style="color:#22c55e">—</div>
+            <div style="font-size:.65rem;color:var(--text2)">días disponibles</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha inicio</label>
+        <input type="date" class="form-input" id="vac_fecha_ini">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha fin</label>
+        <input type="date" class="form-input" id="vac_fecha_fin">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Días hábiles</label>
+        <input type="number" class="form-input" id="vac_dias" placeholder="Ej: 5" min="1">
+        <div style="font-size:.72rem;color:var(--text2);margin-top:4px">Ingresa los días hábiles (lunes a viernes, sin festivos)</div>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Estado</label>
+        <div style="display:flex;gap:8px">
+          <label id="vac_est_prog" onclick="setVacEstado('programadas')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:9px 10px;border-radius:10px;border:2px solid var(--accent1);background:rgba(91,141,246,.1);font-size:.82rem;font-weight:700;transition:all .15s">📅 Programadas</label>
+          <label id="vac_est_tom" onclick="setVacEstado('tomadas')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:9px 10px;border-radius:10px;border:2px solid var(--border);font-size:.82rem;font-weight:600;transition:all .15s">✅ Tomadas</label>
+          <label id="vac_est_can" onclick="setVacEstado('canceladas')" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:9px 10px;border-radius:10px;border:2px solid var(--border);font-size:.82rem;font-weight:600;transition:all .15s">❌ Canceladas</label>
+        </div>
+        <input type="hidden" id="vac_estado" value="programadas">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Observaciones (opcional)</label>
+        <input class="form-input" id="vac_obs" placeholder="Ej: Vacaciones de mitad de año...">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveVacacion()" style="flex:1;padding:13px;background:var(--accent1);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem">💾 Guardar</button>
+      <button onclick="closeModal('vacacionModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- INCAPACIDADES SCREEN -->
+<div id="incapacidadesScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('permisosScreen')">← Permisos</button>
+    <span class="bar-title">Incapacidades</span>
+    <div class="bar-actions">
+      ${canEdit()?'<button class="icon-btn" onclick="openNuevaIncapacidad()" id="addIncapBtn">➕</button>':''}
+    </div>
+  </div>
+  <div class="screen-content pb-safe" id="incapacidadesContent"></div>
+</div>
+
+<!-- PERMISOS SCREEN -->
+<div id="permisosSubScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('permisosScreen')">← Permisos</button>
+    <span class="bar-title">Permisos</span>
+    <div class="bar-actions">
+      ${canEdit()?'<button class="icon-btn" onclick="openNuevoPermiso()" id="addPermBtn">➕</button>':''}
+    </div>
+  </div>
+  <div class="screen-content pb-safe" id="permisosSubContent"></div>
+</div>
+
+<div id="permisosScreen" class="screen">
   <div class="top-bar">
     <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
     <span class="bar-title" id="permisosTitle">Permisos y Ausencias</span>
     <div class="bar-actions"></div>
   </div>
-  <!-- Tabs -->
-  <div style="display:flex;border-bottom:1px solid var(--border);background:var(--surface)">
-    <button id="tabRegistros" onclick="switchPermisosTab('registros')" style="flex:1;padding:12px;border:none;background:none;cursor:pointer;font-family:var(--font);font-weight:600;font-size:.88rem;color:var(--accent);border-bottom:2px solid var(--accent)">📋 Registros</button>
-    <button id="tabEstadisticas" onclick="switchPermisosTab('estadisticas')" style="flex:1;padding:12px;border:none;background:none;cursor:pointer;font-family:var(--font);font-weight:600;font-size:.88rem;color:var(--text2);border-bottom:2px solid transparent">📊 Estadísticas</button>
-  </div>
-
-  <!-- Tab: Registros -->
-  <div id="permisosTabRegistros" style="flex:1;overflow-y:auto;padding:16px">
-    <!-- Add button -->
-    <button onclick="openNuevoPermiso()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:12px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">➕ Nuevo permiso / ausencia</button>
-    <!-- Filters -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      <select id="filtroPermisoTipo" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:140px;font-size:.82rem">
-        <option value="">Todos los tipos</option>
-        <option value="vacaciones">Vacaciones</option>
-        <option value="incapacidad">Incapacidad</option>
-        <option value="permiso_remunerado">Permiso remunerado</option>
-        <option value="permiso_no_remunerado">Permiso no remunerado</option>
-      </select>
-      <select id="filtroPermisoEmpleado" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:140px;font-size:.82rem">
-        <option value="">Todos los empleados</option>
-      </select>
-      <select id="filtroPermisoEstado" onchange="renderPermisosList()" class="form-select" style="flex:1;min-width:120px;font-size:.82rem">
-        <option value="">Todos los estados</option>
-        <option value="programado">Programado</option>
-        <option value="tomado">Tomado</option>
-        <option value="cancelado">Cancelado</option>
-      </select>
+  <div class="screen-content pb-safe" id="permisosMenuContent">
+    <!-- 3 module buttons -->
+    <div style="padding:20px 16px;display:flex;flex-direction:column;gap:14px">
+      <button class="main-btn" style="background:var(--surface2);color:var(--text1);padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start" onclick="openSubmodulo('vacaciones')">
+        <span style="font-size:1.8rem">🏖️</span>
+        <div style="text-align:left"><div style="font-size:1rem">Vacaciones</div><div style="font-size:.75rem;font-weight:400;opacity:.7;margin-top:2px">Saldo, programadas y tomadas</div></div>
+        <span style="margin-left:auto;font-size:1.3rem;opacity:.5">›</span>
+      </button>
+      <button class="main-btn" style="background:var(--surface2);color:var(--text1);padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start" onclick="openSubmodulo('incapacidades')">
+        <span style="font-size:1.8rem">🏥</span>
+        <div style="text-align:left"><div style="font-size:1rem">Incapacidades</div><div style="font-size:.75rem;font-weight:400;opacity:.7;margin-top:2px">EPS, ARL, Maternidad, Paternidad</div></div>
+        <span style="margin-left:auto;font-size:1.3rem;opacity:.5">›</span>
+      </button>
+      <button class="main-btn" style="background:var(--surface2);color:var(--text1);padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start" onclick="openSubmodulo('permisos')">
+        <span style="font-size:1.8rem">📋</span>
+        <div style="text-align:left"><div style="font-size:1rem">Permisos</div><div style="font-size:.75rem;font-weight:400;opacity:.7;margin-top:2px">Remunerados, no remunerados, calamidad</div></div>
+        <span style="margin-left:auto;font-size:1.3rem;opacity:.5">›</span>
+      </button>
     </div>
-    <div id="permisosListContainer"></div>
-  </div>
-
-  <!-- Tab: Estadísticas -->
-  <div id="permisosTabEstadisticas" style="display:none;flex:1;overflow-y:auto;padding:16px">
-    <!-- Stat Filters -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      <select id="statRango" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
-        <option value="mes">Este mes</option>
-        <option value="semana">Esta semana</option>
-        <option value="año">Este año</option>
-        <option value="custom">Personalizado</option>
-      </select>
-      <div id="statCustomDates" style="display:none;display:flex;gap:6px;flex:2">
-        <input type="date" id="statFechaDesde" onchange="renderPermisosStats()" class="form-select" style="flex:1;font-size:.82rem">
-        <input type="date" id="statFechaHasta" onchange="renderPermisosStats()" class="form-select" style="flex:1;font-size:.82rem">
-      </div>
-      <select id="statTipo" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
-        <option value="todos">Todos los tipos</option>
-        <option value="vacaciones">Vacaciones</option>
-        <option value="incapacidad">Incapacidad</option>
-        <option value="permiso_remunerado">Permiso remunerado</option>
-        <option value="permiso_no_remunerado">Permiso no remunerado</option>
-      </select>
-      <select id="statEmpleado" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
-        <option value="">Todos los empleados</option>
-      </select>
-      <select id="statMetrica" onchange="renderPermisosStats()" class="form-select" style="flex:1;min-width:130px;font-size:.82rem">
-        <option value="registros">Nº de registros</option>
-        <option value="dias">Días/horas totales</option>
-      </select>
-    </div>
-
-  <!-- Tab: Festivos -->
-  
-    <!-- Chart -->
-    <div style="background:var(--surface);border-radius:14px;padding:16px;margin-bottom:14px">
-      <canvas id="permisosChart" style="width:100%;height:200px"></canvas>
-    </div>
-    <!-- Summary cards -->
-    <div id="permisosSummaryCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px"></div>
   </div>
 </div>
 
@@ -1646,7 +1712,7 @@ async function startSyncPolling() {
 
 async function syncToCloud() {
   try {
-    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
     // Track what we just saved
     const now = new Date().toISOString(); lastKnownUpdatedAt = now;
@@ -1658,7 +1724,7 @@ async function loadFromCloud() {
     // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
     if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings;
-      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; }
+      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
     // Also load settings separately (saved by saveSettings)
     try {
       const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
@@ -1684,24 +1750,755 @@ async function loadSettings() {
 
 
 
-function openPermisos(idx) {
-  currentPermisosEmpresaIdx = idx;
-  const em = (state.empresas||[])[idx] || {};
-  document.getElementById('permisosTitle').textContent = (em.nombre||'Empresa') + ' · Permisos';
-  // Populate employee selectors
-  const emps = getEmployees(idx);
-  ['filtroPermisoEmpleado','statEmpleado','perm_empleado'].forEach(selId => {
-    const sel = document.getElementById(selId);
-    if(!sel) return;
-    const hasAll = selId !== 'perm_empleado';
-    sel.innerHTML = (hasAll ? '<option value="">Todos los empleados</option>' : '') +
-      emps.map(e => `<option value="${e.id}">${e.nombres||''} ${e.apellidos||''}</option>`).join('');
-  });
-  // Reset tab to registros
-  switchPermisosTab('registros');
-  showScreen('permisosScreen');
+
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO PERMISOS Y AUSENCIAS - NUEVO SISTEMA
+// ═══════════════════════════════════════════════════════════════
+let currentPermisosEmpresaIdx2 = 0;
+let editingVacacionId = null;
+let editingIncapacidadId = null;
+let editingPermisoSubId = null;
+
+// ── Helpers ──────────────────────────────────────────────────
+function getPA(empresaIdx) {
+  if(!state.pa) state.pa = {};
+  if(!state.pa[empresaIdx]) state.pa[empresaIdx] = { vacaciones:[], incapacidades:[], permisos:[] };
+  return state.pa[empresaIdx];
 }
 
+function calcSaldoVacaciones(emp, empresaIdx) {
+  // 15 días hábiles por año trabajado desde fechaIngreso
+  if(!emp.fechaIngreso) return {acumulados:0, tomados:0, saldo:0};
+  const inicio = new Date(emp.fechaIngreso + 'T00:00:00');
+  const hoy = new Date();
+  const mesesTrabajados = (hoy - inicio) / (1000*60*60*24*30.44);
+  const acumulados = Math.floor((mesesTrabajados / 12) * 15 * 10) / 10; // 1 decimal
+  // Days taken = sum of vacaciones tomadas
+  const pa = getPA(empresaIdx);
+  const tomados = (pa.vacaciones||[])
+    .filter(v => v.empleadoId === emp.id && v.estado === 'tomadas')
+    .reduce((s,v) => s + (parseInt(v.dias)||0), 0);
+  return { acumulados, tomados, saldo: Math.max(0, acumulados - tomados) };
+}
+
+function openSubmodulo(tipo) {
+  const empresaIdx = currentPermisosEmpresaIdx2;
+  const em = (state.empresas||[])[empresaIdx]||{};
+  if(tipo === 'vacaciones') {
+    document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
+    renderVacaciones();
+    showScreen('vacacionesScreen');
+  } else if(tipo === 'incapacidades') {
+    renderIncapacidades();
+    showScreen('incapacidadesScreen');
+  } else {
+    renderPermisosSubmodulo();
+    showScreen('permisosSubScreen');
+  }
+}
+
+function poblarEmpleadosSelect(selId) {
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+  const emps = getEmployees(currentPermisosEmpresaIdx2).filter(e=>e.activo!==false);
+  sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
+    emps.map(e=>`<option value="${e.id}">${(e.apellidos?e.apellidos+', ':'')+( e.nombres||'')}</option>`).join('');
+}
+
+// ── VACACIONES ───────────────────────────────────────────────
+function renderVacaciones() {
+  const cont = document.getElementById('vacacionesContent');
+  if(!cont) return;
+  const empresaIdx = currentPermisosEmpresaIdx2;
+  const pa = getPA(empresaIdx);
+  const emps = getEmployees(empresaIdx).filter(e=>e.activo!==false);
+  const vacs = pa.vacaciones||[];
+
+  // Stats cards
+  const hoy = new Date().toISOString().split('T')[0];
+  const activos = vacs.filter(v=>v.estado==='tomadas'&&v.inicio<=hoy&&v.fin>=hoy).length;
+  const programadas = vacs.filter(v=>v.estado==='programadas').length;
+
+  let html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:16px 16px 0">
+      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent3)">${activos}</div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">De vacaciones hoy</div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent1)">${programadas}</div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Programadas</div>
+      </div>
+      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent2)">${vacs.length}</div>
+        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Total registros</div>
+      </div>
+    </div>
+    <div style="padding:16px 16px 8px;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">💰 Saldo por empleado</div>
+    <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px">`;
+
+  emps.forEach(e=>{
+    const s = calcSaldoVacaciones(e, empresaIdx);
+    const name = (e.apellidos?e.apellidos+', ':'')+(e.nombres||'');
+    const color = s.saldo > 5 ? 'var(--accent3)' : s.saldo > 0 ? 'var(--accent2)' : '#ef4444';
+    html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-weight:600;font-size:.88rem">${name}</div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:2px">Acumulados: ${s.acumulados} · Tomados: ${s.tomados}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:1.2rem;font-weight:800;color:${color}">${s.saldo}</div>
+        <div style="font-size:.68rem;color:var(--text2)">días disponibles</div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>
+    <div style="padding:16px 16px 8px;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">📋 Registros</div>
+    <div style="padding:0 16px 80px;display:flex;flex-direction:column;gap:8px">`;
+
+  if(!vacs.length) {
+    html += `<div style="text-align:center;padding:40px 20px;color:var(--text2)">Sin registros de vacaciones</div>`;
+  } else {
+    const sorted = [...vacs].sort((a,b)=>b.inicio?.localeCompare(a.inicio||'')||0);
+    sorted.forEach(v=>{
+      const emp = getEmployees(empresaIdx).find(e=>e.id===v.empleadoId);
+      const empName = emp?(e=>(e.apellidos?e.apellidos+', ':'')+(e.nombres||''))(emp):'—';
+      const estadoColor = v.estado==='tomadas'?'#22c55e':v.estado==='programadas'?'#5b8df6':'#ef4444';
+      const estadoLabel = {tomadas:'✅ Tomadas',programadas:'📅 Programadas',canceladas:'❌ Canceladas'}[v.estado]||v.estado;
+      const fmtD = d=>d?d.split('-').reverse().join('/'):'—';
+      html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);cursor:pointer" onclick="${canEdit()?`editVacacion('${v.id}')`:''}" >
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <div style="font-weight:600;font-size:.88rem">${empName}</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${fmtD(v.inicio)} → ${fmtD(v.fin)} · ${v.dias||'?'} días hábiles</div>
+            ${v.obs?`<div style="font-size:.75rem;color:var(--text2);margin-top:2px">${v.obs}</div>`:''}
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:${estadoColor};white-space:nowrap;margin-left:8px">${estadoLabel}</span>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  if(canEdit()) html += `<button onclick="openNuevaVacacion()" style="position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.5);z-index:50">+</button>`;
+  cont.innerHTML = html;
+}
+
+function openNuevaVacacion() {
+  editingVacacionId = null;
+  document.getElementById('vacModalTitle').textContent = 'Nueva Vacación';
+  document.getElementById('vac_del_btn').style.display = 'none';
+  poblarEmpleadosSelect('vac_empleado');
+  document.getElementById('vac_inicio').value = '';
+  document.getElementById('vac_fin').value = '';
+  document.getElementById('vac_dias').value = '';
+  document.getElementById('vac_estado').value = 'programadas';
+  document.getElementById('vac_obs').value = '';
+  openModal('vacacionesModal');
+}
+function editVacacion(id) {
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  const v = (pa.vacaciones||[]).find(x=>x.id===id);
+  if(!v) return;
+  editingVacacionId = id;
+  document.getElementById('vacModalTitle').textContent = 'Editar Vacación';
+  document.getElementById('vac_del_btn').style.display = '';
+  poblarEmpleadosSelect('vac_empleado');
+  document.getElementById('vac_empleado').value = v.empleadoId||'';
+  document.getElementById('vac_inicio').value = v.inicio||'';
+  document.getElementById('vac_fin').value = v.fin||'';
+  document.getElementById('vac_dias').value = v.dias||'';
+  document.getElementById('vac_estado').value = v.estado||'programadas';
+  document.getElementById('vac_obs').value = v.obs||'';
+  openModal('vacacionesModal');
+}
+function saveVacacion() {
+  const empleadoId = document.getElementById('vac_empleado').value;
+  const inicio = document.getElementById('vac_inicio').value;
+  const dias = document.getElementById('vac_dias').value;
+  if(!empleadoId){toast('Selecciona un empleado');return;}
+  if(!inicio){toast('Ingresa la fecha de inicio');return;}
+  if(!dias){toast('Ingresa los días hábiles');return;}
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  if(!pa.vacaciones) pa.vacaciones = [];
+  const rec = {
+    id: editingVacacionId||('vac_'+Date.now()),
+    empleadoId,
+    inicio,
+    fin: document.getElementById('vac_fin').value,
+    dias: parseInt(dias),
+    estado: document.getElementById('vac_estado').value,
+    obs: document.getElementById('vac_obs').value.trim(),
+    creadoEn: new Date().toISOString()
+  };
+  if(editingVacacionId) {
+    const i = pa.vacaciones.findIndex(x=>x.id===editingVacacionId);
+    if(i>=0) pa.vacaciones[i] = rec;
+  } else {
+    pa.vacaciones.push(rec);
+  }
+  save(); closeModal('vacacionesModal'); renderVacaciones(); toast('✅ Vacación guardada');
+}
+function deleteVacacion() {
+  if(!editingVacacionId||!confirm('¿Eliminar este registro?')) return;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  pa.vacaciones = (pa.vacaciones||[]).filter(x=>x.id!==editingVacacionId);
+  save(); closeModal('vacacionesModal'); renderVacaciones(); toast('🗑️ Eliminado');
+}
+
+// ── INCAPACIDADES ────────────────────────────────────────────
+function renderIncapacidades() {
+  const cont = document.getElementById('incapacidadesContent');
+  if(!cont) return;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  const incaps = pa.incapacidades||[];
+  const empresaIdx = currentPermisosEmpresaIdx2;
+  const hoy = new Date().toISOString().split('T')[0];
+  const activas = incaps.filter(i=>i.estado==='activa').length;
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0">
+    <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+      <div style="font-size:1.4rem;font-weight:800;color:#ef4444">${activas}</div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Incapacidades activas</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+      <div style="font-size:1.4rem;font-weight:800;color:var(--accent2)">${incaps.length}</div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Total registros</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 80px;margin-top:16px;display:flex;flex-direction:column;gap:8px">`;
+
+  if(!incaps.length) {
+    html += `<div style="text-align:center;padding:40px 20px;color:var(--text2)">Sin incapacidades registradas</div>`;
+  } else {
+    const sorted = [...incaps].sort((a,b)=>b.inicio?.localeCompare(a.inicio||'')||0);
+    sorted.forEach(v=>{
+      const emp = getEmployees(empresaIdx).find(e=>e.id===v.empleadoId);
+      const empName = emp?((e.apellidos?e.apellidos+', ':'')+(e.nombres||'')):'—';
+      const estadoColor = v.estado==='activa'?'#ef4444':v.estado==='prorroga'?'#f59e0b':'#22c55e';
+      const estadoLabel = {activa:'🔴 Activa',cerrada:'✅ Cerrada',prorroga:'🔄 Prórroga'}[v.estado]||v.estado;
+      const fmtD = d=>d?d.split('-').reverse().join('/'):'—';
+      html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);cursor:pointer" onclick="${canEdit()?`editIncapacidad('${v.id}')`:''}" >
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:.88rem">${empName}</div>
+            <div style="font-size:.78rem;color:var(--accent1);font-weight:600;margin-top:2px">${v.entidad||'—'}</div>
+            <div style="font-size:.78rem;color:var(--text2);margin-top:1px">${v.diagnostico||'Sin diagnóstico'}</div>
+            <div style="font-size:.75rem;color:var(--text2);margin-top:2px">${fmtD(v.inicio)} → ${fmtD(v.fin||'')} · ${v.dias||'?'} días</div>
+          </div>
+          <span style="font-size:.72rem;font-weight:700;color:${estadoColor};white-space:nowrap;margin-left:8px">${estadoLabel}</span>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  if(canEdit()) html += `<button onclick="openNuevaIncapacidad()" style="position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.5);z-index:50">+</button>`;
+  cont.innerHTML = html;
+}
+function openNuevaIncapacidad() {
+  editingIncapacidadId = null;
+  document.getElementById('incapModalTitle').textContent = 'Nueva Incapacidad';
+  document.getElementById('incap_del_btn').style.display = 'none';
+  poblarEmpleadosSelect('incap_empleado');
+  ['incap_diagnostico','incap_inicio','incap_fin','incap_obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('incap_entidad').value='EPS';
+  document.getElementById('incap_estado').value='activa';
+  document.getElementById('incap_dias').value='';
+  openModal('incapacidadModal');
+}
+function editIncapacidad(id) {
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  const v = (pa.incapacidades||[]).find(x=>x.id===id);
+  if(!v) return;
+  editingIncapacidadId = id;
+  document.getElementById('incapModalTitle').textContent = 'Editar Incapacidad';
+  document.getElementById('incap_del_btn').style.display = '';
+  poblarEmpleadosSelect('incap_empleado');
+  document.getElementById('incap_empleado').value = v.empleadoId||'';
+  document.getElementById('incap_entidad').value = v.entidad||'EPS';
+  document.getElementById('incap_diagnostico').value = v.diagnostico||'';
+  document.getElementById('incap_inicio').value = v.inicio||'';
+  document.getElementById('incap_fin').value = v.fin||'';
+  document.getElementById('incap_dias').value = v.dias||'';
+  document.getElementById('incap_estado').value = v.estado||'activa';
+  document.getElementById('incap_obs').value = v.obs||'';
+  openModal('incapacidadModal');
+}
+function saveIncapacidad() {
+  const empleadoId = document.getElementById('incap_empleado').value;
+  const inicio = document.getElementById('incap_inicio').value;
+  if(!empleadoId){toast('Selecciona un empleado');return;}
+  if(!inicio){toast('Ingresa la fecha de inicio');return;}
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  if(!pa.incapacidades) pa.incapacidades = [];
+  const rec = {
+    id: editingIncapacidadId||('inc_'+Date.now()),
+    empleadoId,
+    entidad: document.getElementById('incap_entidad').value,
+    diagnostico: document.getElementById('incap_diagnostico').value.trim(),
+    inicio,
+    fin: document.getElementById('incap_fin').value,
+    dias: parseInt(document.getElementById('incap_dias').value)||null,
+    estado: document.getElementById('incap_estado').value,
+    obs: document.getElementById('incap_obs').value.trim(),
+    creadoEn: new Date().toISOString()
+  };
+  if(editingIncapacidadId) {
+    const i = pa.incapacidades.findIndex(x=>x.id===editingIncapacidadId);
+    if(i>=0) pa.incapacidades[i] = rec;
+  } else { pa.incapacidades.push(rec); }
+  save(); closeModal('incapacidadModal'); renderIncapacidades(); toast('✅ Incapacidad guardada');
+}
+function deleteIncapacidad() {
+  if(!editingIncapacidadId||!confirm('¿Eliminar?')) return;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  pa.incapacidades = (pa.incapacidades||[]).filter(x=>x.id!==editingIncapacidadId);
+  save(); closeModal('incapacidadModal'); renderIncapacidades(); toast('🗑️ Eliminado');
+}
+
+// ── PERMISOS ─────────────────────────────────────────────────
+function togglePermDuracion() {
+  const tipo = document.getElementById('perm_dur_tipo')?.value;
+  const dg = document.getElementById('perm_dias_grupo');
+  const hg = document.getElementById('perm_horas_grupo');
+  if(dg) dg.style.display = tipo==='dias' ? '' : 'none';
+  if(hg) hg.style.display = tipo==='horas' ? '' : 'none';
+}
+function renderPermisosSubmodulo() {
+  const cont = document.getElementById('permisosSubContent');
+  if(!cont) return;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  const perms = pa.permisos||[];
+  const empresaIdx = currentPermisosEmpresaIdx2;
+  const mesActual = new Date().toISOString().slice(0,7);
+  const esteMes = perms.filter(p=>p.fecha?.startsWith(mesActual)).length;
+
+  const tipoLabel = {remunerado:'Remunerado',no_remunerado:'No remunerado',calamidad:'Calamidad',luto:'Luto',lactancia:'Lactancia',otro:'Otro'};
+  const tipoColor = {remunerado:'#22c55e',no_remunerado:'#f59e0b',calamidad:'#ef4444',luto:'#8b5cf6',lactancia:'#ec4899',otro:'#64748b'};
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 16px 0">
+    <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+      <div style="font-size:1.4rem;font-weight:800;color:var(--accent1)">${esteMes}</div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Este mes</div>
+    </div>
+    <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
+      <div style="font-size:1.4rem;font-weight:800;color:var(--accent2)">${perms.length}</div>
+      <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Total registros</div>
+    </div>
+  </div>
+  <div style="padding:0 16px 80px;margin-top:16px;display:flex;flex-direction:column;gap:8px">`;
+
+  if(!perms.length) {
+    html += `<div style="text-align:center;padding:40px 20px;color:var(--text2)">Sin permisos registrados</div>`;
+  } else {
+    const sorted = [...perms].sort((a,b)=>b.fecha?.localeCompare(a.fecha||'')||0);
+    sorted.forEach(v=>{
+      const emp = getEmployees(empresaIdx).find(e=>e.id===v.empleadoId);
+      const empName = emp?((emp.apellidos?emp.apellidos+', ':'')+(emp.nombres||'')):'—';
+      const fmtD = d=>d?d.split('-').reverse().join('/'):'—';
+      const durText = v.durTipo==='horas'?`${v.horas||0}h ${v.minutos||0}min`:`${v.dias||1} día(s)`;
+      const color = tipoColor[v.tipo]||'#64748b';
+      html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);cursor:pointer" onclick="${canEdit()?`editPermisoSub('${v.id}')`:''}" >
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:.88rem">${empName}</div>
+            <div style="font-size:.75rem;font-weight:600;color:${color};margin-top:2px">${tipoLabel[v.tipo]||v.tipo}</div>
+            <div style="font-size:.75rem;color:var(--text2);margin-top:1px">${fmtD(v.fecha)} · ${durText}</div>
+            ${v.motivo?`<div style="font-size:.73rem;color:var(--text2);margin-top:1px">${v.motivo}</div>`:''}
+          </div>
+          <div style="font-size:.7rem;color:var(--text2);text-align:right;white-space:nowrap;margin-left:8px">${{sin_descuento:'Sin desc.',repone:'Repone',descuenta:'Descuenta'}[v.nomina]||''}</div>
+        </div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  if(canEdit()) html += `<button onclick="openNuevoPermiso()" style="position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.5);z-index:50">+</button>`;
+  cont.innerHTML = html;
+}
+function openNuevoPermiso() {
+  editingPermisoSubId = null;
+  document.getElementById('permisoSubModalTitle').textContent = 'Nuevo Permiso';
+  document.getElementById('perm_del_btn').style.display = 'none';
+  poblarEmpleadosSelect('perm_empleado');
+  document.getElementById('perm_tipo').value='remunerado';
+  document.getElementById('perm_fecha').value='';
+  document.getElementById('perm_dur_tipo').value='dias';
+  document.getElementById('perm_dias_num').value='1';
+  document.getElementById('perm_horas_num').value='';
+  document.getElementById('perm_min_num').value='';
+  document.getElementById('perm_nomina').value='sin_descuento';
+  document.getElementById('perm_aprobado').value='';
+  document.getElementById('perm_motivo').value='';
+  togglePermDuracion();
+  openModal('permisoSubModal');
+}
+function editPermisoSub(id) {
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  const v = (pa.permisos||[]).find(x=>x.id===id);
+  if(!v) return;
+  editingPermisoSubId = id;
+  document.getElementById('permisoSubModalTitle').textContent = 'Editar Permiso';
+  document.getElementById('perm_del_btn').style.display = '';
+  poblarEmpleadosSelect('perm_empleado');
+  document.getElementById('perm_empleado').value = v.empleadoId||'';
+  document.getElementById('perm_tipo').value = v.tipo||'remunerado';
+  document.getElementById('perm_fecha').value = v.fecha||'';
+  document.getElementById('perm_dur_tipo').value = v.durTipo||'dias';
+  document.getElementById('perm_dias_num').value = v.dias||'1';
+  document.getElementById('perm_horas_num').value = v.horas||'';
+  document.getElementById('perm_min_num').value = v.minutos||'';
+  document.getElementById('perm_nomina').value = v.nomina||'sin_descuento';
+  document.getElementById('perm_aprobado').value = v.aprobado||'';
+  document.getElementById('perm_motivo').value = v.motivo||'';
+  togglePermDuracion();
+  openModal('permisoSubModal');
+}
+function savePermisoSub() {
+  const empleadoId = document.getElementById('perm_empleado').value;
+  const fecha = document.getElementById('perm_fecha').value;
+  if(!empleadoId){toast('Selecciona un empleado');return;}
+  if(!fecha){toast('Ingresa la fecha');return;}
+  const durTipo = document.getElementById('perm_dur_tipo').value;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  if(!pa.permisos) pa.permisos = [];
+  const rec = {
+    id: editingPermisoSubId||('perm_'+Date.now()),
+    empleadoId, fecha,
+    tipo: document.getElementById('perm_tipo').value,
+    durTipo,
+    dias: durTipo==='dias'?parseInt(document.getElementById('perm_dias_num').value)||1:null,
+    horas: durTipo==='horas'?parseInt(document.getElementById('perm_horas_num').value)||0:null,
+    minutos: durTipo==='horas'?parseInt(document.getElementById('perm_min_num').value)||0:null,
+    nomina: document.getElementById('perm_nomina').value,
+    aprobado: document.getElementById('perm_aprobado').value.trim(),
+    motivo: document.getElementById('perm_motivo').value.trim(),
+    creadoEn: new Date().toISOString()
+  };
+  if(editingPermisoSubId) {
+    const i = pa.permisos.findIndex(x=>x.id===editingPermisoSubId);
+    if(i>=0) pa.permisos[i] = rec;
+  } else { pa.permisos.push(rec); }
+  save(); closeModal('permisoSubModal'); renderPermisosSubmodulo(); toast('✅ Permiso guardado');
+}
+function deletePermisoSub() {
+  if(!editingPermisoSubId||!confirm('¿Eliminar?')) return;
+  const pa = getPA(currentPermisosEmpresaIdx2);
+  pa.permisos = (pa.permisos||[]).filter(x=>x.id!==editingPermisoSubId);
+  save(); closeModal('permisoSubModal'); renderPermisosSubmodulo(); toast('🗑️ Eliminado');
+}
+
+
+// ══════════════════════════════════════════════
+// MÓDULO VACACIONES
+// ══════════════════════════════════════════════
+let currentVacEmpresaIdx = 0;
+let editingVacId = null;
+let currentVacEstado = 'programadas';
+
+function openSubmodulo(tipo) {
+  if(tipo === 'vacaciones') {
+    currentVacEmpresaIdx = currentPermisosEmpresaIdx;
+    const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
+    document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
+    // Populate filtro empleado
+    const sel = document.getElementById('vacFiltroEmp');
+    if(sel) {
+      const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+      sel.innerHTML = '<option value="">Todos los empleados</option>' +
+        emps.map(e=>`<option value="${e.id}">${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
+    }
+    renderVacaciones();
+    showScreen('vacacionesScreen');
+  }
+}
+
+function toggleVacFiltro() {
+  const p = document.getElementById('vacFiltroPanel');
+  if(!p) return;
+  const visible = p.style.display === 'flex' || p.style.display === 'block';
+  p.style.display = visible ? 'none' : 'flex';
+}
+
+// ── Saldo calculator ─────────────────────────────────────
+function calcDiasAcumulados(emp) {
+  if(!emp.fechaIngreso) return 0;
+  const ini = new Date(emp.fechaIngreso + 'T00:00:00');
+  const now = new Date();
+  const diffMs = now - ini;
+  const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  return Math.floor(years * 15 * 10) / 10; // 15 días/año, 1 decimal
+}
+
+function calcDiasTomados(empId, empresaIdx, excludeId) {
+  const vacs = getVacaciones(empresaIdx).filter(v =>
+    v.empleadoId === empId &&
+    v.estado === 'tomadas' &&
+    v.id !== excludeId
+  );
+  return vacs.reduce((s, v) => s + (parseInt(v.dias)||0), 0);
+}
+
+function calcSaldoVacaciones(emp, empresaIdx, excludeId) {
+  const acum = calcDiasAcumulados(emp);
+  const tomados = calcDiasTomados(emp.id, empresaIdx, excludeId);
+  return Math.round((acum - tomados) * 10) / 10;
+}
+
+function getVacaciones(empresaIdx) {
+  if(!state.vacaciones) state.vacaciones = {};
+  if(!state.vacaciones[empresaIdx]) state.vacaciones[empresaIdx] = [];
+  return state.vacaciones[empresaIdx];
+}
+
+// ── Render vacaciones list ───────────────────────────────
+function renderVacaciones() {
+  const container = document.getElementById('vacacionesContent');
+  if(!container) return;
+  const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+  const vacs = getVacaciones(currentVacEmpresaIdx);
+
+  const filtroEmp = document.getElementById('vacFiltroEmp')?.value||'';
+  const filtroEst = document.getElementById('vacFiltroEstado')?.value||'';
+
+  // Build employee saldo cards
+  const empList = filtroEmp ? emps.filter(e=>e.id===filtroEmp) : emps;
+
+  // Stats bar
+  const totalProg = vacs.filter(v=>v.estado==='programadas').length;
+  const totalTom = vacs.filter(v=>v.estado==='tomadas').length;
+  const conSaldo = empList.filter(e=>calcSaldoVacaciones(e,currentVacEmpresaIdx,null)>0).length;
+
+  let html = `
+    <!-- Stats bar -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 16px 0">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent1)">${totalProg}</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Programadas</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:#22c55e">${totalTom}</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Tomadas</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
+        <div style="font-size:1.4rem;font-weight:800;color:var(--accent2)">${conSaldo}</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Con saldo</div>
+      </div>
+    </div>
+  `;
+
+  if(!empList.length) {
+    html += '<div class="empty-state" style="margin-top:20px"><div class="empty-icon">🏖️</div><div class="empty-text">No hay empleados activos.</div></div>';
+    container.innerHTML = html;
+    return;
+  }
+
+  // Employee saldo cards
+  html += '<div style="padding:14px 16px 0"><div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Saldo por empleado</div>';
+
+  empList.forEach(e => {
+    const acum = calcDiasAcumulados(e);
+    const tomados = calcDiasTomados(e.id, currentVacEmpresaIdx, null);
+    const saldo = Math.round((acum - tomados) * 10) / 10;
+    const pct = acum > 0 ? Math.min(100, (tomados/acum)*100) : 0;
+    const saldoColor = saldo <= 0 ? '#ef4444' : saldo < 5 ? '#f59e0b' : '#22c55e';
+    const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+    const init = ((e.apellidos||'')[0]||(e.nombres||'')[0]||'?').toUpperCase();
+
+    html += `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--accent1)22;border:2px solid var(--accent1);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent1);flex-shrink:0">${init}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+            <div style="font-size:.72rem;color:var(--text2)">${e.cargo||'Sin cargo'}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1.1rem;font-weight:800;color:${saldoColor}">${saldo > 0 ? '+'+saldo : saldo}</div>
+            <div style="font-size:.65rem;color:var(--text2)">días disponibles</div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="background:var(--surface2);border-radius:20px;height:6px;overflow:hidden;margin-bottom:8px">
+          <div style="height:100%;border-radius:20px;background:linear-gradient(90deg,var(--accent1),${saldoColor});width:${pct}%;transition:width .5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text2);margin-bottom:10px">
+          <span>🏖️ ${acum.toFixed(1)} acumulados</span>
+          <span>✅ ${tomados} tomados</span>
+          <span style="color:${saldoColor};font-weight:700">📊 ${saldo} disponibles</span>
+        </div>
+        <!-- Vacation records for this employee -->
+        ${renderEmpVacList(e.id, filtroEst)}
+        ${canEdit()?`<button onclick="openNuevaVacacion('${e.id}')" style="width:100%;margin-top:8px;padding:8px;background:rgba(91,141,246,.1);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar vacación</button>`:''}
+      </div>`;
+  });
+
+  html += '</div>';
+
+  if(canEdit()) {
+    html += `<div style="padding:0 16px 80px"><button class="add-btn" onclick="openNuevaVacacion()">➕ Nueva vacación</button></div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function renderEmpVacList(empId, filtroEst) {
+  let vacs = getVacaciones(currentVacEmpresaIdx).filter(v=>v.empleadoId===empId);
+  if(filtroEst) vacs = vacs.filter(v=>v.estado===filtroEst);
+  vacs.sort((a,b)=>(b.fechaIni||'').localeCompare(a.fechaIni||''));
+  if(!vacs.length) return '<div style="font-size:.75rem;color:var(--text2);padding:4px 0">Sin registros de vacaciones.</div>';
+
+  const estadoStyle = {
+    programadas: {bg:'rgba(91,141,246,.12)',color:'#5b8df6',label:'📅 Programadas'},
+    tomadas:     {bg:'rgba(34,197,94,.12)', color:'#22c55e',label:'✅ Tomadas'},
+    canceladas:  {bg:'rgba(239,68,68,.12)', color:'#ef4444',label:'❌ Canceladas'},
+  };
+
+  return vacs.map(v => {
+    const est = estadoStyle[v.estado]||{bg:'var(--surface2)',color:'var(--text2)',label:v.estado};
+    const dateRange = v.fechaIni + (v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+v.fechaFin:'');
+    const fmtR = d => d?d.split('-').reverse().join('/'):'—';
+    return `<div style="background:${est.bg};border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:.72rem;color:${est.color};font-weight:700">${est.label}</span>
+          <span style="font-size:.72rem;color:var(--text2)">${fmtR(v.fechaIni)}${v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+fmtR(v.fechaFin):''}</span>
+        </div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--text1);margin-top:2px">🗓️ ${v.dias||'?'} días hábiles</div>
+        ${v.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:2px;font-style:italic">"${v.obs}"</div>`:''}
+      </div>
+      ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="openEditVacacion('${v.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
+        <button onclick="deleteVacacion('${v.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ── Modal ────────────────────────────────────────────────
+function openNuevaVacacion(preEmpId) {
+  if(!canEdit()) { toast('⛔ Sin permiso'); return; }
+  editingVacId = null;
+  document.getElementById('vacModalTitle').textContent = '🏖️ Nueva Vacación';
+  // Populate employees
+  const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+  const sel = document.getElementById('vac_empleado');
+  sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
+    emps.map(e=>`<option value="${e.id}" ${e.id===preEmpId?'selected':''}>${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
+  document.getElementById('vac_fecha_ini').value = '';
+  document.getElementById('vac_fecha_fin').value = '';
+  document.getElementById('vac_dias').value = '';
+  document.getElementById('vac_obs').value = '';
+  setVacEstado('programadas');
+  updateVacSaldo();
+  if(preEmpId) { sel.value = preEmpId; updateVacSaldo(); }
+  openModal('vacacionModal');
+}
+
+function openEditVacacion(id) {
+  if(!canEdit()) { toast('⛔ Sin permiso'); return; }
+  const vacs = getVacaciones(currentVacEmpresaIdx);
+  const v = vacs.find(x=>x.id===id);
+  if(!v) return;
+  editingVacId = id;
+  document.getElementById('vacModalTitle').textContent = '✏️ Editar Vacación';
+  const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
+  const sel = document.getElementById('vac_empleado');
+  sel.innerHTML = '<option value="">— Seleccionar empleado —</option>' +
+    emps.map(e=>`<option value="${e.id}" ${e.id===v.empleadoId?'selected':''}>${e.apellidos?e.apellidos+', ':''} ${e.nombres||''}</option>`).join('');
+  document.getElementById('vac_fecha_ini').value = v.fechaIni||'';
+  document.getElementById('vac_fecha_fin').value = v.fechaFin||'';
+  document.getElementById('vac_dias').value = v.dias||'';
+  document.getElementById('vac_obs').value = v.obs||'';
+  setVacEstado(v.estado||'programadas');
+  updateVacSaldo();
+  openModal('vacacionModal');
+}
+
+function setVacEstado(estado) {
+  currentVacEstado = estado;
+  document.getElementById('vac_estado').value = estado;
+  ['programadas','tomadas','canceladas'].forEach(s => {
+    const el = document.getElementById('vac_est_'+s.substring(0,3));
+    if(!el) return;
+    const active = s === estado;
+    el.style.borderColor = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--border)';
+    el.style.background = active ? (s==='tomadas'?'rgba(34,197,94,.1)':s==='canceladas'?'rgba(239,68,68,.1)':'rgba(91,141,246,.1)') : 'transparent';
+    el.style.color = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--text2)';
+  });
+}
+
+function updateVacSaldo() {
+  const empId = document.getElementById('vac_empleado')?.value;
+  const infoEl = document.getElementById('vac_saldo_info');
+  if(!empId) { if(infoEl) infoEl.style.display='none'; return; }
+  const emp = getEmployees(currentVacEmpresaIdx).find(e=>e.id===empId);
+  if(!emp || !emp.fechaIngreso) { if(infoEl) infoEl.style.display='none'; return; }
+  const acum = calcDiasAcumulados(emp);
+  const tomados = calcDiasTomados(empId, currentVacEmpresaIdx, editingVacId);
+  const saldo = Math.round((acum - tomados) * 10) / 10;
+  const saldoColor = saldo <= 0 ? '#ef4444' : saldo < 5 ? '#f59e0b' : '#22c55e';
+  document.getElementById('vac_info_acum').textContent = acum.toFixed(1);
+  document.getElementById('vac_info_tom').textContent = tomados;
+  const saldoEl = document.getElementById('vac_info_saldo');
+  saldoEl.textContent = saldo > 0 ? '+'+saldo : saldo;
+  saldoEl.style.color = saldoColor;
+  if(infoEl) infoEl.style.display = 'block';
+}
+
+function saveVacacion() {
+  const empId = document.getElementById('vac_empleado').value;
+  const fechaIni = document.getElementById('vac_fecha_ini').value;
+  const dias = parseInt(document.getElementById('vac_dias').value)||0;
+  const estado = document.getElementById('vac_estado').value;
+  if(!empId) { toast('⚠️ Selecciona un empleado'); return; }
+  if(!fechaIni) { toast('⚠️ Ingresa la fecha de inicio'); return; }
+  if(!dias || dias < 1) { toast('⚠️ Ingresa los días hábiles'); return; }
+
+  if(!state.vacaciones) state.vacaciones = {};
+  if(!state.vacaciones[currentVacEmpresaIdx]) state.vacaciones[currentVacEmpresaIdx] = [];
+
+  const registro = {
+    id: editingVacId || ('vac_'+Date.now()),
+    empleadoId: empId,
+    fechaIni,
+    fechaFin: document.getElementById('vac_fecha_fin').value || fechaIni,
+    dias,
+    estado,
+    obs: document.getElementById('vac_obs').value.trim(),
+    creadoEn: editingVacId ? undefined : new Date().toISOString(),
+  };
+
+  const arr = state.vacaciones[currentVacEmpresaIdx];
+  if(editingVacId) {
+    const i = arr.findIndex(x=>x.id===editingVacId);
+    if(i>=0) arr[i] = {...arr[i], ...registro};
+  } else {
+    arr.push(registro);
+  }
+
+  save();
+  closeModal('vacacionModal');
+  renderVacaciones();
+  toast(editingVacId ? '✅ Vacación actualizada' : '✅ Vacación registrada');
+  editingVacId = null;
+}
+
+function deleteVacacion(id) {
+  if(!canEdit()) { toast('⛔ Sin permiso'); return; }
+  if(!confirm('¿Eliminar este registro de vacaciones?')) return;
+  if(!state.vacaciones?.[currentVacEmpresaIdx]) return;
+  state.vacaciones[currentVacEmpresaIdx] = state.vacaciones[currentVacEmpresaIdx].filter(x=>x.id!==id);
+  save();
+  renderVacaciones();
+  toast('🗑️ Registro eliminado');
+}
+
+function openPermisos(idx) {
+  currentPermisosEmpresaIdx2 = idx;
+  const em = (state.empresas||[])[idx]||{};
+  document.getElementById('permisosTitle').textContent = (em.nombre||'Empresa') + ' · Permisos';
+  showScreen('permisosScreen');
+}
 function switchPermisosTab(tab) {
   document.getElementById('permisosTabRegistros').style.display = tab==='registros' ? 'block' : 'none';
   document.getElementById('permisosTabEstadisticas').style.display = tab==='estadisticas' ? 'block' : 'none';
@@ -5242,3 +6039,176 @@ self.addEventListener('activate', e => e.waitUntil(
 </script>
 </body>
 </html>
+<!-- VACACIONES MODAL -->
+<div class="modal-overlay" id="vacacionesModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span id="vacModalTitle">Nueva Vacación</span>
+      <button class="modal-close" onclick="closeModal('vacacionesModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Empleado *</label>
+        <select class="form-select" id="vac_empleado"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha inicio *</label>
+        <input type="date" class="form-input" id="vac_inicio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha fin *</label>
+        <input type="date" class="form-input" id="vac_fin">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Días hábiles</label>
+        <input type="number" class="form-input" id="vac_dias" placeholder="Ingresar manualmente" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-select" id="vac_estado">
+          <option value="programadas">📅 Programadas</option>
+          <option value="tomadas">✅ Tomadas</option>
+          <option value="canceladas">❌ Canceladas</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Observaciones</label>
+        <input class="form-input" id="vac_obs" placeholder="Opcional...">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveVacacion()" style="flex:1;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
+      <button onclick="closeModal('vacacionesModal')" style="padding:14px 18px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+    <button id="vac_del_btn" onclick="deleteVacacion()" style="display:none;width:100%;margin-top:8px;padding:11px;background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:10px;cursor:pointer;font-family:var(--font)">🗑️ Eliminar</button>
+  </div>
+</div>
+
+<!-- INCAPACIDAD MODAL -->
+<div class="modal-overlay" id="incapacidadModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span id="incapModalTitle">Nueva Incapacidad</span>
+      <button class="modal-close" onclick="closeModal('incapacidadModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Empleado *</label>
+        <select class="form-select" id="incap_empleado"></select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Entidad</label>
+        <select class="form-select" id="incap_entidad">
+          <option value="EPS">EPS</option>
+          <option value="ARL">ARL</option>
+          <option value="Maternidad">Maternidad</option>
+          <option value="Paternidad">Paternidad</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Diagnóstico / Motivo</label>
+        <input class="form-input" id="incap_diagnostico" placeholder="Ej: Fractura, gripa, cirugía...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha inicio *</label>
+        <input type="date" class="form-input" id="incap_inicio">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha fin</label>
+        <input type="date" class="form-input" id="incap_fin">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Días</label>
+        <input type="number" class="form-input" id="incap_dias" placeholder="N° días" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-select" id="incap_estado">
+          <option value="activa">🔴 Activa</option>
+          <option value="cerrada">✅ Cerrada</option>
+          <option value="prorroga">🔄 Prórroga</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Observaciones</label>
+        <input class="form-input" id="incap_obs" placeholder="Opcional...">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveIncapacidad()" style="flex:1;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
+      <button onclick="closeModal('incapacidadModal')" style="padding:14px 18px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+    <button id="incap_del_btn" onclick="deleteIncapacidad()" style="display:none;width:100%;margin-top:8px;padding:11px;background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:10px;cursor:pointer;font-family:var(--font)">🗑️ Eliminar</button>
+  </div>
+</div>
+
+<!-- PERMISO MODAL -->
+<div class="modal-overlay" id="permisoSubModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title">
+      <span id="permisoSubModalTitle">Nuevo Permiso</span>
+      <button class="modal-close" onclick="closeModal('permisoSubModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="form-label">Empleado *</label>
+        <select class="form-select" id="perm_empleado"></select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Tipo de permiso</label>
+        <select class="form-select" id="perm_tipo">
+          <option value="remunerado">Remunerado</option>
+          <option value="no_remunerado">No remunerado</option>
+          <option value="calamidad">Calamidad doméstica</option>
+          <option value="luto">Luto</option>
+          <option value="lactancia">Lactancia</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha *</label>
+        <input type="date" class="form-input" id="perm_fecha">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duración</label>
+        <select class="form-select" id="perm_dur_tipo" onchange="togglePermDuracion()">
+          <option value="dias">Días completos</option>
+          <option value="horas">Horas</option>
+        </select>
+      </div>
+      <div class="form-group" id="perm_dias_grupo">
+        <label class="form-label">Días</label>
+        <input type="number" class="form-input" id="perm_dias_num" placeholder="1" min="1">
+      </div>
+      <div class="form-group" id="perm_horas_grupo" style="display:none">
+        <label class="form-label">Horas : Minutos</label>
+        <div style="display:flex;gap:8px">
+          <input type="number" class="form-input" id="perm_horas_num" placeholder="H" min="0" max="23" style="flex:1">
+          <input type="number" class="form-input" id="perm_min_num" placeholder="Min" min="0" max="59" style="flex:1">
+        </div>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Manejo nómina</label>
+        <select class="form-select" id="perm_nomina">
+          <option value="sin_descuento">Sin descuento</option>
+          <option value="repone">Repone tiempo</option>
+          <option value="descuenta">Descuenta de salario</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Aprobado por</label>
+        <input class="form-input" id="perm_aprobado" placeholder="Nombre del aprobador...">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Motivo / Observaciones</label>
+        <input class="form-input" id="perm_motivo" placeholder="Opcional...">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="savePermisoSub()" style="flex:1;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
+      <button onclick="closeModal('permisoSubModal')" style="padding:14px 18px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+    <button id="perm_del_btn" onclick="deletePermisoSub()" style="display:none;width:100%;margin-top:8px;padding:11px;background:transparent;color:#ef4444;border:1px solid #ef4444;border-radius:10px;cursor:pointer;font-family:var(--font)">🗑️ Eliminar</button>
+  </div>
+</div>
+
