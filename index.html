@@ -695,6 +695,14 @@
         <input type="hidden" id="vac_estado" value="programadas">
       </div>
       <div class="form-group full">
+        <label class="form-label">¿Cómo se disfrutaron?</label>
+        <select class="form-select" id="vac_modalidad">
+          <option value="disfrutadas">🏖️ Disfrutadas (tiempo libre)</option>
+          <option value="pagadas">💰 Pagadas en dinero</option>
+          <option value="mixtas">🔀 Mixtas (parte disfrutadas, parte pagadas)</option>
+        </select>
+      </div>
+      <div class="form-group full">
         <label class="form-label">Observaciones (opcional)</label>
         <input class="form-input" id="vac_obs" placeholder="Ej: Vacaciones de mitad de año...">
       </div>
@@ -1766,36 +1774,7 @@ function getPA(empresaIdx) {
   return state.pa[empresaIdx];
 }
 
-function calcSaldoVacaciones(emp, empresaIdx) {
-  // 15 días hábiles por año trabajado desde fechaIngreso
-  if(!emp.fechaIngreso) return {acumulados:0, tomados:0, saldo:0};
-  const inicio = new Date(emp.fechaIngreso + 'T00:00:00');
-  const hoy = new Date();
-  const mesesTrabajados = (hoy - inicio) / (1000*60*60*24*30.44);
-  const acumulados = Math.floor((mesesTrabajados / 12) * 15 * 10) / 10; // 1 decimal
-  // Days taken = sum of vacaciones tomadas
-  const pa = getPA(empresaIdx);
-  const tomados = (pa.vacaciones||[])
-    .filter(v => v.empleadoId === emp.id && v.estado === 'tomadas')
-    .reduce((s,v) => s + (parseInt(v.dias)||0), 0);
-  return { acumulados, tomados, saldo: Math.max(0, acumulados - tomados) };
-}
 
-function openSubmodulo(tipo) {
-  const empresaIdx = currentPermisosEmpresaIdx2;
-  const em = (state.empresas||[])[empresaIdx]||{};
-  if(tipo === 'vacaciones') {
-    document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
-    renderVacaciones();
-    showScreen('vacacionesScreen');
-  } else if(tipo === 'incapacidades') {
-    renderIncapacidades();
-    showScreen('incapacidadesScreen');
-  } else {
-    renderPermisosSubmodulo();
-    showScreen('permisosSubScreen');
-  }
-}
 
 function poblarEmpleadosSelect(selId) {
   const sel = document.getElementById(selId);
@@ -1806,96 +1785,8 @@ function poblarEmpleadosSelect(selId) {
 }
 
 // ── VACACIONES ───────────────────────────────────────────────
-function renderVacaciones() {
-  const cont = document.getElementById('vacacionesContent');
-  if(!cont) return;
-  const empresaIdx = currentPermisosEmpresaIdx2;
-  const pa = getPA(empresaIdx);
-  const emps = getEmployees(empresaIdx).filter(e=>e.activo!==false);
-  const vacs = pa.vacaciones||[];
 
-  // Stats cards
-  const hoy = new Date().toISOString().split('T')[0];
-  const activos = vacs.filter(v=>v.estado==='tomadas'&&v.inicio<=hoy&&v.fin>=hoy).length;
-  const programadas = vacs.filter(v=>v.estado==='programadas').length;
 
-  let html = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:16px 16px 0">
-      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
-        <div style="font-size:1.4rem;font-weight:800;color:var(--accent3)">${activos}</div>
-        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">De vacaciones hoy</div>
-      </div>
-      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
-        <div style="font-size:1.4rem;font-weight:800;color:var(--accent1)">${programadas}</div>
-        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Programadas</div>
-      </div>
-      <div style="background:var(--surface);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--border)">
-        <div style="font-size:1.4rem;font-weight:800;color:var(--accent2)">${vacs.length}</div>
-        <div style="font-size:.72rem;color:var(--text2);margin-top:2px">Total registros</div>
-      </div>
-    </div>
-    <div style="padding:16px 16px 8px;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">💰 Saldo por empleado</div>
-    <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px">`;
-
-  emps.forEach(e=>{
-    const s = calcSaldoVacaciones(e, empresaIdx);
-    const name = (e.apellidos?e.apellidos+', ':'')+(e.nombres||'');
-    const color = s.saldo > 5 ? 'var(--accent3)' : s.saldo > 0 ? 'var(--accent2)' : '#ef4444';
-    html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-      <div>
-        <div style="font-weight:600;font-size:.88rem">${name}</div>
-        <div style="font-size:.75rem;color:var(--text2);margin-top:2px">Acumulados: ${s.acumulados} · Tomados: ${s.tomados}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:1.2rem;font-weight:800;color:${color}">${s.saldo}</div>
-        <div style="font-size:.68rem;color:var(--text2)">días disponibles</div>
-      </div>
-    </div>`;
-  });
-
-  html += `</div>
-    <div style="padding:16px 16px 8px;font-size:.8rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">📋 Registros</div>
-    <div style="padding:0 16px 80px;display:flex;flex-direction:column;gap:8px">`;
-
-  if(!vacs.length) {
-    html += `<div style="text-align:center;padding:40px 20px;color:var(--text2)">Sin registros de vacaciones</div>`;
-  } else {
-    const sorted = [...vacs].sort((a,b)=>b.inicio?.localeCompare(a.inicio||'')||0);
-    sorted.forEach(v=>{
-      const emp = getEmployees(empresaIdx).find(e=>e.id===v.empleadoId);
-      const empName = emp?(e=>(e.apellidos?e.apellidos+', ':'')+(e.nombres||''))(emp):'—';
-      const estadoColor = v.estado==='tomadas'?'#22c55e':v.estado==='programadas'?'#5b8df6':'#ef4444';
-      const estadoLabel = {tomadas:'✅ Tomadas',programadas:'📅 Programadas',canceladas:'❌ Canceladas'}[v.estado]||v.estado;
-      const fmtD = d=>d?d.split('-').reverse().join('/'):'—';
-      html += `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid var(--border);cursor:pointer" onclick="${canEdit()?`editVacacion('${v.id}')`:''}" >
-        <div style="display:flex;justify-content:space-between;align-items:start">
-          <div>
-            <div style="font-weight:600;font-size:.88rem">${empName}</div>
-            <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${fmtD(v.inicio)} → ${fmtD(v.fin)} · ${v.dias||'?'} días hábiles</div>
-            ${v.obs?`<div style="font-size:.75rem;color:var(--text2);margin-top:2px">${v.obs}</div>`:''}
-          </div>
-          <span style="font-size:.72rem;font-weight:700;color:${estadoColor};white-space:nowrap;margin-left:8px">${estadoLabel}</span>
-        </div>
-      </div>`;
-    });
-  }
-  html += `</div>`;
-  if(canEdit()) html += `<button onclick="openNuevaVacacion()" style="position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 16px rgba(91,141,246,.5);z-index:50">+</button>`;
-  cont.innerHTML = html;
-}
-
-function openNuevaVacacion() {
-  editingVacacionId = null;
-  document.getElementById('vacModalTitle').textContent = 'Nueva Vacación';
-  document.getElementById('vac_del_btn').style.display = 'none';
-  poblarEmpleadosSelect('vac_empleado');
-  document.getElementById('vac_inicio').value = '';
-  document.getElementById('vac_fin').value = '';
-  document.getElementById('vac_dias').value = '';
-  document.getElementById('vac_estado').value = 'programadas';
-  document.getElementById('vac_obs').value = '';
-  openModal('vacacionesModal');
-}
 function editVacacion(id) {
   const pa = getPA(currentPermisosEmpresaIdx2);
   const v = (pa.vacaciones||[]).find(x=>x.id===id);
@@ -1911,39 +1802,6 @@ function editVacacion(id) {
   document.getElementById('vac_estado').value = v.estado||'programadas';
   document.getElementById('vac_obs').value = v.obs||'';
   openModal('vacacionesModal');
-}
-function saveVacacion() {
-  const empleadoId = document.getElementById('vac_empleado').value;
-  const inicio = document.getElementById('vac_inicio').value;
-  const dias = document.getElementById('vac_dias').value;
-  if(!empleadoId){toast('Selecciona un empleado');return;}
-  if(!inicio){toast('Ingresa la fecha de inicio');return;}
-  if(!dias){toast('Ingresa los días hábiles');return;}
-  const pa = getPA(currentPermisosEmpresaIdx2);
-  if(!pa.vacaciones) pa.vacaciones = [];
-  const rec = {
-    id: editingVacacionId||('vac_'+Date.now()),
-    empleadoId,
-    inicio,
-    fin: document.getElementById('vac_fin').value,
-    dias: parseInt(dias),
-    estado: document.getElementById('vac_estado').value,
-    obs: document.getElementById('vac_obs').value.trim(),
-    creadoEn: new Date().toISOString()
-  };
-  if(editingVacacionId) {
-    const i = pa.vacaciones.findIndex(x=>x.id===editingVacacionId);
-    if(i>=0) pa.vacaciones[i] = rec;
-  } else {
-    pa.vacaciones.push(rec);
-  }
-  save(); closeModal('vacacionesModal'); renderVacaciones(); toast('✅ Vacación guardada');
-}
-function deleteVacacion() {
-  if(!editingVacacionId||!confirm('¿Eliminar este registro?')) return;
-  const pa = getPA(currentPermisosEmpresaIdx2);
-  pa.vacaciones = (pa.vacaciones||[]).filter(x=>x.id!==editingVacacionId);
-  save(); closeModal('vacacionesModal'); renderVacaciones(); toast('🗑️ Eliminado');
 }
 
 // ── INCAPACIDADES ────────────────────────────────────────────
@@ -2363,7 +2221,7 @@ function renderEmpVacList(empId, filtroEst) {
           <span style="font-size:.72rem;color:${est.color};font-weight:700">${est.label}</span>
           <span style="font-size:.72rem;color:var(--text2)">${fmtR(v.fechaIni)}${v.fechaFin&&v.fechaFin!==v.fechaIni?' → '+fmtR(v.fechaFin):''}</span>
         </div>
-        <div style="font-size:.78rem;font-weight:700;color:var(--text1);margin-top:2px">🗓️ ${v.dias||'?'} días hábiles</div>
+        <div style="font-size:.78rem;font-weight:700;color:var(--text1);margin-top:2px">🗓️ ${v.dias||'?'} días hábiles · ${v.modalidad==='pagadas'?'💰 Pagadas':v.modalidad==='mixtas'?'🔀 Mixtas':'🏖️ Disfrutadas'}</div>
         ${v.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:2px;font-style:italic">"${v.obs}"</div>`:''}
       </div>
       ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
@@ -2409,6 +2267,7 @@ function openEditVacacion(id) {
   document.getElementById('vac_fecha_fin').value = v.fechaFin||'';
   document.getElementById('vac_dias').value = v.dias||'';
   document.getElementById('vac_obs').value = v.obs||'';
+  const modEl=document.getElementById('vac_modalidad');if(modEl)modEl.value=v.modalidad||'disfrutadas';
   setVacEstado(v.estado||'programadas');
   updateVacSaldo();
   openModal('vacacionModal');
@@ -2418,7 +2277,7 @@ function setVacEstado(estado) {
   currentVacEstado = estado;
   document.getElementById('vac_estado').value = estado;
   ['programadas','tomadas','canceladas'].forEach(s => {
-    const el = document.getElementById('vac_est_'+s.substring(0,3));
+    const el = document.getElementById({programadas:'vac_est_prog',tomadas:'vac_est_tom',canceladas:'vac_est_can'}[s]);
     if(!el) return;
     const active = s === estado;
     el.style.borderColor = active ? (s==='tomadas'?'#22c55e':s==='canceladas'?'#ef4444':'var(--accent1)') : 'var(--border)';
@@ -2464,6 +2323,7 @@ function saveVacacion() {
     fechaFin: document.getElementById('vac_fecha_fin').value || fechaIni,
     dias,
     estado,
+    modalidad: document.getElementById('vac_modalidad')?.value||'disfrutadas',
     obs: document.getElementById('vac_obs').value.trim(),
     creadoEn: editingVacId ? undefined : new Date().toISOString(),
   };
@@ -3152,7 +3012,16 @@ function renderEmployeeList() {
   const sortEl=document.getElementById('emp_sort');
   const sortBy=sortEl?sortEl.value:'nombre';
   let emps=getEmployees(currentCompany);
-  if(q) emps=emps.filter(e=>(e.nombre||'').toLowerCase().includes(q)||(e.nombres||'').toLowerCase().includes(q)||(e.apellidos||'').toLowerCase().includes(q)||(e.cedula||'').includes(q)||(e.cargo||'').toLowerCase().includes(q));
+  if(q) emps=emps.filter(e=>{
+    const base=(e.nombre||'').toLowerCase().includes(q)||(e.nombres||'').toLowerCase().includes(q)||(e.apellidos||'').toLowerCase().includes(q)||(e.cedula||'').includes(q)||(e.cargo||'').toLowerCase().includes(q);
+    if(base) return true;
+    // Search by assigned vehicle plate
+    if(e.vehiculoAsignado) {
+      const v=(state.vehicles||[]).find(x=>x.id===e.vehiculoAsignado);
+      if(v&&(v.placa||'').toLowerCase().includes(q)) return true;
+    }
+    return false;
+  });
   if(empFilter==='activos') emps=emps.filter(e=>e.activo!==false);
   if(empFilter==='inactivos') emps=emps.filter(e=>e.activo===false);
   // Sort
@@ -3554,7 +3423,16 @@ function renderVehicleList() {
   const sortEl=document.getElementById('veh_sort');
   const sortBy=sortEl?sortEl.value:'placa';
   let vehs=state.vehicles;
-  if(q) vehs=vehs.filter(v=>(v.placa||'').toLowerCase().includes(q)||(v.tipo||'').toLowerCase().includes(q)||(v.marca||'').toLowerCase().includes(q));
+  if(q) vehs=vehs.filter(v=>{
+    const base=(v.placa||'').toLowerCase().includes(q)||(v.tipo||'').toLowerCase().includes(q)||(v.marca||'').toLowerCase().includes(q);
+    if(base) return true;
+    // Search by assigned trailer plate
+    if(v.trailerAsignado) {
+      const t=(state.trailers||[]).find(x=>x.id===v.trailerAsignado);
+      if(t&&(t.placa||'').toLowerCase().includes(q)) return true;
+    }
+    return false;
+  });
   if(vehFilter==='activos') vehs=vehs.filter(v=>v.activo!==false);
   if(vehFilter==='inactivos') vehs=vehs.filter(v=>v.activo===false);
   vehs.sort((a,b)=>{
