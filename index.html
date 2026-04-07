@@ -35,6 +35,25 @@
   .perm-row:hover{border-color:var(--accent)}
   .perm-row input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
   .perm-row.checked{border-color:var(--accent)}
+
+  .vac-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 600;
+    font-family: var(--font);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .vac-chip.active {
+    border-color: var(--accent1);
+    background: rgba(91,141,246,.15);
+    color: var(--accent1);
+  }
 </style>
 <link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180">
 <link id="pwa-icon" rel="icon" type="image/png" sizes="192x192">
@@ -624,25 +643,50 @@
     </div>
   </div>
   <!-- Filtro panel -->
-  <div id="vacFiltroPanel" style="display:none;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-direction:column;gap:8px">
-    <input class="form-input" id="vacFiltroQ" placeholder="🔍 Buscar por nombre o cargo..." oninput="renderVacaciones()" style="font-size:.85rem">
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <select class="form-select" id="vacFiltroEmp" onchange="renderVacaciones()" style="flex:1;min-width:130px;font-size:.82rem;padding:7px 10px">
-        <option value="">Todos los empleados</option>
-      </select>
-      <select class="form-select" id="vacFiltroCargo" onchange="renderVacaciones()" style="flex:1;min-width:130px;font-size:.82rem;padding:7px 10px">
-        <option value="">Todos los cargos</option>
-      </select>
-      <select class="form-select" id="vacFiltroEstado" onchange="renderVacaciones()" style="width:auto;font-size:.82rem;padding:7px 10px">
-        <option value="">Todos los estados</option>
-        <option value="programadas">Programadas</option>
-        <option value="tomadas">Tomadas</option>
-        <option value="canceladas">Canceladas</option>
-      </select>
+  <div id="vacFiltroPanel" style="display:none;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-direction:column;gap:10px">
+    <!-- Buscador texto -->
+    <input class="form-input" id="vacFiltroQ" placeholder="🔍 Buscar por nombre, apellido o cargo..." oninput="renderVacaciones()" style="font-size:.85rem">
+    <!-- Empleados (chips multi-select) -->
+    <div>
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:700;margin-bottom:6px">Empleados</div>
+      <div id="vacChipsEmp" style="display:flex;flex-wrap:wrap;gap:5px"></div>
     </div>
-    <button onclick="document.getElementById('vacFiltroQ').value='';document.getElementById('vacFiltroEmp').value='';document.getElementById('vacFiltroCargo').value='';document.getElementById('vacFiltroEstado').value='';document.getElementById('vacFiltroActivo').value='';renderVacaciones()" style="align-self:flex-start;padding:5px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font)">✕ Limpiar filtros</button>
+    <!-- Cargos (chips multi-select) -->
+    <div>
+      <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:700;margin-bottom:6px">Cargo</div>
+      <div id="vacChipsCargo" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+    </div>
+    <!-- Estado y activo (chips) -->
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:700;margin-bottom:6px">Estado</div>
+        <div id="vacChipsEstado" style="display:flex;flex-wrap:wrap;gap:5px">
+          <button onclick="toggleVacChip('estado','programadas',this)" data-val="programadas" class="vac-chip">📅 Programadas</button>
+          <button onclick="toggleVacChip('estado','tomadas',this)" data-val="tomadas" class="vac-chip">✅ Tomadas</button>
+          <button onclick="toggleVacChip('estado','canceladas',this)" data-val="canceladas" class="vac-chip">❌ Canceladas</button>
+        </div>
+      </div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);font-weight:700;margin-bottom:6px">Estado laboral</div>
+        <div id="vacChipsActivo" style="display:flex;flex-wrap:wrap;gap:5px">
+          <button onclick="toggleVacChip('activo','activos',this)" data-val="activos" class="vac-chip">🟢 Activos</button>
+          <button onclick="toggleVacChip('activo','inactivos',this)" data-val="inactivos" class="vac-chip">⛔ Inactivos</button>
+        </div>
+      </div>
+    </div>
+    <!-- Conteo y limpiar -->
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span id="vacFiltroConteo" style="font-size:.75rem;color:var(--accent1);font-weight:600"></span>
+      <button onclick="limpiarVacFiltros()" style="padding:5px 12px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;font-size:.78rem;font-family:var(--font)">✕ Limpiar filtros</button>
+    </div>
+  </div>
+  <!-- Tabs -->
+  <div class="tabs" style="padding:0 16px">
+    <button class="tab active" id="vac-tab-lista" onclick="switchVacTab('lista')">📋 Registros</button>
+    <button class="tab" id="vac-tab-stats" onclick="switchVacTab('stats')">📊 Estadísticas</button>
   </div>
   <div class="screen-content pb-safe" id="vacacionesContent"></div>
+  <div class="screen-content pb-safe" id="vacacionesStats" style="display:none;overflow-y:auto"></div>
 </div>
 
 <!-- VACACION MODAL -->
@@ -2320,29 +2364,72 @@ function renderVacStats() {
   `;
 }
 
+
+// ── Vacation multi-select filters ────────────────────────
+const vacFiltros = { emp: new Set(), cargo: new Set(), estado: new Set(), activo: new Set() };
+
+function toggleVacChip(type, val, btn) {
+  const s = vacFiltros[type];
+  if(s.has(val)) { s.delete(val); btn.classList.remove('active'); }
+  else { s.add(val); btn.classList.add('active'); }
+  renderVacaciones();
+}
+
+function limpiarVacFiltros() {
+  document.getElementById('vacFiltroQ').value = '';
+  Object.keys(vacFiltros).forEach(k => vacFiltros[k].clear());
+  document.querySelectorAll('.vac-chip').forEach(b => b.classList.remove('active'));
+  renderVacaciones();
+}
+
+function poblarFiltrosVacaciones() {
+  const emps = getEmployees(currentVacEmpresaIdx);
+  // Empleados chips
+  const chipsEmp = document.getElementById('vacChipsEmp');
+  if(chipsEmp) {
+    chipsEmp.innerHTML = emps.map(e => {
+      const name = (e.apellidos ? e.apellidos.split(' ')[0]+' ' : '') + (e.nombres||'').split(' ')[0];
+      return `<button onclick="toggleVacChip('emp','${e.id}',this)" data-val="${e.id}" class="vac-chip${vacFiltros.emp.has(e.id)?' active':''}">${name}</button>`;
+    }).join('');
+  }
+  // Cargos chips
+  const cargos = [...new Set(emps.map(e=>e.cargo).filter(Boolean))].sort();
+  const chipsCargo = document.getElementById('vacChipsCargo');
+  if(chipsCargo) {
+    chipsCargo.innerHTML = cargos.map(c =>
+      `<button onclick="toggleVacChip('cargo','${c.replace(/'/g,"\'")}',this)" data-val="${c}" class="vac-chip${vacFiltros.cargo.has(c)?' active':''}">${c}</button>`
+    ).join('');
+  }
+}
+
 function renderVacaciones() {
   const container = document.getElementById('vacacionesContent');
   if(!container) return;
   const emps = getEmployees(currentVacEmpresaIdx).filter(e=>e.activo!==false);
   const vacs = getVacaciones(currentVacEmpresaIdx);
 
-  const filtroEmp   = document.getElementById('vacFiltroEmp')?.value||'';
-  const filtroEst   = document.getElementById('vacFiltroEstado')?.value||'';
-  const filtroCargo = document.getElementById('vacFiltroCargo')?.value||'';
-  const filtroQ     = (document.getElementById('vacFiltroQ')?.value||'').toLowerCase().trim();
-
-  const filtroActivo = document.getElementById('vacFiltroActivo')?.value||'';
+  const filtroQ = (document.getElementById('vacFiltroQ')?.value||'').toLowerCase().trim();
   let empList = [...emps];
-  if(filtroActivo==='activos')   empList = empList.filter(e=>e.activo!==false);
-  if(filtroActivo==='inactivos') empList = empList.filter(e=>e.activo===false);
-  if(filtroEmp)   empList = empList.filter(e=>e.id===filtroEmp);
-  if(filtroCargo) empList = empList.filter(e=>e.cargo===filtroCargo);
-  if(filtroQ)     empList = empList.filter(e=>
+  // Multi-select filters
+  if(vacFiltros.activo.size) {
+    empList = empList.filter(e => {
+      const isActivo = e.activo !== false;
+      return (vacFiltros.activo.has('activos') && isActivo) || (vacFiltros.activo.has('inactivos') && !isActivo);
+    });
+  }
+  if(vacFiltros.emp.size)   empList = empList.filter(e => vacFiltros.emp.has(e.id));
+  if(vacFiltros.cargo.size) empList = empList.filter(e => vacFiltros.cargo.has(e.cargo));
+  if(filtroQ) empList = empList.filter(e =>
     (e.nombres||'').toLowerCase().includes(filtroQ)||
     (e.apellidos||'').toLowerCase().includes(filtroQ)||
     (e.cargo||'').toLowerCase().includes(filtroQ)
   );
+  // Show filter count
+  const totalFiltros = vacFiltros.emp.size + vacFiltros.cargo.size + vacFiltros.estado.size + vacFiltros.activo.size + (filtroQ?1:0);
+  const conteoEl = document.getElementById('vacFiltroConteo');
+  if(conteoEl) conteoEl.textContent = totalFiltros > 0 ? `${empList.length} empleado${empList.length!==1?'s':''} · ${totalFiltros} filtro${totalFiltros!==1?'s':''} activo${totalFiltros!==1?'s':''}` : '';
 
+  const filtroEst = ''; // kept for compat
   // Global stats
   const totalProg = vacs.filter(v=>v.estado==='programadas').length;
   const totalTom  = vacs.filter(v=>v.estado==='tomadas').length;
