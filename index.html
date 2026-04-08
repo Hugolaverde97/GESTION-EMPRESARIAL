@@ -6013,6 +6013,11 @@ let exportSelectedCols = new Set();
 function openExportModal() {
   // Determine mode based on current screen
   const activeScreen = document.querySelector('.screen.active')?.id || '';
+  if(activeScreen === 'vacacionesScreen') {
+    closeFabMenu();
+    exportVacacionesCSV();
+    return;
+  }
   if(activeScreen === 'trailersList' || activeScreen === 'trailerDetail') {
     exportMode = 'trailers';
   } else if(activeScreen === 'vehiclesList' || activeScreen === 'vehicleDetail' || activeScreen === 'vehiclesModule') {
