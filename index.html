@@ -2247,6 +2247,7 @@ function switchVacTab(tab) {
   if(tl) { tl.classList.toggle('active', tab==='lista'); }
   if(ts) { ts.classList.toggle('active', tab==='stats'); }
   if(tab==='stats') renderVacStats();
+  if(tab==='lista') renderVacaciones();
 }
 
 function renderVacStats() {
