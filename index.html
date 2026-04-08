@@ -1774,7 +1774,7 @@ async function startSyncPolling() {
 
 async function syncToCloud() {
   try {
-    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},vacaciones:state.vacaciones||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
     // Track what we just saved
     const now = new Date().toISOString(); lastKnownUpdatedAt = now;
@@ -1786,7 +1786,7 @@ async function loadFromCloud() {
     // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
     if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings;
-      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
+      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
     // Also load settings separately (saved by saveSettings)
     try {
       const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
@@ -6265,7 +6265,7 @@ function drawLoginIcon() {
 <script>
 if('serviceWorker' in navigator) {
   const swCode = `
-const CACHE = 'gestion-v5';
+const CACHE = 'gestion-v6';
 const ASSETS = ['.'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
 self.addEventListener('fetch', e => e.respondWith(
