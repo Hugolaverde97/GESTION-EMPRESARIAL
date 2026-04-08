@@ -2115,7 +2115,10 @@ function openSubmodulo(tipo) {
   if(tipo === 'vacaciones') {
     document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
     poblarFiltrosVacaciones();
-    renderVacaciones();
+    // Always reset to Registros tab and clear stats
+    switchVacTab('lista');
+    const statsEl = document.getElementById('vacacionesStats');
+    if(statsEl) statsEl.innerHTML = '';
     showScreen('vacacionesScreen');
   }
 }
