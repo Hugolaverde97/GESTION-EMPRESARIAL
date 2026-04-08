@@ -638,6 +638,7 @@
     <button class="back-btn" onclick="showScreen('permisosScreen')">← Permisos</button>
     <span class="bar-title" id="vacacionesTitle">Vacaciones</span>
     <div class="bar-actions" style="display:flex;gap:6px;align-items:center">
+      <button class="icon-btn" onclick="exportVacacionesCSV()" title="Descargar reporte">📥</button>
       <button class="icon-btn" id="vacFiltroBtn" onclick="toggleVacFiltro()" title="Filtrar">⚙️</button>
       <button class="icon-btn" id="addVacBtn" onclick="openNuevaVacacion()" title="Nueva">➕</button>
     </div>
@@ -2702,6 +2703,79 @@ function saveVacacion() {
   toast(editingVacId ? '✅ Vacación actualizada' : '✅ Vacación registrada');
   editingVacId = null;
 }
+
+
+function exportVacacionesCSV() {
+  const emps = getEmployees(currentVacEmpresaIdx);
+  const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
+
+  const rows = [];
+  // Header
+  rows.push([
+    'Empresa','Empleado','Cédula','Cargo','Estado laboral','Fecha ingreso','Fecha retiro',
+    'Período (Año)','Desde','Hasta','Estado período',
+    'Días ganados','Días tomados','Saldo disponible',
+    'Días acumulando','¿Tiene anticipadas?'
+  ]);
+
+  emps.forEach(e => {
+    const res = calcResumenVacaciones(e, currentVacEmpresaIdx, null);
+    const allPeriodos = getPeriodos(e);
+    const empName = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+    const estadoLaboral = e.activo===false ? 'Inactivo' : 'Activo';
+
+    // One row per completed period
+    res.periodos.forEach(p => {
+      rows.push([
+        em.nombre||'', empName, e.cedula||'', e.cargo||'', estadoLaboral,
+        e.fechaIngreso||'', e.fechaRetiro||'',
+        `Año ${p.num}`, p.desde, p.hasta, 'Completado',
+        p.diasGanados, p.tomados, p.saldo,
+        '', p.saldo < 0 ? 'Sí' : 'No'
+      ]);
+    });
+
+    // One row for partial period
+    if(res.periodoParcial) {
+      const pp = res.periodoParcial;
+      const anticipadas = pp.tomados > 0;
+      rows.push([
+        em.nombre||'', empName, e.cedula||'', e.cargo||'', estadoLaboral,
+        e.fechaIngreso||'', e.fechaRetiro||'',
+        `Año ${pp.num}`, pp.desde, pp.hasta, 'En curso',
+        0, pp.tomados, pp.tomados > 0 ? -pp.tomados : 0,
+        pp.diasParciales, anticipadas ? 'Sí - Anticipadas' : 'No'
+      ]);
+    }
+
+    // Summary row
+    rows.push([
+      em.nombre||'', empName, e.cedula||'', e.cargo||'', estadoLaboral,
+      e.fechaIngreso||'', e.fechaRetiro||'',
+      'TOTAL', '', '', '',
+      res.totalGanados, res.totalTomados, res.saldo,
+      res.periodoParcial?.diasParciales||0, ''
+    ]);
+
+    // Blank separator row
+    rows.push(['','','','','','','','','','','','','','','','']);
+  });
+
+  const csv = '\ufeff' + rows.map(row =>
+    row.map(v => '"' + String(v==null?'':v).replace(/"/g,'""') + '"').join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const nombre = (em.nombre||'empresa').replace(/[^a-zA-Z0-9]/g,'_');
+  a.download = `vacaciones_${nombre}_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📥 Reporte descargado');
+}
+
 
 function deleteVacacion(id) {
   if(!canEdit()) { toast('⛔ Sin permiso'); return; }
