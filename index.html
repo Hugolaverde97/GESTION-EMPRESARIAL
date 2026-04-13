@@ -1616,6 +1616,27 @@
       <div class="form-group"><label class="form-label">Nivel de Riesgo ARL</label><select class="form-select" id="emp_nivelArl"><option value="">Seleccionar...</option><option value="I">Nivel I – Mínimo</option><option value="II">Nivel II – Bajo</option><option value="III">Nivel III – Medio</option><option value="IV">Nivel IV – Alto</option><option value="V">Nivel V – Máximo</option></select></div>
       <div class="form-group"><label class="form-label">Fondo de pensión</label><input class="form-input" id="emp_pension" placeholder="Fondo de pensión"></div>
       <div class="form-group"><label class="form-label">Caja de compensación</label><input class="form-input" id="emp_caja" placeholder="Caja de compensación"></div>
+      <div style="height:1px;background:var(--border);margin:8px 0 4px;grid-column:1/-1"></div>
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent4);font-weight:600;margin:0 0 6px;grid-column:1/-1">🏦 Cuenta bancaria</div>
+      <div class="form-group"><label class="form-label">Banco</label>
+        <select class="form-select" id="emp_banco">
+          <option value="">— Seleccionar —</option>
+          <option>Bancolombia</option><option>Davivienda</option><option>Banco de Bogotá</option>
+          <option>BBVA</option><option>Banco Popular</option><option>Banco de Occidente</option>
+          <option>Scotiabank Colpatria</option><option>Nequi</option><option>Daviplata</option>
+          <option>Banco Agrario</option><option>Banco Caja Social</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de cuenta</label>
+        <select class="form-select" id="emp_tipoCuenta">
+          <option value="">— Seleccionar —</option>
+          <option value="ahorros">Ahorros</option>
+          <option value="corriente">Corriente</option>
+        </select>
+      </div>
+      <div class="form-group full"><label class="form-label">Número de cuenta</label>
+        <input class="form-input" id="emp_numeroCuenta" placeholder="Ej: 123-456789-00" inputmode="numeric">
+      </div>
     </div>
     <div style="height:1px;background:var(--border);margin:16px 0"></div>
     <div class="form-grid" style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:0">
@@ -3595,6 +3616,7 @@ function openEmployee(id) {
       <div class="field-card"><div class="field-label">Nivel Riesgo ARL</div><div class="field-value">${e.nivelArl?'Nivel '+e.nivelArl:'—'}</div></div>
       <div class="field-card"><div class="field-label">Fondo de pensión</div><div class="field-value">${e.pension||'—'}</div></div>
       <div class="field-card"><div class="field-label">Caja de compensación</div><div class="field-value">${e.caja||'—'}</div></div>
+      ${e.banco||e.numeroCuenta?`<div class="section-title" style="margin-top:8px">🏦 Cuenta Bancaria</div><div class="field-card"><div class="field-label">Banco</div><div class="field-value">${e.banco||'—'}</div></div><div class="field-card"><div class="field-label">Tipo</div><div class="field-value">${e.tipoCuenta==='ahorros'?'Ahorros':e.tipoCuenta==='corriente'?'Corriente':'—'}</div></div><div class="field-card"><div class="field-label">No. Cuenta</div><div class="field-value" style="font-family:var(--mono)">${e.numeroCuenta||'—'}</div></div>`:''}
       ${(e.cargo||'').toLowerCase().includes('conductor')?`
       <div class="section-title" style="margin-top:8px">🚗 Información de Conductor</div>
       <div class="field-card"><div class="field-label">Tipo de licencia</div><div class="field-value">${e.tipoLicencia||'—'}</div></div>
@@ -3667,7 +3689,7 @@ function openEditEmployee() {
   const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
   editingEmployee=true;
   document.getElementById('empModalTitle').textContent='Editar Empleado';
-  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value=e[f]||'';});
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','banco','tipoCuenta','numeroCuenta'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value=e[f]||'';});
   document.getElementById('emp_tipoContrato').value=e.tipoContrato||'';
   document.getElementById('emp_sangre').value=e.sangre||'';
   document.getElementById('emp_sexo').value=e.sexo||'';
@@ -3695,7 +3717,7 @@ function saveEmployee() {
   const nombres=document.getElementById('emp_nombres').value.trim();
   const apellidos=document.getElementById('emp_apellidos').value.trim();
   if(!nombres){alert('El nombre es obligatorio.');return;}
-  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','ciudadNac','fechaNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','estadoCivil'];
+  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','ciudadNac','fechaNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','estadoCivil','banco','tipoCuenta','numeroCuenta'];
   const data={};
   fields.forEach(f=>data[f]=document.getElementById('emp_'+f).value.trim());
   const cargoVal = document.getElementById('emp_cargo').value;
@@ -5963,10 +5985,19 @@ const EMP_COLS = [
   {id:'emergParentesco',label:'Parentesco'},
   {id:'emergCelular',  label:'Tel. Emergencia'},
   {id:'estado',        label:'Estado', computed: e => e.activo===false?'Inactivo':'Activo'},
+  {id:'banco',          label:'Banco'},
+  {id:'tipoCuenta',     label:'Tipo Cuenta'},
+  {id:'numeroCuenta',   label:'No. Cuenta'},
+  {id:'banco',          label:'Banco'},
+  {id:'tipoCuenta',     label:'Tipo Cuenta'},
+  {id:'numeroCuenta',   label:'No. Cuenta'},
   {id:'venc_contrato',  label:'Venc. Contrato', computed: e => e.tipoContrato==='Fijo'?calcFechaVencContrato(e)||'':''},
   {id:'num_renovaciones',  label:'# Renovaciones',   computed: e => (e.renovaciones||[]).length},
   {id:'tipo_actual',       label:'Tipo Contrato Actual', computed: e => {const c=getCurrentContrato(e);return c.tipo&&c.tipo!==e.tipoContrato?c.tipo:e.tipoContrato||'';}},
   {id:'duracion_actual',   label:'Duración Actual (meses)', computed: e => getCurrentDuracion(e)||''},
+  {id:'banco',          label:'Banco'},
+  {id:'tipoCuenta',     label:'Tipo Cuenta'},
+  {id:'numeroCuenta',   label:'No. Cuenta'},
 ];
 
 const VEH_COLS = [
