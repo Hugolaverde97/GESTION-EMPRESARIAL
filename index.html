@@ -1693,6 +1693,7 @@
       <div class="form-group"><label class="form-label">Tipo de carrocería</label><input class="form-input" id="veh_carroceria" placeholder="Ej: Furgón, Plataforma, Sedan..."></div>
       <div class="form-group"><label class="form-label">No. de motor</label><input class="form-input" id="veh_noMotor" placeholder="Número de motor"></div>
       <div class="form-group"><label class="form-label">No. de chasis</label><input class="form-input" id="veh_noChasis" placeholder="Número de chasis / VIN"></div>
+      <div class="form-group"><label class="form-label">No. licencia de tránsito</label><input class="form-input" id="veh_noLicTransito" placeholder="Número de licencia de tránsito"></div>
       <div class="form-group"><label class="form-label">Fecha de matrícula</label><input type="date" class="form-input" id="veh_fechaMatricula"></div>
       <div class="form-group full"><label class="form-label">Transporta para</label><input class="form-input" id="veh_transportaPara" placeholder="Ej: Juan García, Empresa XYZ..."></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="veh_propietario" placeholder="Propietario"></div>
@@ -4042,7 +4043,13 @@ function openVehicle(id) {
       </div>
     </div>
 
-    <div class="section-title">Archivos Adjuntos</div>
+    <div class="section-title">🔧 Historial de Mantenimientos</div>
+    <div id="vehMantList" style="margin-bottom:8px"></div>
+    ${canEdit()?`<button onclick="openAddMant()" style="width:100%;margin-bottom:16px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar mantenimiento</button>`:''}
+    <div class="section-title">    <div class="section-title">🔧 Historial de Mantenimientos</div>
+    <div id="vehMantList" style="margin-bottom:8px"></div>
+    ${canEdit()?`<button onclick="openAddMant()" style="width:100%;margin-bottom:16px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar mantenimiento</button>`:''}
+    Archivos Adjuntos</div>
     ${canEdit()?`<div class="upload-zone" onclick="document.getElementById('vehFileInput').click()">
       <input type="file" id="vehFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleVehFiles(this)">
       <div class="upload-icon">📎</div>
@@ -4160,7 +4167,7 @@ function renderMantList() {
 
 function openAddVehicle(){
   setLeasing(false);
-  ['veh_leasingEntidad','veh_placa','veh_marca','veh_modelo','veh_color','veh_propietario','veh_soat_ini','veh_soat_fin','veh_rtm_ini','veh_rtm_fin','veh_poliza_ini','veh_poliza_fin','veh_noIdPropietario','veh_noMotor','veh_noChasis','veh_transportaPara'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['veh_leasingEntidad','veh_placa','veh_marca','veh_modelo','veh_color','veh_propietario','veh_soat_ini','veh_soat_fin','veh_rtm_ini','veh_rtm_fin','veh_poliza_ini','veh_poliza_fin','veh_noIdPropietario','veh_noMotor','veh_noChasis','veh_transportaPara','veh_noLicTransito'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['veh_tipoIdPropietario','veh_tipo','veh_carroceria','veh_tipoServicio'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const _fm=document.getElementById('veh_fechaMatricula');if(_fm)_fm.value='';
   document.getElementById('grupo_trailer_asignado').style.display='none';
@@ -4173,7 +4180,7 @@ function openEditVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso');return;}
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
-  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora','noMotor','noChasis','fechaMatricula'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora','noMotor','noChasis','fechaMatricula','noLicTransito'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
   const tsEl=document.getElementById('veh_tipoServicio');if(tsEl)tsEl.value=v.tipoServicio||'';
   const tcEl=document.getElementById('veh_carroceria');if(tcEl)tcEl.value=v.carroceria||'';
   const tpEl=document.getElementById('veh_transportaPara');if(tpEl)tpEl.value=v.transportaPara||'';
@@ -4192,7 +4199,7 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','fechaMatricula'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','fechaMatricula','noLicTransito'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
   data.tipoServicio=document.getElementById('veh_tipoServicio')?.value||'';
@@ -6157,32 +6164,33 @@ const EMP_COLS = [
 ];
 
 const VEH_COLS = [
-  {id:'placa',        label:'Placa'},
-  {id:'tipo',         label:'Tipo'},
-  {id:'tipoServicio', label:'Tipo Servicio'},
-  {id:'carroceria',   label:'Carrocería'},
-  {id:'marca',        label:'Marca'},
-  {id:'modelo',       label:'Modelo'},
-  {id:'color',        label:'Color'},
-  {id:'noMotor',      label:'No. Motor'},
-  {id:'noChasis',     label:'No. Chasis'},
-  {id:'fechaMatricula',label:'Fecha Matrícula'},
-  {id:'propietario',  label:'Propietario'},
+  {id:'placa',          label:'Placa'},
+  {id:'tipo',           label:'Tipo'},
+  {id:'tipoServicio',   label:'Tipo Servicio'},
+  {id:'carroceria',     label:'Carrocería'},
+  {id:'marca',          label:'Marca'},
+  {id:'modelo',         label:'Modelo'},
+  {id:'color',          label:'Color'},
+  {id:'noMotor',        label:'No. Motor'},
+  {id:'noChasis',       label:'No. Chasis'},
+  {id:'noLicTransito',  label:'No. Lic. Tránsito'},
+  {id:'fechaMatricula', label:'Fecha Matrícula'},
+  {id:'propietario',    label:'Propietario'},
   {id:'tipoIdPropietario', label:'Tipo ID'},
   {id:'noIdPropietario',   label:'No. ID'},
-  {id:'leasing',      label:'Leasing', computed: v => v.leasing?'Sí':'No'},
-  {id:'leasingEntidad',    label:'Entidad Leasing'},
-  {id:'leasingIdEntidad',  label:'No. ID Entidad Leasing'},
-  {id:'transportaPara',    label:'Transporta para'},
-  {id:'trailer',      label:'Tráiler', computed: v => getTrailerName(v.trailerAsignado)},
-  {id:'soat_ini',     label:'SOAT Inicio'},
-  {id:'soat_fin',     label:'SOAT Fin'},
-  {id:'rtm_ini',      label:'RTM Inicio'},
-  {id:'rtm_fin',      label:'RTM Fin'},
-  {id:'aseguradora',  label:'Aseguradora'},
-  {id:'poliza_ini',   label:'Póliza Inicio'},
-  {id:'poliza_fin',   label:'Póliza Fin'},
-  {id:'estado',       label:'Estado', computed: v => v.activo===false?'Inactivo':'Activo'},
+  {id:'leasing',        label:'Leasing', computed: v => v.leasing?'Sí':'No'},
+  {id:'leasingEntidad', label:'Entidad Leasing'},
+  {id:'leasingIdEntidad', label:'No. ID Entidad Leasing'},
+  {id:'transportaPara', label:'Transporta para'},
+  {id:'trailer',        label:'Tráiler', computed: v => getTrailerName(v.trailerAsignado)},
+  {id:'soat_ini',       label:'SOAT Inicio'},
+  {id:'soat_fin',       label:'SOAT Fin'},
+  {id:'rtm_ini',        label:'RTM Inicio'},
+  {id:'rtm_fin',        label:'RTM Fin'},
+  {id:'aseguradora',    label:'Aseguradora'},
+  {id:'poliza_ini',     label:'Póliza Inicio'},
+  {id:'poliza_fin',     label:'Póliza Fin'},
+  {id:'estado',         label:'Estado', computed: v => v.activo===false?'Inactivo':'Activo'},
 ];
 
 const TR_COLS = [
