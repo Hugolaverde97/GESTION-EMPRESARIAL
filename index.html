@@ -1680,6 +1680,29 @@
       <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="veh_marca" placeholder="Marca"></div>
       <div class="form-group"><label class="form-label">Modelo (año)</label><input class="form-input" id="veh_modelo" placeholder="2024"></div>
       <div class="form-group"><label class="form-label">Color</label><input class="form-input" id="veh_color" placeholder="Color"></div>
+      <div class="form-group"><label class="form-label">Tipo de servicio</label>
+        <select class="form-select" id="veh_tipoServicio">
+          <option value="">Seleccionar...</option>
+          <option>Particular</option>
+          <option>Público</option>
+          <option>Oficial</option>
+          <option>Diplomático</option>
+          <option>Especial</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Tipo de carrocería</label>
+        <select class="form-select" id="veh_carroceria">
+          <option value="">Seleccionar...</option>
+          <option>Sedan</option><option>Campero / SUV</option><option>Camioneta Pick-Up</option>
+          <option>Furgón</option><option>Plataforma</option><option>Tanque / Cisterna</option>
+          <option>Volcador / Volco</option><option>Estacas</option><option>Refrigerado</option>
+          <option>Bus / Buseta</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">No. de motor</label><input class="form-input" id="veh_noMotor" placeholder="Número de motor"></div>
+      <div class="form-group"><label class="form-label">No. de chasis</label><input class="form-input" id="veh_noChasis" placeholder="Número de chasis / VIN"></div>
+      <div class="form-group"><label class="form-label">Fecha de matrícula</label><input type="date" class="form-input" id="veh_fechaMatricula"></div>
+      <div class="form-group full"><label class="form-label">Transporta para</label><input class="form-input" id="veh_transportaPara" placeholder="Ej: Juan García, Empresa XYZ..."></div>
       <div class="form-group"><label class="form-label">Propietario / Empresa</label><input class="form-input" id="veh_propietario" placeholder="Propietario"></div>
       <div class="form-group"><label class="form-label">Tipo de ID Propietario</label>
         <select class="form-select" id="veh_tipoIdPropietario">
@@ -1721,6 +1744,40 @@
       <div class="form-group"><label class="form-label">Póliza – Fin</label><input type="date" class="form-input" id="veh_poliza_fin"></div>
     </div>
     <button class="save-btn" onclick="saveVehicle()">💾 Guardar vehículo</button>
+  </div>
+</div>
+
+<!-- MANTENIMIENTO MODAL -->
+<div class="modal-overlay" id="mantModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">
+      <span id="mantModalTitle">🔧 Registrar Mantenimiento</span>
+      <button class="modal-close" onclick="closeModal('mantModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Tipo de mantenimiento</label>
+        <select class="form-select" id="mant_tipo">
+          <option value="">Seleccionar...</option>
+          <option>Preventivo</option><option>Correctivo</option>
+          <option>Cambio de aceite</option><option>Cambio de llantas</option>
+          <option>Frenos</option><option>Suspensión</option><option>Eléctrico</option>
+          <option>Carrocería / Pintura</option><option>Revisión general</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mant_fecha"></div>
+      <div class="form-group"><label class="form-label">Kilometraje</label><input type="number" class="form-input" id="mant_km" placeholder="Ej: 85000"></div>
+      <div class="form-group full"><label class="form-label">Taller / Proveedor</label><input class="form-input" id="mant_taller" placeholder="Nombre del taller"></div>
+      <div class="form-group full"><label class="form-label">Costo</label><input class="form-input" id="mant_costo" placeholder="Ej: $250.000"></div>
+      <div class="form-group full"><label class="form-label">Descripción / Observaciones</label>
+        <textarea class="form-select" id="mant_desc" rows="3" placeholder="Detalle del trabajo realizado..." style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group"><label class="form-label">Próximo mantenimiento</label><input type="date" class="form-input" id="mant_proxFecha"></div>
+      <div class="form-group"><label class="form-label">Próximo Km</label><input type="number" class="form-input" id="mant_proxKm" placeholder="Ej: 90000"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveMant()" style="flex:1;padding:13px;background:var(--accent1);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
+      <button onclick="closeModal('mantModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -3957,6 +4014,12 @@ function openVehicle(id) {
       <div class="field-card"><div class="field-label">Marca</div><div class="field-value">${v.marca||'—'}</div></div>
       <div class="field-card"><div class="field-label">Modelo / Año</div><div class="field-value">${v.modelo||'—'}</div></div>
       <div class="field-card"><div class="field-label">Color</div><div class="field-value">${v.color||'—'}</div></div>
+      ${v.tipoServicio?`<div class="field-card"><div class="field-label">Tipo de servicio</div><div class="field-value">${v.tipoServicio}</div></div>`:''}
+      ${v.carroceria?`<div class="field-card"><div class="field-label">Carrocería</div><div class="field-value">${v.carroceria}</div></div>`:''}
+      ${v.noMotor?`<div class="field-card"><div class="field-label">No. Motor</div><div class="field-value" style="font-family:var(--mono)">${v.noMotor}</div></div>`:''}
+      ${v.noChasis?`<div class="field-card"><div class="field-label">No. Chasis / VIN</div><div class="field-value" style="font-family:var(--mono)">${v.noChasis}</div></div>`:''}
+      ${v.fechaMatricula?`<div class="field-card"><div class="field-label">Fecha matrícula</div><div class="field-value">${fmtDate(v.fechaMatricula)}</div></div>`:''}
+      ${v.transportaPara?`<div class="field-card field-full"><div class="field-label">Transporta para</div><div class="field-value">${v.transportaPara}</div></div>`:''}
       <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${v.propietario||'—'}</div></div>
       <div class="field-card"><div class="field-label">ID Propietario</div><div class="field-value">${v.tipoIdPropietario?v.tipoIdPropietario+' '+v.noIdPropietario:'—'}</div></div>
       ${v.leasing?`<div class="field-card"><div class="field-label">Leasing</div><div class="field-value" style="color:var(--accent1)">✅ Sí · ${v.leasingEntidad||'Entidad no especificada'}</div></div>`:''}
@@ -3996,6 +4059,7 @@ function openVehicle(id) {
     <div class="doc-list" id="vehDocList"></div>
   `;
   renderVehDocs();
+  renderMantList();
   showScreen('vehicleDetail');
 }
 
@@ -4017,13 +4081,110 @@ function handleVehFiles(input) {
 }
 function deleteVehDoc(idx){const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v?.docs)return;v.docs.splice(idx,1);save();renderVehDocs();}
 
-function openAddVehicle(){setLeasing(false);document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','noIdPropietario'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipoIdPropietario').value='';document.getElementById('veh_tipo').value='';openModal('vehicleModal');}
+
+// ══ MANTENIMIENTOS ══
+let editingMantId = null;
+function openAddMant() {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  editingMantId = null;
+  document.getElementById('mantModalTitle').textContent = '🔧 Registrar Mantenimiento';
+  ['mant_tipo','mant_taller','mant_costo','mant_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['mant_fecha','mant_proxFecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['mant_km','mant_proxKm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('mant_fecha').value=new Date().toISOString().split('T')[0];
+  openModal('mantModal');
+}
+function openEditMant(id) {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);
+  const m=(v?.mantenimientos||[]).find(x=>x.id===id);
+  if(!m) return;
+  editingMantId=id;
+  document.getElementById('mantModalTitle').textContent='✏️ Editar Mantenimiento';
+  document.getElementById('mant_tipo').value=m.tipo||'';
+  document.getElementById('mant_fecha').value=m.fecha||'';
+  document.getElementById('mant_km').value=m.km||'';
+  document.getElementById('mant_taller').value=m.taller||'';
+  document.getElementById('mant_costo').value=m.costo||'';
+  document.getElementById('mant_desc').value=m.desc||'';
+  document.getElementById('mant_proxFecha').value=m.proxFecha||'';
+  document.getElementById('mant_proxKm').value=m.proxKm||'';
+  openModal('mantModal');
+}
+function saveMant() {
+  const tipo=document.getElementById('mant_tipo').value;
+  const fecha=document.getElementById('mant_fecha').value;
+  if(!tipo){toast('Selecciona el tipo');return;}
+  if(!fecha){toast('Ingresa la fecha');return;}
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);
+  if(!v) return;
+  if(!v.mantenimientos) v.mantenimientos=[];
+  const reg={
+    id:editingMantId||('mant_'+Date.now()), tipo, fecha,
+    km:document.getElementById('mant_km').value||'',
+    taller:document.getElementById('mant_taller').value.trim(),
+    costo:document.getElementById('mant_costo').value.trim(),
+    desc:document.getElementById('mant_desc').value.trim(),
+    proxFecha:document.getElementById('mant_proxFecha').value||'',
+    proxKm:document.getElementById('mant_proxKm').value||'',
+  };
+  if(editingMantId){const i=v.mantenimientos.findIndex(x=>x.id===editingMantId);if(i>=0)v.mantenimientos[i]=reg;}
+  else v.mantenimientos.push(reg);
+  save(); closeModal('mantModal'); renderMantList();
+  toast('Mantenimiento guardado'); editingMantId=null;
+}
+function deleteMant(id) {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  if(!confirm('Eliminar este registro?')) return;
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);
+  if(!v) return;
+  v.mantenimientos=(v.mantenimientos||[]).filter(x=>x.id!==id);
+  save(); renderMantList(); toast('Eliminado');
+}
+function renderMantList() {
+  const container=document.getElementById('vehMantList');
+  if(!container) return;
+  const v=state.vehicles.find(x=>x.id===currentVehicleId);
+  const list=(v?.mantenimientos||[]).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  if(!list.length){container.innerHTML='<div style="font-size:.8rem;color:var(--text2);padding:6px 0 10px">Sin mantenimientos registrados.</div>';return;}
+  const fmt=d=>d?d.split('-').reverse().join('/'):'—';
+  container.innerHTML=list.map(m=>{
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:700">${m.tipo||'—'} <span style="font-size:.75rem;font-weight:400;color:var(--text2)">${fmt(m.fecha)}${m.km?' · '+parseInt(m.km).toLocaleString()+' km':''}</span></div>
+          ${m.taller?`<div style="font-size:.78rem;color:var(--text2);margin-top:2px">🏭 ${m.taller}${m.costo?' · 💰 '+m.costo:''}</div>`:''}
+          ${m.desc?`<div style="font-size:.76rem;color:var(--text2);margin-top:3px;font-style:italic">"${m.desc}"</div>`:''}
+          ${m.proxFecha?`<div style="margin-top:5px;font-size:.72rem;color:var(--text2)">🔔 Próx: ${fmt(m.proxFecha)}${m.proxKm?' · '+parseInt(m.proxKm).toLocaleString()+' km':''}</div>`:''}
+        </div>
+        ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="openEditMant('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 7px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
+          <button onclick="deleteMant('${m.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:7px;padding:4px 7px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddVehicle(){
+  setLeasing(false);
+  ['veh_leasingEntidad','veh_placa','veh_marca','veh_modelo','veh_color','veh_propietario','veh_soat_ini','veh_soat_fin','veh_rtm_ini','veh_rtm_fin','veh_poliza_ini','veh_poliza_fin','veh_noIdPropietario','veh_noMotor','veh_noChasis','veh_transportaPara'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['veh_tipoIdPropietario','veh_tipo','veh_carroceria','veh_tipoServicio'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const _fm=document.getElementById('veh_fechaMatricula');if(_fm)_fm.value='';
+  document.getElementById('grupo_trailer_asignado').style.display='none';
+  editingVehicle=false;
+  document.getElementById('vehModalTitle').textContent='Agregar Vehículo';
+  openModal('vehicleModal');
+document.getElementById('veh_leasingEntidad') && (document.getElementById('veh_leasingEntidad').value='');document.getElementById('grupo_trailer_asignado').style.display='none';document.getElementById('veh_trailerAsignado') && (document.getElementById('veh_trailerAsignado').value='');editingVehicle=false;document.getElementById('vehModalTitle').textContent='Agregar Vehículo';['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','noIdPropietario','noMotor','noChasis','transportaPara'].forEach(f=>document.getElementById('veh_'+f).value='');document.getElementById('veh_tipoIdPropietario').value='';document.getElementById('veh_tipo').value='';const _tc=document.getElementById('veh_carroceria');if(_tc)_tc.value='';const _ts=document.getElementById('veh_tipoServicio');if(_ts)_ts.value='';const _tm=document.getElementById('veh_fechaMatricula');if(_tm)_tm.value='';openModal('vehicleModal');}
 
 function openEditVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso');return;}
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
-  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora','noMotor','noChasis','fechaMatricula'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  const tsEl=document.getElementById('veh_tipoServicio');if(tsEl)tsEl.value=v.tipoServicio||'';
+  const tcEl=document.getElementById('veh_carroceria');if(tcEl)tcEl.value=v.carroceria||'';
+  const tpEl=document.getElementById('veh_transportaPara');if(tpEl)tpEl.value=v.transportaPara||'';
   document.getElementById('veh_tipo').value=v.tipo||'';
   setLeasing(v.leasing||false);
   document.getElementById('veh_leasingEntidad').value=v.leasingEntidad||'';
@@ -4039,9 +4200,12 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','fechaMatricula'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
+  data.tipoServicio=document.getElementById('veh_tipoServicio')?.value||'';
+  data.carroceria=document.getElementById('veh_carroceria')?.value||'';
+  data.transportaPara=document.getElementById('veh_transportaPara')?.value.trim()||'';
   data.leasing=document.getElementById('veh_leasing')?.checked||false;
   data.leasingIdEntidad=document.getElementById('veh_leasingIdEntidad')?.value.trim()||'';
   const _esTrac=(data.tipo||'').toLowerCase().includes('tractomula')||(data.tipo||'').toLowerCase().includes('tracto');
@@ -6003,15 +6167,21 @@ const EMP_COLS = [
 const VEH_COLS = [
   {id:'placa',        label:'Placa'},
   {id:'tipo',         label:'Tipo'},
+  {id:'tipoServicio', label:'Tipo Servicio'},
+  {id:'carroceria',   label:'Carrocería'},
   {id:'marca',        label:'Marca'},
   {id:'modelo',       label:'Modelo'},
   {id:'color',        label:'Color'},
+  {id:'noMotor',      label:'No. Motor'},
+  {id:'noChasis',     label:'No. Chasis'},
+  {id:'fechaMatricula',label:'Fecha Matrícula'},
   {id:'propietario',  label:'Propietario'},
   {id:'tipoIdPropietario', label:'Tipo ID'},
   {id:'noIdPropietario',   label:'No. ID'},
   {id:'leasing',      label:'Leasing', computed: v => v.leasing?'Sí':'No'},
   {id:'leasingEntidad',    label:'Entidad Leasing'},
   {id:'leasingIdEntidad',  label:'No. ID Entidad Leasing'},
+  {id:'transportaPara',    label:'Transporta para'},
   {id:'trailer',      label:'Tráiler', computed: v => getTrailerName(v.trailerAsignado)},
   {id:'soat_ini',     label:'SOAT Inicio'},
   {id:'soat_fin',     label:'SOAT Fin'},
