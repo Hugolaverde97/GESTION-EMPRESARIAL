@@ -4011,6 +4011,7 @@ function openVehicle(id) {
       ${v.carroceria?`<div class="field-card"><div class="field-label">Carrocería</div><div class="field-value">${v.carroceria}</div></div>`:''}
       ${v.noMotor?`<div class="field-card"><div class="field-label">No. Motor</div><div class="field-value" style="font-family:var(--mono)">${v.noMotor}</div></div>`:''}
       ${v.noChasis?`<div class="field-card"><div class="field-label">No. Chasis / VIN</div><div class="field-value" style="font-family:var(--mono)">${v.noChasis}</div></div>`:''}
+      ${v.noLicTransito?`<div class="field-card"><div class="field-label">No. Lic. Tránsito</div><div class="field-value" style="font-family:var(--mono)">${v.noLicTransito}</div></div>`:''}
       ${v.fechaMatricula?`<div class="field-card"><div class="field-label">Fecha matrícula</div><div class="field-value">${fmtDate(v.fechaMatricula)}</div></div>`:''}
       ${v.transportaPara?`<div class="field-card field-full"><div class="field-label">Transporta para</div><div class="field-value">${v.transportaPara}</div></div>`:''}
       <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${v.propietario||'—'}</div></div>
