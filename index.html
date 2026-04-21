@@ -1826,7 +1826,7 @@
       <div class="form-group full"><label class="form-label">Descripción / Observaciones</label>
         <textarea class="form-select" id="mant_desc" rows="3" placeholder="Detalle del trabajo realizado..." style="resize:vertical"></textarea>
       </div>
-      <div class="form-group"><label class="form-label">Próximo mantenimiento</label><input type="date" class="form-input" id="mant_proxFecha"></div>
+
 
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
@@ -3954,7 +3954,21 @@ function renderStats() {
     { id:'chartEscolaridad', title:'Escolaridad', fn: ()=>groupBy(emps, e=>e.escolaridad||'Sin dato') },
     { id:'chartRol', title:'Rol Laboral', fn: ()=>groupBy(emps.filter(e=>e.tipoRol), e=>e.tipoRol==='administrativo'?'Administrativo':'Operativo') },
     { id:'chartEtnico', title:'Grupo Étnico', fn: ()=>groupBy(emps.filter(e=>e.grupoEtnico&&e.grupoEtnico!=='Ninguno'), e=>e.grupoEtnico||'Sin dato') },
-    { id:'chartPoblacion', title:'Pob. Especial Protección', fn: ()=>groupBy(emps.filter(e=>e.poblacionEspecial&&e.poblacionEspecial!=='No'), e=>e.poblacionEspecial||'Sin dato') },
+    { id:'chartPoblacion',  title:'Pob. Especial Protección', fn: ()=>groupBy(emps.filter(e=>e.poblacionEspecial&&e.poblacionEspecial!=='No'), e=>e.poblacionEspecial||'Sin dato') },
+    { id:'chartCargo',      title:'Cargo', fn: ()=>groupBy(emps, e=>e.cargo||'Sin dato') },
+    { id:'chartArl',        title:'ARL', fn: ()=>groupBy(emps, e=>e.arl||'Sin dato') },
+    { id:'chartPension',    title:'Fondo de Pensión', fn: ()=>groupBy(emps, e=>e.pension||'Sin dato') },
+    { id:'chartCaja',       title:'Caja de Compensación', fn: ()=>groupBy(emps, e=>e.caja||'Sin dato') },
+    { id:'chartAntig',      title:'Antigüedad', fn: ()=>groupBy(emps, e=>{
+        if(!e.fechaIngreso) return 'Sin dato';
+        const ini=new Date(e.fechaIngreso+'T00:00:00'), now=new Date();
+        const y=Math.floor((now-ini)/(1000*60*60*24*365.25));
+        if(y<1) return '< 1 año'; if(y<3) return '1-2 años'; if(y<5) return '3-4 años'; if(y<10) return '5-9 años'; return '10+ años';
+      })
+    },
+    { id:'chartHijos',      title:'No. de Hijos', fn: ()=>groupBy(emps.filter(e=>e.numHijos), e=>parseInt(e.numHijos)===0?'Sin hijos':parseInt(e.numHijos)===1?'1 hijo':parseInt(e.numHijos)<=3?'2-3 hijos':'4 o más') },
+    { id:'chartGenero',     title:'Identidad de Género', fn: ()=>groupBy(emps.filter(e=>e.identidadGenero), e=>e.identidadGenero) },
+    { id:'chartOrientacion',title:'Orientación Sexual', fn: ()=>groupBy(emps.filter(e=>e.orientacionSexual), e=>e.orientacionSexual) },
   ];
 
   charts.forEach(({id,title,fn})=>{
@@ -4118,9 +4132,14 @@ function openVehicle(id) {
       </div>
     </div>
 
-<div class="section-title">    <div class="section-title">🔧 Historial de Mantenimientos</div>
-    <div id="vehMantList" style="margin-bottom:8px"></div>
-    ${canEdit()?`<button onclick="openAddMant()" style="width:100%;margin-bottom:16px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar mantenimiento</button>`:''}
+<div class="section-title">    <div onclick="this.querySelector('.mant-arrow').textContent=this.nextElementSibling.style.display==='none'?'▼':'▶';this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:12px 0 4px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <span style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--text1)">🔧 Historial de Mantenimientos</span>
+      <span class="mant-arrow" style="font-size:.72rem;color:var(--text2);margin-left:4px">▶</span>
+    </div>
+    <div style="display:none">
+      <div id="vehMantList" style="margin-bottom:8px"></div>
+      ${canEdit()?`<button onclick="openAddMant()" style="width:100%;margin-bottom:16px;padding:9px;background:rgba(91,141,246,.08);border:1.5px dashed var(--accent1);border-radius:10px;color:var(--accent1);cursor:pointer;font-size:.8rem;font-weight:700;font-family:var(--font)">➕ Registrar mantenimiento</button>`:''}
+    </div>
     Archivos Adjuntos</div>
     ${canEdit()?`<div class="upload-zone" onclick="document.getElementById('vehFileInput').click()">
       <input type="file" id="vehFileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="handleVehFiles(this)">
@@ -4160,7 +4179,7 @@ function openAddMant() {
   editingMantId = null;
   document.getElementById('mantModalTitle').textContent = '🔧 Registrar Mantenimiento';
   ['mant_tipo','mant_taller','mant_costo','mant_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['mant_fecha','mant_proxFecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const _mf=document.getElementById('mant_fecha');if(_mf)_mf.value='';
   ['mant_proxKm','mant_numDoc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const _mtd=document.getElementById('mant_tipoDoc');if(_mtd)_mtd.value='';
   document.getElementById('mant_fecha').value=new Date().toISOString().split('T')[0];
@@ -4180,8 +4199,7 @@ function openEditMant(id) {
   const mnd=document.getElementById('mant_numDoc');if(mnd)mnd.value=m.numDoc||'';
   document.getElementById('mant_costo').value=m.costo||'';
   document.getElementById('mant_desc').value=m.desc||'';
-  document.getElementById('mant_proxFecha').value=m.proxFecha||'';
-  document.getElementById('mant_proxKm').value=m.proxKm||'';
+
   openModal('mantModal');
 }
 function saveMant() {
@@ -4199,8 +4217,7 @@ function saveMant() {
     numDoc:document.getElementById('mant_numDoc')?.value.trim()||'',
     costo:document.getElementById('mant_costo').value.trim(),
     desc:document.getElementById('mant_desc').value.trim(),
-    proxFecha:document.getElementById('mant_proxFecha').value||'',
-    proxKm:document.getElementById('mant_proxKm').value||'',
+
   };
   if(editingMantId){const i=v.mantenimientos.findIndex(x=>x.id===editingMantId);if(i>=0)v.mantenimientos[i]=reg;}
   else v.mantenimientos.push(reg);
@@ -4229,7 +4246,7 @@ function renderMantList() {
           <div style="font-size:.88rem;font-weight:700">${m.tipo||'—'} <span style="font-size:.75rem;font-weight:400;color:var(--text2)">${fmt(m.fecha)}</span></div>
           ${m.taller?`<div style="font-size:.78rem;color:var(--text2);margin-top:2px">🏭 ${m.taller}${m.tipoDoc?' · '+m.tipoDoc+':':''} ${m.numDoc||''}${m.costo?' · 💰 '+m.costo:''}</div>`:''}
           ${m.desc?`<div style="font-size:.76rem;color:var(--text2);margin-top:3px;font-style:italic">"${m.desc}"</div>`:''}
-          ${m.proxFecha?`<div style="margin-top:5px;font-size:.72rem;color:var(--text2)">🔔 Próx: ${fmt(m.proxFecha)}</div>`:''}
+
         </div>
         ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
           <button onclick="openEditMant('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 7px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
