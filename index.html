@@ -1741,7 +1741,8 @@
       </div>
       <div class="form-group"><label class="form-label">Tipo de carrocería</label><input class="form-input" id="veh_carroceria" placeholder="Ej: Furgón, Plataforma, Sedan..."></div>
       <div class="form-group"><label class="form-label">No. de motor</label><input class="form-input" id="veh_noMotor" placeholder="Número de motor"></div>
-      <div class="form-group"><label class="form-label">No. de chasis</label><input class="form-input" id="veh_noChasis" placeholder="Número de chasis / VIN"></div>
+      <div class="form-group"><label class="form-label">No. de chasis</label><input class="form-input" id="veh_noChasis" placeholder="Número de chasis"></div>
+      <div class="form-group"><label class="form-label">No. VIN</label><input class="form-input" id="veh_noVin" placeholder="Número VIN"></div>
       <div class="form-group"><label class="form-label">No. licencia de tránsito</label><input class="form-input" id="veh_noLicTransito" placeholder="Número de licencia de tránsito"></div>
       <div class="form-group"><label class="form-label">Fecha de matrícula</label><input type="date" class="form-input" id="veh_fechaMatricula"></div>
       <div class="form-group full"><label class="form-label">Transporta para</label><input class="form-input" id="veh_transportaPara" placeholder="Ej: Juan García, Empresa XYZ..."></div>
@@ -1807,14 +1808,26 @@
         </select>
       </div>
       <div class="form-group"><label class="form-label">Fecha</label><input type="date" class="form-input" id="mant_fecha"></div>
-      <div class="form-group"><label class="form-label">Kilometraje</label><input type="number" class="form-input" id="mant_km" placeholder="Ej: 85000"></div>
-      <div class="form-group full"><label class="form-label">Taller / Proveedor</label><input class="form-input" id="mant_taller" placeholder="Nombre del taller"></div>
+
+      <div class="form-group full"><label class="form-label">Taller / Proveedor</label><input class="form-input" id="mant_taller" placeholder="Nombre del taller o proveedor"></div>
+      <div class="form-group"><label class="form-label">Tipo de documento</label>
+        <select class="form-select" id="mant_tipoDoc">
+          <option value="">Seleccionar...</option>
+          <option value="NIT">NIT</option>
+          <option value="CC">Cédula de Ciudadanía</option>
+          <option value="CE">Cédula de Extranjería</option>
+          <option value="PAS">Pasaporte</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">No. de documento</label>
+        <input class="form-input" id="mant_numDoc" placeholder="Ej: 900.123.456-7">
+      </div>
       <div class="form-group full"><label class="form-label">Costo</label><input class="form-input" id="mant_costo" placeholder="Ej: $250.000"></div>
       <div class="form-group full"><label class="form-label">Descripción / Observaciones</label>
         <textarea class="form-select" id="mant_desc" rows="3" placeholder="Detalle del trabajo realizado..." style="resize:vertical"></textarea>
       </div>
       <div class="form-group"><label class="form-label">Próximo mantenimiento</label><input type="date" class="form-input" id="mant_proxFecha"></div>
-      <div class="form-group"><label class="form-label">Próximo Km</label><input type="number" class="form-input" id="mant_proxKm" placeholder="Ej: 90000"></div>
+
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button onclick="saveMant()" style="flex:1;padding:13px;background:var(--accent1);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
@@ -4070,7 +4083,8 @@ function openVehicle(id) {
       ${v.tipoServicio?`<div class="field-card"><div class="field-label">Tipo de servicio</div><div class="field-value">${v.tipoServicio}</div></div>`:''}
       ${v.carroceria?`<div class="field-card"><div class="field-label">Carrocería</div><div class="field-value">${v.carroceria}</div></div>`:''}
       ${v.noMotor?`<div class="field-card"><div class="field-label">No. Motor</div><div class="field-value" style="font-family:var(--mono)">${v.noMotor}</div></div>`:''}
-      ${v.noChasis?`<div class="field-card"><div class="field-label">No. Chasis / VIN</div><div class="field-value" style="font-family:var(--mono)">${v.noChasis}</div></div>`:''}
+      ${v.noChasis?`<div class="field-card"><div class="field-label">No. Chasis</div><div class="field-value" style="font-family:var(--mono)">${v.noChasis}</div></div>`:''}
+      ${v.noVin?`<div class="field-card"><div class="field-label">No. VIN</div><div class="field-value" style="font-family:var(--mono)">${v.noVin}</div></div>`:''}
       ${v.noLicTransito?`<div class="field-card"><div class="field-label">No. Lic. Tránsito</div><div class="field-value" style="font-family:var(--mono)">${v.noLicTransito}</div></div>`:''}
       ${v.fechaMatricula?`<div class="field-card"><div class="field-label">Fecha matrícula</div><div class="field-value">${fmtDate(v.fechaMatricula)}</div></div>`:''}
       ${v.transportaPara?`<div class="field-card field-full"><div class="field-label">Transporta para</div><div class="field-value">${v.transportaPara}</div></div>`:''}
@@ -4147,7 +4161,8 @@ function openAddMant() {
   document.getElementById('mantModalTitle').textContent = '🔧 Registrar Mantenimiento';
   ['mant_tipo','mant_taller','mant_costo','mant_desc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['mant_fecha','mant_proxFecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['mant_km','mant_proxKm'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['mant_proxKm','mant_numDoc'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const _mtd=document.getElementById('mant_tipoDoc');if(_mtd)_mtd.value='';
   document.getElementById('mant_fecha').value=new Date().toISOString().split('T')[0];
   openModal('mantModal');
 }
@@ -4160,8 +4175,9 @@ function openEditMant(id) {
   document.getElementById('mantModalTitle').textContent='✏️ Editar Mantenimiento';
   document.getElementById('mant_tipo').value=m.tipo||'';
   document.getElementById('mant_fecha').value=m.fecha||'';
-  document.getElementById('mant_km').value=m.km||'';
   document.getElementById('mant_taller').value=m.taller||'';
+  const mtd=document.getElementById('mant_tipoDoc');if(mtd)mtd.value=m.tipoDoc||'';
+  const mnd=document.getElementById('mant_numDoc');if(mnd)mnd.value=m.numDoc||'';
   document.getElementById('mant_costo').value=m.costo||'';
   document.getElementById('mant_desc').value=m.desc||'';
   document.getElementById('mant_proxFecha').value=m.proxFecha||'';
@@ -4178,8 +4194,9 @@ function saveMant() {
   if(!v.mantenimientos) v.mantenimientos=[];
   const reg={
     id:editingMantId||('mant_'+Date.now()), tipo, fecha,
-    km:document.getElementById('mant_km').value||'',
     taller:document.getElementById('mant_taller').value.trim(),
+    tipoDoc:document.getElementById('mant_tipoDoc')?.value||'',
+    numDoc:document.getElementById('mant_numDoc')?.value.trim()||'',
     costo:document.getElementById('mant_costo').value.trim(),
     desc:document.getElementById('mant_desc').value.trim(),
     proxFecha:document.getElementById('mant_proxFecha').value||'',
@@ -4209,10 +4226,10 @@ function renderMantList() {
     return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
         <div style="flex:1">
-          <div style="font-size:.88rem;font-weight:700">${m.tipo||'—'} <span style="font-size:.75rem;font-weight:400;color:var(--text2)">${fmt(m.fecha)}${m.km?' · '+parseInt(m.km).toLocaleString()+' km':''}</span></div>
-          ${m.taller?`<div style="font-size:.78rem;color:var(--text2);margin-top:2px">🏭 ${m.taller}${m.costo?' · 💰 '+m.costo:''}</div>`:''}
+          <div style="font-size:.88rem;font-weight:700">${m.tipo||'—'} <span style="font-size:.75rem;font-weight:400;color:var(--text2)">${fmt(m.fecha)}</span></div>
+          ${m.taller?`<div style="font-size:.78rem;color:var(--text2);margin-top:2px">🏭 ${m.taller}${m.tipoDoc?' · '+m.tipoDoc+':':''} ${m.numDoc||''}${m.costo?' · 💰 '+m.costo:''}</div>`:''}
           ${m.desc?`<div style="font-size:.76rem;color:var(--text2);margin-top:3px;font-style:italic">"${m.desc}"</div>`:''}
-          ${m.proxFecha?`<div style="margin-top:5px;font-size:.72rem;color:var(--text2)">🔔 Próx: ${fmt(m.proxFecha)}${m.proxKm?' · '+parseInt(m.proxKm).toLocaleString()+' km':''}</div>`:''}
+          ${m.proxFecha?`<div style="margin-top:5px;font-size:.72rem;color:var(--text2)">🔔 Próx: ${fmt(m.proxFecha)}</div>`:''}
         </div>
         ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
           <button onclick="openEditMant('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:7px;padding:4px 7px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
@@ -4225,7 +4242,7 @@ function renderMantList() {
 
 function openAddVehicle(){
   setLeasing(false);
-  ['veh_leasingEntidad','veh_placa','veh_marca','veh_modelo','veh_color','veh_propietario','veh_soat_ini','veh_soat_fin','veh_rtm_ini','veh_rtm_fin','veh_poliza_ini','veh_poliza_fin','veh_noIdPropietario','veh_noMotor','veh_noChasis','veh_transportaPara','veh_noLicTransito'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['veh_leasingEntidad','veh_placa','veh_marca','veh_modelo','veh_color','veh_propietario','veh_soat_ini','veh_soat_fin','veh_rtm_ini','veh_rtm_fin','veh_poliza_ini','veh_poliza_fin','veh_noIdPropietario','veh_noMotor','veh_noChasis','veh_noVin','veh_transportaPara','veh_noLicTransito'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   ['veh_tipoIdPropietario','veh_tipo','veh_carroceria','veh_tipoServicio'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const _fm=document.getElementById('veh_fechaMatricula');if(_fm)_fm.value='';
   document.getElementById('grupo_trailer_asignado').style.display='none';
@@ -4238,7 +4255,7 @@ function openEditVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso');return;}
   const v=state.vehicles.find(x=>x.id===currentVehicleId);if(!v)return;
   editingVehicle=true;document.getElementById('vehModalTitle').textContent='Editar Vehículo';
-  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora','noMotor','noChasis','fechaMatricula','noLicTransito'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
+  ['placa','marca','modelo','color','propietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','tipoIdPropietario','noIdPropietario','aseguradora','noMotor','noChasis','noVin','fechaMatricula','noLicTransito'].forEach(f=>document.getElementById('veh_'+f).value=v[f]||'');
   const tsEl=document.getElementById('veh_tipoServicio');if(tsEl)tsEl.value=v.tipoServicio||'';
   const tcEl=document.getElementById('veh_carroceria');if(tcEl)tcEl.value=v.carroceria||'';
   const tpEl=document.getElementById('veh_transportaPara');if(tpEl)tpEl.value=v.transportaPara||'';
@@ -4257,7 +4274,7 @@ function saveVehicle(){
   if(!canEdit()){toast('⛔ Sin permiso para editar');return;}
   const placa=document.getElementById('veh_placa').value.trim().toUpperCase();
   if(!placa){alert('La placa es obligatoria.');return;}
-  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','fechaMatricula','noLicTransito'];
+  const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','noVin','fechaMatricula','noLicTransito'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
   data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
   data.tipoServicio=document.getElementById('veh_tipoServicio')?.value||'';
@@ -6238,6 +6255,7 @@ const VEH_COLS = [
   {id:'color',          label:'Color'},
   {id:'noMotor',        label:'No. Motor'},
   {id:'noChasis',       label:'No. Chasis'},
+  {id:'noVin',          label:'No. VIN'},
   {id:'noLicTransito',  label:'No. Lic. Tránsito'},
   {id:'fechaMatricula', label:'Fecha Matrícula'},
   {id:'propietario',    label:'Propietario'},
