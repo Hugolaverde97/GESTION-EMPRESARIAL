@@ -3842,7 +3842,9 @@ function saveEmployee() {
   const cargoVal = document.getElementById('emp_cargo').value;
   data.cargo = cargoVal === '__otro__' ? (document.getElementById('emp_cargo_otro').value.trim() || 'Otro') : cargoVal;
   data.nombre=nombres+' '+apellidos; // keep full name for compat
-  data.vehiculoAsignado = document.getElementById('emp_vehiculoAsignado')?.value || '';
+  // Only save vehiculoAsignado for conductores
+  const _esCond = (data.cargo||'').toLowerCase().includes('conductor');
+  data.vehiculoAsignado = _esCond ? (document.getElementById('emp_vehiculoAsignado')?.value||'') : '';
   data.emergParentesco = document.getElementById('emp_emergParentesco').value;
   data.tipoContrato=document.getElementById('emp_tipoContrato').value;
   data.sangre=document.getElementById('emp_sangre').value;
@@ -6235,7 +6237,7 @@ const EMP_COLS = [
   {id:'caja',          label:'Caja Compensación'},
   {id:'tipoLicencia',  label:'Tipo Licencia'},
   {id:'vencLicencia',  label:'Venc. Licencia'},
-  {id:'vehiculo',      label:'Vehículo Asignado', computed: e => getVehicleName(e.vehiculoAsignado)},
+  {id:'vehiculo',      label:'Vehículo Asignado', computed: e => (e.cargo||'').toLowerCase().includes('conductor') && e.vehiculoAsignado ? getVehicleName(e.vehiculoAsignado) : ''},
   {id:'emergNombre',   label:'Contacto Emergencia'},
   {id:'emergParentesco',label:'Parentesco'},
   {id:'emergCelular',  label:'Tel. Emergencia'},
