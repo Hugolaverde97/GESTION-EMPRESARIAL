@@ -1489,7 +1489,21 @@
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Nombres *</label><input class="form-input" id="emp_nombres" placeholder="Nombres"></div>
       <div class="form-group"><label class="form-label">Apellidos *</label><input class="form-input" id="emp_apellidos" placeholder="Apellidos"></div>
-      <div class="form-group"><label class="form-label">Cédula *</label><input class="form-input" id="emp_cedula" placeholder="Número de cédula"></div>
+      <div class="form-group"><label class="form-label">Tipo de documento</label>
+        <select class="form-select" id="emp_tipoDoc">
+          <option value="">Seleccionar...</option>
+          <option value="CC">Cédula de Ciudadanía (CC)</option>
+          <option value="CE">Cédula de Extranjería (CE)</option>
+          <option value="PA">Pasaporte (PA)</option>
+          <option value="PPT">Permiso por Protección Temporal (PPT)</option>
+          <option value="PEP">Permiso Especial de Permanencia (PEP)</option>
+          <option value="TI">Tarjeta de Identidad (TI)</option>
+          <option value="RC">Registro Civil (RC)</option>
+          <option value="NIT">NIT</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">No. de documento *</label><input class="form-input" id="emp_cedula" placeholder="Número de documento"></div>
       <div class="form-group"><label class="form-label">Tipo de sangre</label>
         <select class="form-select" id="emp_sangre">
           <option value="">Seleccionar...</option>
@@ -1497,6 +1511,7 @@
           <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
         </select>
       </div>
+      <div class="form-group"><label class="form-label">Nacionalidad</label><input class="form-input" id="emp_nacionalidad" placeholder="Ej: Colombiana, Venezolana..."></div>
       <div class="form-group"><label class="form-label">Sexo</label>
         <select class="form-select" id="emp_sexo">
           <option value="">Seleccionar...</option>
@@ -2388,28 +2403,43 @@ function renderVacStats() {
   if(!container) return;
   const emps = getEmployees(currentVacEmpresaIdx);
   const vacs = getVacaciones(currentVacEmpresaIdx);
-
   if(!emps.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">Sin datos.</div></div>'; return; }
 
   // Build per-employee stats
-  const stats = emps.map(e => {
-    const res = calcResumenVacaciones(e, currentVacEmpresaIdx, null);
-    return { e, res };
-  });
-
+  const stats = emps.map(e => ({ e, res: calcResumenVacaciones(e, currentVacEmpresaIdx, null) }));
   const totalGanados  = stats.reduce((s,x)=>s+x.res.totalGanados, 0);
   const totalTomados  = stats.reduce((s,x)=>s+x.res.totalTomados, 0);
-  const totalSaldo    = stats.reduce((s,x)=>s+Math.max(0,x.res.saldo), 0);
+  const totalSaldo    = stats.filter(x=>x.res.saldo>0).reduce((s,x)=>s+x.res.saldo, 0);
   const conDeuda      = stats.filter(x=>x.res.saldo<0).length;
-  const sinVacaciones = stats.filter(x=>x.res.totalTomados===0 && x.res.totalGanados>0).length;
-
-  // Top empleados con más saldo pendiente
-  const topSaldo = [...stats].filter(x=>x.res.saldo>0).sort((a,b)=>b.res.saldo-a.res.saldo).slice(0,5);
-  // Top tomados
-  const topTomados = [...stats].filter(x=>x.res.totalTomados>0).sort((a,b)=>b.res.totalTomados-a.res.totalTomados).slice(0,5);
-  // Modalidad breakdown
-  const byModalidad = {disfrutadas:0, pagadas:0, mixtas:0};
+  const byModalidad   = {disfrutadas:0, pagadas:0, mixtas:0};
   vacs.filter(v=>v.estado==='tomadas').forEach(v=>{ byModalidad[v.modalidad||'disfrutadas']+=parseInt(v.dias)||0; });
+
+  // ── Get available years from vacation records ─────
+  const allYears = [...new Set(vacs.map(v=>(v.fechaIni||'').substring(0,4)).filter(y=>y>=2020))].sort().reverse();
+  const selYear = document.getElementById('vacStatsYear')?.value || (allYears[0]||new Date().getFullYear().toString());
+
+  // ── Vacaciones by selected year ───────────────────
+  const vacsYear = vacs.filter(v=>v.estado==='tomadas' && (v.fechaIni||'').startsWith(selYear));
+  const disfYear = vacsYear.filter(v=>!v.modalidad||v.modalidad==='disfrutadas');
+  const pagaYear = vacsYear.filter(v=>v.modalidad==='pagadas');
+  const mixtYear = vacsYear.filter(v=>v.modalidad==='mixtas');
+
+  // Group by employee for the year
+  const empVacYear = {};
+  vacsYear.forEach(v => {
+    if(!empVacYear[v.empleadoId]) empVacYear[v.empleadoId] = { disfrutadas:0, pagadas:0, mixtas:0, total:0 };
+    const mod = v.modalidad||'disfrutadas';
+    empVacYear[v.empleadoId][mod] = (empVacYear[v.empleadoId][mod]||0) + (parseInt(v.dias)||0);
+    empVacYear[v.empleadoId].total += parseInt(v.dias)||0;
+  });
+
+  const topSaldo = [...stats].filter(x=>x.res.saldo>0).sort((a,b)=>b.res.saldo-a.res.saldo).slice(0,5);
+  const topTomados = [...stats].filter(x=>x.res.totalTomados>0).sort((a,b)=>b.res.totalTomados-a.res.totalTomados).slice(0,5);
+  const sinVacaciones = stats.filter(x=>x.res.totalTomados===0&&x.res.totalGanados>0).length;
+
+  const yearOptions = allYears.length
+    ? allYears.map(y=>`<option value="${y}" ${y===selYear?'selected':''}>${y}</option>`).join('')
+    : `<option value="${new Date().getFullYear()}">${new Date().getFullYear()}</option>`;
 
   container.innerHTML = `
     <div style="padding:16px">
@@ -2426,45 +2456,84 @@ function renderVacStats() {
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
           <div style="font-size:1.5rem;font-weight:800;color:#f59e0b">${totalSaldo}</div>
-          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Días pendientes por tomar</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Días pendientes</div>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;text-align:center">
           <div style="font-size:1.5rem;font-weight:800;color:#ef4444">${conDeuda}</div>
-          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Empleados con deuda de vac.</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Con deuda de vac.</div>
         </div>
       </div>
 
-      <!-- Modalidad breakdown -->
-      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Días tomados por modalidad</div>
+      <!-- Modalidad total -->
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Modalidad (total histórico)</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:20px;display:flex;gap:16px;flex-wrap:wrap">
-        <div style="text-align:center;flex:1">
-          <div style="font-size:1.3rem">🏖️</div>
-          <div style="font-size:1.1rem;font-weight:800;color:var(--accent1)">${byModalidad.disfrutadas}</div>
-          <div style="font-size:.7rem;color:var(--text2)">Disfrutadas</div>
+        <div style="text-align:center;flex:1"><div style="font-size:1.3rem">🏖️</div><div style="font-size:1.1rem;font-weight:800;color:var(--accent1)">${byModalidad.disfrutadas}</div><div style="font-size:.7rem;color:var(--text2)">Disfrutadas</div></div>
+        <div style="text-align:center;flex:1"><div style="font-size:1.3rem">💰</div><div style="font-size:1.1rem;font-weight:800;color:#22c55e">${byModalidad.pagadas}</div><div style="font-size:.7rem;color:var(--text2)">Pagadas</div></div>
+        <div style="text-align:center;flex:1"><div style="font-size:1.3rem">🔀</div><div style="font-size:1.1rem;font-weight:800;color:var(--accent2)">${byModalidad.mixtas}</div><div style="font-size:.7rem;color:var(--text2)">Mixtas</div></div>
+      </div>
+
+      <!-- Year selector section -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700">Vacaciones por año</div>
+        <select id="vacStatsYear" onchange="renderVacStats()" style="padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text1);font-family:var(--font);font-size:.82rem">
+          ${yearOptions}
+        </select>
+      </div>
+
+      <!-- Year summary cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div style="background:rgba(91,141,246,.08);border:1px solid rgba(91,141,246,.2);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--accent1)">${disfYear.reduce((s,v)=>s+(parseInt(v.dias)||0),0)}</div>
+          <div style="font-size:.68rem;color:var(--text2);margin-top:2px">🏖️ Disfrutadas</div>
+          <div style="font-size:.65rem;color:var(--text2)">${disfYear.length} registro${disfYear.length!==1?'s':''}</div>
         </div>
-        <div style="text-align:center;flex:1">
-          <div style="font-size:1.3rem">💰</div>
-          <div style="font-size:1.1rem;font-weight:800;color:#22c55e">${byModalidad.pagadas}</div>
-          <div style="font-size:.7rem;color:var(--text2)">Pagadas</div>
+        <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:#22c55e">${pagaYear.reduce((s,v)=>s+(parseInt(v.dias)||0),0)}</div>
+          <div style="font-size:.68rem;color:var(--text2);margin-top:2px">💰 Pagadas</div>
+          <div style="font-size:.65rem;color:var(--text2)">${pagaYear.length} registro${pagaYear.length!==1?'s':''}</div>
         </div>
-        <div style="text-align:center;flex:1">
-          <div style="font-size:1.3rem">🔀</div>
-          <div style="font-size:1.1rem;font-weight:800;color:var(--accent2)">${byModalidad.mixtas}</div>
-          <div style="font-size:.7rem;color:var(--text2)">Mixtas</div>
+        <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:1.2rem;font-weight:800;color:var(--accent2)">${mixtYear.reduce((s,v)=>s+(parseInt(v.dias)||0),0)}</div>
+          <div style="font-size:.68rem;color:var(--text2);margin-top:2px">🔀 Mixtas</div>
+          <div style="font-size:.65rem;color:var(--text2)">${mixtYear.length} registro${mixtYear.length!==1?'s':''}</div>
         </div>
       </div>
 
-      <!-- Top saldo pendiente -->
+      <!-- Employee breakdown for selected year -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:700;color:var(--text2)">
+          Detalle por empleado — ${selYear}
+        </div>
+        ${Object.keys(empVacYear).length ? Object.entries(empVacYear).sort((a,b)=>b[1].total-a[1].total).map(([empId, data])=>{
+          const emp = emps.find(e=>e.id===empId);
+          if(!emp) return '';
+          const name = (emp.apellidos?emp.apellidos+', ':'')+( emp.nombres||'');
+          return `<div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+              <div style="font-size:.7rem;color:var(--text2)">${emp.cargo||'Sin cargo'}${emp.activo===false?' · ⛔ Inactivo':''}</div>
+              <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+                ${data.disfrutadas?`<span style="font-size:.68rem;background:rgba(91,141,246,.12);color:var(--accent1);padding:2px 7px;border-radius:10px">🏖️ ${data.disfrutadas}d disfrutadas</span>`:''}
+                ${data.pagadas?`<span style="font-size:.68rem;background:rgba(34,197,94,.12);color:#22c55e;padding:2px 7px;border-radius:10px">💰 ${data.pagadas}d pagadas</span>`:''}
+                ${data.mixtas?`<span style="font-size:.68rem;background:rgba(167,139,250,.12);color:var(--accent2);padding:2px 7px;border-radius:10px">🔀 ${data.mixtas}d mixtas</span>`:''}
+              </div>
+            </div>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--text1);flex-shrink:0">${data.total}<span style="font-size:.65rem;font-weight:400;color:var(--text2)"> días</span></div>
+          </div>`;
+        }).join('') : `<div style="padding:20px;text-align:center;color:var(--text2);font-size:.85rem">Sin vacaciones registradas en ${selYear}</div>`}
+      </div>
+
+      <!-- Top saldo -->
       <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Mayor saldo pendiente</div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px">
         ${topSaldo.length ? topSaldo.map(({e,res},i)=>{
-          const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
-          const pct = res.totalGanados>0 ? Math.round((res.saldo/res.totalGanados)*100) : 0;
+          const name=(e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
+          const pct=res.totalGanados>0?Math.round((res.saldo/res.totalGanados)*100):0;
           return `<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
-            <div style="width:28px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text2)">${i+1}</div>
+            <div style="width:24px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text2)">${i+1}</div>
             <div style="flex:1;min-width:0">
               <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-              <div style="font-size:.7rem;color:var(--text2)">${e.cargo||'Sin cargo'}${e.activo===false?' · ⛔ Inactivo':''}</div>
+              <div style="font-size:.7rem;color:var(--text2)">${e.cargo||''}${e.activo===false?' · ⛔ Inactivo':''}</div>
               <div style="background:var(--surface2);border-radius:20px;height:4px;margin-top:5px"><div style="height:100%;background:#f59e0b;border-radius:20px;width:${pct}%"></div></div>
             </div>
             <div style="font-size:1.1rem;font-weight:800;color:#f59e0b;flex-shrink:0">+${res.saldo}</div>
@@ -2472,73 +2541,18 @@ function renderVacStats() {
         }).join('') : '<div style="padding:14px;color:var(--text2);font-size:.85rem;text-align:center">Sin datos</div>'}
       </div>
 
-      <!-- Top tomados -->
-      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">Más días tomados</div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:20px">
-        ${topTomados.length ? topTomados.map(({e,res},i)=>{
-          const name = (e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
-          return `<div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px">
-            <div style="width:28px;text-align:center;font-size:.8rem;font-weight:700;color:var(--text2)">${i+1}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.85rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
-              <div style="font-size:.7rem;color:var(--text2)">${e.cargo||'Sin cargo'}${e.activo===false?' · ⛔ Inactivo':''}</div>
-            </div>
-            <div style="font-size:1.1rem;font-weight:800;color:#22c55e;flex-shrink:0">${res.totalTomados}</div>
-          </div>`;
-        }).join('') : '<div style="padding:14px;color:var(--text2);font-size:.85rem;text-align:center">Sin datos</div>'}
-      </div>
-
-      <!-- Sin vacaciones -->
       ${sinVacaciones>0?`
       <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:14px;margin-bottom:20px">
-        <div style="font-size:.82rem;font-weight:700;color:#ef4444;margin-bottom:8px">⚠️ ${sinVacaciones} empleado${sinVacaciones!==1?'s':''} con días ganados pero sin vacaciones registradas</div>
+        <div style="font-size:.82rem;font-weight:700;color:#ef4444;margin-bottom:8px">⚠️ ${sinVacaciones} empleado${sinVacaciones!==1?'s':''} con días ganados sin vacaciones registradas</div>
         ${stats.filter(x=>x.res.totalTomados===0&&x.res.totalGanados>0).map(({e,res})=>{
           const name=(e.apellidos?e.apellidos+', ':'')+( e.nombres||'');
           return `<div style="font-size:.78rem;color:var(--text2);padding:3px 0">• ${name} — ${res.totalGanados} días ganados${e.activo===false?' (inactivo)':''}</div>`;
         }).join('')}
-      </div>`:''
-      }
+      </div>`:''}
     </div>
   `;
 }
 
-
-// ── Vacation multi-select filters ────────────────────────
-const vacFiltros = { emp: new Set(), cargo: new Set(), estado: new Set(), activo: new Set() };
-
-function toggleVacChip(type, val, btn) {
-  const s = vacFiltros[type];
-  if(s.has(val)) { s.delete(val); btn.classList.remove('active'); }
-  else { s.add(val); btn.classList.add('active'); }
-  renderVacaciones();
-}
-
-function limpiarVacFiltros() {
-  document.getElementById('vacFiltroQ').value = '';
-  Object.keys(vacFiltros).forEach(k => vacFiltros[k].clear());
-  document.querySelectorAll('.vac-chip').forEach(b => b.classList.remove('active'));
-  renderVacaciones();
-}
-
-function poblarFiltrosVacaciones() {
-  const emps = getEmployees(currentVacEmpresaIdx);
-  // Empleados chips
-  const chipsEmp = document.getElementById('vacChipsEmp');
-  if(chipsEmp) {
-    chipsEmp.innerHTML = emps.map(e => {
-      const name = (e.apellidos ? e.apellidos.split(' ')[0]+' ' : '') + (e.nombres||'').split(' ')[0];
-      return `<button onclick="toggleVacChip('emp','${e.id}',this)" data-val="${e.id}" class="vac-chip${vacFiltros.emp.has(e.id)?' active':''}">${name}</button>`;
-    }).join('');
-  }
-  // Cargos chips
-  const cargos = [...new Set(emps.map(e=>e.cargo).filter(Boolean))].sort();
-  const chipsCargo = document.getElementById('vacChipsCargo');
-  if(chipsCargo) {
-    chipsCargo.innerHTML = cargos.map(c =>
-      `<button onclick="toggleVacChip('cargo','${c.replace(/'/g,"\'")}',this)" data-val="${c}" class="vac-chip${vacFiltros.cargo.has(c)?' active':''}">${c}</button>`
-    ).join('');
-  }
-}
 
 function renderVacaciones() {
   const container = document.getElementById('vacacionesContent');
@@ -3662,7 +3676,8 @@ function openEmployee(id) {
 
     <div class="section-title">Identificación</div>
     <div class="fields-grid">
-      <div class="field-card"><div class="field-label">Cédula</div><div class="field-value">${e.cedula||'—'}</div></div>
+      <div class="field-card"><div class="field-label">${e.tipoDoc||'Documento'}</div><div class="field-value">${e.cedula||'—'}</div></div>
+      ${e.nacionalidad?`<div class="field-card"><div class="field-label">Nacionalidad</div><div class="field-value">${e.nacionalidad}</div></div>`:''}
       <div class="field-card"><div class="field-label">Tipo de sangre</div><div class="field-value" style="color:var(--danger)">${e.sangre||'—'}</div></div>
       ${e.identidadGenero?`<div class="field-card"><div class="field-label">Identidad de género</div><div class="field-value">${e.identidadGenero}</div></div>`:''}
       ${e.orientacionSexual?`<div class="field-card"><div class="field-label">Orientación sexual</div><div class="field-value">${e.orientacionSexual}</div></div>`:''}
@@ -3808,7 +3823,7 @@ function openEditEmployee() {
   const e=state.employees.find(x=>x.id===currentEmployeeId); if(!e) return;
   editingEmployee=true;
   document.getElementById('empModalTitle').textContent='Editar Empleado';
-  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','banco','tipoCuenta','numeroCuenta','identidadGenero','orientacionSexual','grupoEtnico','poblacionEspecial','escolaridad','numHijos','tipoRol'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value=e[f]||'';});
+  ['nombres','apellidos','cedula','fechaExp','ciudadExp','fechaNac','ciudadNac','direccion','barrio','ciudad','celular','correo','cargo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','banco','tipoCuenta','numeroCuenta','identidadGenero','orientacionSexual','grupoEtnico','poblacionEspecial','escolaridad','numHijos','tipoRol','tipoDoc','nacionalidad'].forEach(f=>{const el=document.getElementById('emp_'+f);if(el)el.value=e[f]||'';});
   document.getElementById('emp_tipoContrato').value=e.tipoContrato||'';
   document.getElementById('emp_sangre').value=e.sangre||'';
   document.getElementById('emp_sexo').value=e.sexo||'';
@@ -3836,7 +3851,7 @@ function saveEmployee() {
   const nombres=document.getElementById('emp_nombres').value.trim();
   const apellidos=document.getElementById('emp_apellidos').value.trim();
   if(!nombres){alert('El nombre es obligatorio.');return;}
-  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','ciudadNac','fechaNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','estadoCivil','banco','tipoCuenta','numeroCuenta','identidadGenero','orientacionSexual','grupoEtnico','poblacionEspecial','escolaridad','numHijos','tipoRol'];
+  const fields=['nombres','apellidos','cedula','fechaExp','ciudadExp','ciudadNac','fechaNac','direccion','barrio','ciudad','celular','correo','fechaIngreso','eps','arl','nivelArl','pension','caja','salario','duracion','tipoLicencia','vencLicencia','emergNombre','emergParentesco','emergCelular','emergDireccion','estadoCivil','banco','tipoCuenta','numeroCuenta','identidadGenero','orientacionSexual','grupoEtnico','poblacionEspecial','escolaridad','numHijos','tipoRol','tipoDoc','nacionalidad'];
   const data={};
   fields.forEach(f=>data[f]=document.getElementById('emp_'+f).value.trim());
   const cargoVal = document.getElementById('emp_cargo').value;
@@ -6209,7 +6224,9 @@ let exportFilters = { estado: 'todos', salario: 'con', empresa: 'todas', cargo: 
 const EMP_COLS = [
   {id:'nombres',       label:'Nombres'},
   {id:'apellidos',     label:'Apellidos'},
-  {id:'cedula',        label:'Cédula'},
+  {id:'tipoDoc',        label:'Tipo Documento'},
+  {id:'cedula',         label:'No. Documento'},
+  {id:'nacionalidad',   label:'Nacionalidad'},
   {id:'cargo',         label:'Cargo'},
   {id:'estadoCivil',   label:'Estado Civil'},
   {id:'sexo',          label:'Sexo'},
