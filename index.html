@@ -1877,6 +1877,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===================== STATE =====================
 let state = { employees:[], vehicles:[], trailers:[], empresas:[], settings:{}, organigramas:{} };
+let currentPermisosEmpresaIdx = 0;
 let currentCompany = 0;
 let currentEmployeeId = null;
 let currentVehicleId = null;
@@ -2263,11 +2264,18 @@ function openSubmodulo(tipo) {
   const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
   if(tipo === 'vacaciones') {
     document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
-    poblarFiltrosVacaciones();
-    switchVacTab('lista');
-    const statsEl = document.getElementById('vacacionesStats');
-    if(statsEl) statsEl.innerHTML = '';
+    // Reset to lista tab
+    ['vac-tab-lista','vac-tab-stats'].forEach((id,i)=>{
+      const el=document.getElementById(id);
+      if(el) el.classList.toggle('active', i===0);
+    });
+    const lista = document.getElementById('vacacionesContent');
+    const stats = document.getElementById('vacacionesStats');
+    if(lista) lista.style.display='';
+    if(stats) { stats.style.display='none'; stats.innerHTML=''; }
     showScreen('vacacionesScreen');
+    poblarFiltrosVacaciones();
+    renderVacaciones();
   } else if(tipo === 'incapacidades') {
     const titleEl = document.getElementById('incapacidadesTitle');
     if(titleEl) titleEl.textContent = (em.nombre||'Empresa') + ' · Incapacidades';
