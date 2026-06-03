@@ -4083,6 +4083,21 @@ function docStatus(fin) {
   return '<span class="badge badge-ok">✅ Vigente</span>';
 }
 
+
+function getConductorAsignado(vehicleId) {
+  // Find active conductor who has this vehicle assigned
+  const empresas = state.empresas || buildDefaultEmpresas();
+  for(let i=0; i<empresas.length; i++) {
+    const conductores = getEmployees(i).filter(e =>
+      e.activo !== false &&
+      e.vehiculoAsignado === vehicleId &&
+      (e.cargo||'').toLowerCase().includes('conductor')
+    );
+    if(conductores.length) return conductores[0];
+  }
+  return null;
+}
+
 function openVehicle(id) {
   currentVehicleId=id;
   const v=state.vehicles.find(x=>x.id===id); if(!v) return;
@@ -4119,6 +4134,7 @@ function openVehicle(id) {
       ${v.noLicTransito?`<div class="field-card"><div class="field-label">No. Lic. Tránsito</div><div class="field-value" style="font-family:var(--mono)">${v.noLicTransito}</div></div>`:''}
       ${v.fechaMatricula?`<div class="field-card"><div class="field-label">Fecha matrícula</div><div class="field-value">${fmtDate(v.fechaMatricula)}</div></div>`:''}
       ${v.transportaPara?`<div class="field-card field-full"><div class="field-label">Transporta para</div><div class="field-value">${v.transportaPara}</div></div>`:''}
+      ${(()=>{const c=getConductorAsignado(v.id);return c?`<div class="field-card field-full" style="background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2)"><div class="field-label" style="color:var(--accent3)">🧑‍✈️ Conductor asignado</div><div class="field-value" style="font-weight:700">${(c.apellidos?c.apellidos+', ':'')+c.nombres||''}<span style="font-size:.75rem;font-weight:400;color:var(--text2);margin-left:8px">CC: ${c.cedula||'—'}</span></div></div>`:'';})()}
       <div class="field-card"><div class="field-label">Propietario</div><div class="field-value">${v.propietario||'—'}</div></div>
       <div class="field-card"><div class="field-label">ID Propietario</div><div class="field-value">${v.tipoIdPropietario?v.tipoIdPropietario+' '+v.noIdPropietario:'—'}</div></div>
       ${v.leasing?`<div class="field-card"><div class="field-label">Leasing</div><div class="field-value" style="color:var(--accent1)">✅ Sí · ${v.leasingEntidad||'Entidad no especificada'}</div></div>`:''}
