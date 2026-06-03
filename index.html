@@ -2257,6 +2257,7 @@ function deletePermisoSub() {
 let currentVacEmpresaIdx = 0;
 let editingVacId = null;
 let currentVacEstado = 'programadas';
+const vacFiltros = { emp: new Set(), cargo: new Set(), estado: new Set(), activo: new Set() };
 
 function openSubmodulo(tipo) {
   currentVacEmpresaIdx = currentPermisosEmpresaIdx;
