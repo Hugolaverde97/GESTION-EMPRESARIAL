@@ -2259,15 +2259,25 @@ let currentVacEstado = 'programadas';
 
 function openSubmodulo(tipo) {
   currentVacEmpresaIdx = currentPermisosEmpresaIdx;
+  currentPermisosEmpresaIdx2 = currentPermisosEmpresaIdx;
   const em = (state.empresas||[])[currentVacEmpresaIdx] || {};
   if(tipo === 'vacaciones') {
     document.getElementById('vacacionesTitle').textContent = (em.nombre||'Empresa') + ' · Vacaciones';
     poblarFiltrosVacaciones();
-    // Always reset to Registros tab and clear stats
     switchVacTab('lista');
     const statsEl = document.getElementById('vacacionesStats');
     if(statsEl) statsEl.innerHTML = '';
     showScreen('vacacionesScreen');
+  } else if(tipo === 'incapacidades') {
+    const titleEl = document.getElementById('incapacidadesTitle');
+    if(titleEl) titleEl.textContent = (em.nombre||'Empresa') + ' · Incapacidades';
+    renderIncapacidades();
+    showScreen('incapacidadesScreen');
+  } else if(tipo === 'permisos') {
+    const titleEl = document.getElementById('permisosSubTitle');
+    if(titleEl) titleEl.textContent = (em.nombre||'Empresa') + ' · Permisos';
+    renderPermisosSubmodulo();
+    showScreen('permisosSubScreen');
   }
 }
 
