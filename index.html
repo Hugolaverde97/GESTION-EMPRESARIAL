@@ -1016,6 +1016,9 @@
   <div class="top-bar">
     <button class="back-btn" onclick="goToCompanyList()">← Lista</button>
     <span class="bar-title">Empleado</span>
+    <div class="bar-actions">
+      <button class="icon-btn" onclick="printFichaEmpleado()" title="Descargar ficha">📄</button>
+    </div>
   </div>
   <div class="screen-content pb-safe" id="employeeDetailContent"></div>
 </div>
@@ -3670,6 +3673,130 @@ function calcAge(fechaNac) {
   return age+' años';
 }
 function fmtDate(d) { if(!d) return '—'; const [y,mo,da]=d.split('-'); return `${da}/${mo}/${y}`; }
+
+
+// ══ FICHA EMPLEADO PDF ══
+function printFichaEmpleado() {
+  const e = (state.employees||[]).find(x=>x.id===currentEmployeeId);
+  if(!e) { toast('⚠️ No se encontró el empleado'); return; }
+
+  const empresa = (state.empresas||[])[e.companyIdx||currentCompany] || {};
+  const fmt = d => d ? d.split('-').reverse().join('/') : '—';
+  const nombre = ((e.nombres||'')+' '+(e.apellidos||'')).trim();
+
+  // Calcular antigüedad
+  const antig = e.fechaIngreso ? (() => {
+    const ini = new Date(e.fechaIngreso+'T00:00:00'), now = new Date();
+    const m = Math.floor((now-ini)/(1000*60*60*24*30.44));
+    const y = Math.floor(m/12), mo = m%12;
+    return (y?y+' año'+(y>1?'s':''):'') + (mo?' '+mo+' mes'+(mo>1?'es':''):'') || '< 1 mes';
+  })() : '—';
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:#fff; padding:20px; }
+  h2 { text-align:center; font-size:13px; font-weight:bold; padding:8px; border:1px solid #000; margin-bottom:0; background:#fff; }
+  table { width:100%; border-collapse:collapse; margin-bottom:16px; }
+  td { border:1px solid #000; padding:5px 8px; vertical-align:middle; }
+  .label { font-weight:bold; white-space:nowrap; width:1%; }
+  .highlight { color:#007700; font-weight:bold; }
+  .blue { color:#0000cc; font-weight:bold; }
+  @media print {
+    body { padding:10px; }
+    @page { margin:1cm; size:A4; }
+  }
+</style>
+</head>
+<body>
+  <h2>DATOS DEL TRABAJADOR</h2>
+  <table>
+    <tr>
+      <td class="label">NOMBRE:</td>
+      <td class="highlight">${nombre}</td>
+      <td class="label" style="width:1%">${e.tipoDoc||'CC'}:</td>
+      <td style="width:22%">${e.cedula||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">FECHA DE NACIMIENTO:</td>
+      <td>${fmt(e.fechaNac)}</td>
+      <td class="label">RH:</td>
+      <td>${e.sangre||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">TELÉFONOS Y CORREO:</td>
+      <td>${e.celular||'—'}</td>
+      <td colspan="2">${e.correo||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">DIRECCIÓN Y CIUDAD:</td>
+      <td>${e.direccion||'—'}</td>
+      <td colspan="2">${e.ciudad||'—'}</td>
+    </tr>
+  </table>
+
+  <h2>DATOS LABORALES</h2>
+  <table>
+    <tr>
+      <td class="label">CARGO:</td>
+      <td>${e.cargo||'—'}</td>
+      <td class="label">CONTRATO:</td>
+      <td class="blue">${e.tipoContrato||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">INGRESO:</td>
+      <td class="blue">${fmt(e.fechaIngreso)}</td>
+      <td class="label">RETIRO</td>
+      <td>${e.activo===false?fmt(e.fechaRetiro):'Activo'}</td>
+    </tr>
+    <tr>
+      <td class="label">ANTIGÜEDAD:</td>
+      <td>${antig}</td>
+      <td class="label">SALARIO:</td>
+      <td>${e.salario?'$'+parseInt(e.salario).toLocaleString('es-CO'):'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">NÓMINA:</td>
+      <td colspan="3">${empresa.nombre||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">EPS:</td>
+      <td>${e.eps||'—'}</td>
+      <td class="label">ARL:</td>
+      <td>${e.arl||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">PENSIONES:</td>
+      <td>${e.pension||'—'}</td>
+      <td class="label">CAJA COMP.:</td>
+      <td>${e.caja||'—'}</td>
+    </tr>
+  </table>
+
+  <h2>CONTACTO DE EMERGENCIA</h2>
+  <table>
+    <tr>
+      <td class="label">NOMBRE:</td>
+      <td colspan="3">${e.emergNombre||'—'}</td>
+    </tr>
+    <tr>
+      <td class="label">PARENTESCO:</td>
+      <td class="highlight">${e.emergParentesco||'—'}</td>
+      <td class="label">TELÉFONO:</td>
+      <td>${e.emergCelular||'—'}</td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=800,height=600');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
 
 function openEmployee(id) {
   currentEmployeeId=id;
