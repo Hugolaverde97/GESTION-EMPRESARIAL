@@ -1854,6 +1854,36 @@
   </div>
 </div>
 
+<!-- FICHA MODAL -->
+<div class="modal-overlay" id="fichaModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">
+      <span>📄 Generar ficha</span>
+      <button class="modal-close" onclick="closeModal('fichaModal')">✕</button>
+    </div>
+    <div style="padding:4px 0 12px">
+      <div style="font-size:.8rem;color:var(--text2);margin-bottom:14px">Selecciona las secciones que quieres incluir:</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:10px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="fich_personal" checked style="width:16px;height:16px;accent-color:var(--accent1)">
+        <div><div style="font-weight:700;font-size:.88rem">👤 Datos personales</div><div style="font-size:.72rem;color:var(--text2)">Nombre, doc, nacimiento, contacto, dirección</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:10px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="fich_laboral" checked style="width:16px;height:16px;accent-color:var(--accent1)">
+        <div><div style="font-weight:700;font-size:.88rem">💼 Datos laborales</div><div style="font-size:.72rem;color:var(--text2)">Cargo, contrato, ingreso, salario, EPS, ARL, pensión</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:10px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="fich_emergencia" checked style="width:16px;height:16px;accent-color:var(--accent1)">
+        <div><div style="font-weight:700;font-size:.88rem">🆘 Contacto de emergencia</div><div style="font-size:.72rem;color:var(--text2)">Nombre, parentesco, teléfono</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surface2);border-radius:10px;cursor:pointer;margin-bottom:0">
+        <input type="checkbox" id="fich_salario" style="width:16px;height:16px;accent-color:var(--accent1)">
+        <div><div style="font-weight:700;font-size:.88rem">💰 Incluir salario</div><div style="font-size:.72rem;color:var(--text2)">Mostrar el valor del salario en la ficha</div></div>
+      </label>
+    </div>
+    <button onclick="generarFichaPDF()" style="width:100%;padding:13px;background:var(--accent1);color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font);font-size:.95rem">📄 Generar PDF</button>
+  </div>
+</div>
+
 <!-- RETIRO MODAL -->
 <div class="modal-overlay" id="retiroModal">
   <div class="modal">
@@ -3677,126 +3707,145 @@ function fmtDate(d) { if(!d) return '—'; const [y,mo,da]=d.split('-'); return 
 
 // ══ FICHA EMPLEADO PDF ══
 function printFichaEmpleado() {
+  openModal('fichaModal');
+}
+
+function generarFichaPDF() {
+  closeModal('fichaModal');
   const e = (state.employees||[]).find(x=>x.id===currentEmployeeId);
   if(!e) { toast('⚠️ No se encontró el empleado'); return; }
 
-  const empresa = (state.empresas||[])[e.companyIdx||currentCompany] || {};
-  const fmt = d => d ? d.split('-').reverse().join('/') : '—';
-  const nombre = ((e.nombres||'')+' '+(e.apellidos||'')).trim();
+  const incPersonal   = document.getElementById('fich_personal')?.checked;
+  const incLaboral    = document.getElementById('fich_laboral')?.checked;
+  const incEmergencia = document.getElementById('fich_emergencia')?.checked;
+  const incSalario    = document.getElementById('fich_salario')?.checked;
 
-  // Calcular antigüedad
+  const empresa = (state.empresas||[])[e.companyIdx!=null?e.companyIdx:currentCompany] || {};
+  const fmt = d => d ? d.split('-').reverse().join('/') : '—';
+  const nombre = ((e.apellidos||'') + (e.apellidos&&e.nombres?', ':'') + (e.nombres||'')).trim();
+
   const antig = e.fechaIngreso ? (() => {
-    const ini = new Date(e.fechaIngreso+'T00:00:00'), now = new Date();
-    const m = Math.floor((now-ini)/(1000*60*60*24*30.44));
+    const cutoff = e.activo===false&&e.fechaRetiro ? new Date(e.fechaRetiro+'T00:00:00') : new Date();
+    const m = Math.floor((cutoff - new Date(e.fechaIngreso+'T00:00:00'))/(1000*60*60*24*30.44));
     const y = Math.floor(m/12), mo = m%12;
-    return (y?y+' año'+(y>1?'s':''):'') + (mo?' '+mo+' mes'+(mo>1?'es':''):'') || '< 1 mes';
+    return (y?y+' año'+(y>1?'s':''):'')+(y&&mo?' ':'')+(mo?mo+' mes'+(mo>1?'es':''):'') || '< 1 mes';
   })() : '—';
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
+  let sections = '';
+
+  if(incPersonal) sections += `
+    <h2>DATOS DEL TRABAJADOR</h2>
+    <table>
+      <tr>
+        <td class="label">NOMBRE:</td>
+        <td class="green" colspan="2">${nombre}</td>
+        <td class="label w1">${e.tipoDoc||'CC'}:</td>
+        <td class="w22">${e.cedula||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">FECHA DE NACIMIENTO:</td>
+        <td colspan="2">${fmt(e.fechaNac)}</td>
+        <td class="label">RH:</td>
+        <td>${e.sangre||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">TELÉFONOS Y CORREO:</td>
+        <td colspan="2">${e.celular||'—'}</td>
+        <td colspan="2">${e.correo||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">DIRECCIÓN Y CIUDAD:</td>
+        <td colspan="2">${e.direccion||'—'}</td>
+        <td colspan="2">${e.ciudad||'—'}</td>
+      </tr>
+    </table>`;
+
+  if(incLaboral) sections += `
+    <h2>DATOS LABORALES</h2>
+    <table>
+      <tr>
+        <td class="label">CARGO:</td>
+        <td>${e.cargo||'—'}</td>
+        <td class="label">CONTRATO:</td>
+        <td class="blue">${e.tipoContrato||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">INGRESO:</td>
+        <td class="blue">${fmt(e.fechaIngreso)}</td>
+        <td class="label">RETIRO:</td>
+        <td>${e.activo===false?fmt(e.fechaRetiro):'Activo'}</td>
+      </tr>
+      <tr>
+        <td class="label">ANTIGÜEDAD:</td>
+        <td>${antig}</td>
+        ${incSalario?`<td class="label">SALARIO:</td><td>$${parseInt(e.salario||0).toLocaleString('es-CO')}</td>`:'<td colspan="2"></td>'}
+      </tr>
+      <tr>
+        <td class="label">NÓMINA:</td>
+        <td colspan="3">${empresa.nombre||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">EPS:</td>
+        <td>${e.eps||'—'}</td>
+        <td class="label">ARL:</td>
+        <td>${e.arl||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">PENSIONES:</td>
+        <td>${e.pension||'—'}</td>
+        <td class="label">CAJA COMP.:</td>
+        <td>${e.caja||'—'}</td>
+      </tr>
+    </table>`;
+
+  if(incEmergencia) sections += `
+    <h2>CONTACTO DE EMERGENCIA</h2>
+    <table>
+      <tr>
+        <td class="label">NOMBRE:</td>
+        <td colspan="3">${e.emergNombre||'—'}</td>
+      </tr>
+      <tr>
+        <td class="label">PARENTESCO:</td>
+        <td class="green">${e.emergParentesco||'—'}</td>
+        <td class="label">TELÉFONO:</td>
+        <td>${e.emergCelular||'—'}</td>
+      </tr>
+    </table>`;
+
+  if(!sections) { toast('⚠️ Selecciona al menos una sección'); openModal('fichaModal'); return; }
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background:#fff; padding:20px; }
-  h2 { text-align:center; font-size:13px; font-weight:bold; padding:8px; border:1px solid #000; margin-bottom:0; background:#fff; }
-  table { width:100%; border-collapse:collapse; margin-bottom:16px; }
-  td { border:1px solid #000; padding:5px 8px; vertical-align:middle; }
-  .label { font-weight:bold; white-space:nowrap; width:1%; }
-  .highlight { color:#007700; font-weight:bold; }
-  .blue { color:#0000cc; font-weight:bold; }
-  @media print {
-    body { padding:10px; }
-    @page { margin:1cm; size:A4; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;width:100%}
+  body{font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;
+    display:flex;align-items:center;justify-content:center;min-height:100vh}
+  .wrapper{width:680px;padding:0}
+  h2{text-align:center;font-size:12px;font-weight:bold;padding:7px;
+    border:1px solid #000;margin-bottom:0;background:#fff;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;margin-bottom:14px}
+  td{border:1px solid #000;padding:5px 8px;vertical-align:middle}
+  .label{font-weight:bold;white-space:nowrap}
+  .green{color:#007700;font-weight:bold}
+  .blue{color:#0000cc;font-weight:bold}
+  .w1{width:1%}.w22{width:22%}
+  @media print{
+    html,body{height:100%;display:block}
+    body{display:block;padding:0}
+    .wrapper{width:100%;margin:0 auto}
+    @page{margin:1.5cm;size:A4}
   }
-</style>
-</head>
-<body>
-  <h2>DATOS DEL TRABAJADOR</h2>
-  <table>
-    <tr>
-      <td class="label">NOMBRE:</td>
-      <td class="highlight">${nombre}</td>
-      <td class="label" style="width:1%">${e.tipoDoc||'CC'}:</td>
-      <td style="width:22%">${e.cedula||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">FECHA DE NACIMIENTO:</td>
-      <td>${fmt(e.fechaNac)}</td>
-      <td class="label">RH:</td>
-      <td>${e.sangre||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">TELÉFONOS Y CORREO:</td>
-      <td>${e.celular||'—'}</td>
-      <td colspan="2">${e.correo||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">DIRECCIÓN Y CIUDAD:</td>
-      <td>${e.direccion||'—'}</td>
-      <td colspan="2">${e.ciudad||'—'}</td>
-    </tr>
-  </table>
+</style></head><body>
+<div class="wrapper">${sections}</div>
+</body></html>`;
 
-  <h2>DATOS LABORALES</h2>
-  <table>
-    <tr>
-      <td class="label">CARGO:</td>
-      <td>${e.cargo||'—'}</td>
-      <td class="label">CONTRATO:</td>
-      <td class="blue">${e.tipoContrato||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">INGRESO:</td>
-      <td class="blue">${fmt(e.fechaIngreso)}</td>
-      <td class="label">RETIRO</td>
-      <td>${e.activo===false?fmt(e.fechaRetiro):'Activo'}</td>
-    </tr>
-    <tr>
-      <td class="label">ANTIGÜEDAD:</td>
-      <td>${antig}</td>
-      <td class="label">SALARIO:</td>
-      <td>${e.salario?'$'+parseInt(e.salario).toLocaleString('es-CO'):'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">NÓMINA:</td>
-      <td colspan="3">${empresa.nombre||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">EPS:</td>
-      <td>${e.eps||'—'}</td>
-      <td class="label">ARL:</td>
-      <td>${e.arl||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">PENSIONES:</td>
-      <td>${e.pension||'—'}</td>
-      <td class="label">CAJA COMP.:</td>
-      <td>${e.caja||'—'}</td>
-    </tr>
-  </table>
-
-  <h2>CONTACTO DE EMERGENCIA</h2>
-  <table>
-    <tr>
-      <td class="label">NOMBRE:</td>
-      <td colspan="3">${e.emergNombre||'—'}</td>
-    </tr>
-    <tr>
-      <td class="label">PARENTESCO:</td>
-      <td class="highlight">${e.emergParentesco||'—'}</td>
-      <td class="label">TELÉFONO:</td>
-      <td>${e.emergCelular||'—'}</td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-  const win = window.open('', '_blank', 'width=800,height=600');
+  const win = window.open('','_blank','width=800,height=700');
   win.document.write(html);
   win.document.close();
   win.onload = () => { win.focus(); win.print(); };
 }
+
 
 function openEmployee(id) {
   currentEmployeeId=id;
