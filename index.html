@@ -1023,6 +1023,60 @@
   <div class="screen-content pb-safe" id="employeeDetailContent"></div>
 </div>
 
+<!-- MOE SCREEN -->
+<div id="moeScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('empresaModuleScreen')">← Empresa</button>
+    <span class="bar-title" id="moeTitle">MOE</span>
+    <div class="bar-actions">
+      <button class="icon-btn" onclick="openAddMOE()" title="Agregar">➕</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe" id="moeContent"></div>
+</div>
+
+<!-- MOE MODAL -->
+<div class="modal-overlay" id="moeModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">
+      <span id="moeModalTitle">🤝 Agregar MOE</span>
+      <button class="modal-close" onclick="closeModal('moeModal')">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Nombre completo *</label><input class="form-input" id="moe_nombre" placeholder="Nombre completo"></div>
+      <div class="form-group"><label class="form-label">Tipo de documento</label>
+        <select class="form-select" id="moe_tipoDoc">
+          <option value="">Seleccionar...</option>
+          <option value="CC">CC</option><option value="CE">CE</option>
+          <option value="PA">Pasaporte</option><option value="PPT">PPT</option>
+          <option value="PEP">PEP</option><option value="NIT">NIT</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">No. de documento</label><input class="form-input" id="moe_cedula" placeholder="Número"></div>
+      <div class="form-group full"><label class="form-label">Tipo de vinculación</label>
+        <select class="form-select" id="moe_tipoVinc" onchange="toggleMOEEmpresa()">
+          <option value="independiente">Independiente / Contratista</option>
+          <option value="empresa">A través de empresa contratista</option>
+        </select>
+      </div>
+      <div class="form-group full" id="moe_empresa_grupo">
+        <label class="form-label">Empresa contratista</label>
+        <input class="form-input" id="moe_empresa" placeholder="Nombre de la empresa contratista">
+      </div>
+      <div class="form-group full"><label class="form-label">Cargo / Labor</label><input class="form-input" id="moe_cargo" placeholder="Ej: Mecánico, Electricista..."></div>
+      <div class="form-group"><label class="form-label">Celular</label><input class="form-input" id="moe_celular" placeholder="Número de celular"></div>
+      <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="moe_correo" placeholder="correo@ejemplo.com"></div>
+      <div class="form-group"><label class="form-label">Fecha inicio</label><input type="date" class="form-input" id="moe_fechaIni"></div>
+      <div class="form-group"><label class="form-label">Fecha fin</label><input type="date" class="form-input" id="moe_fechaFin"></div>
+      <div class="form-group full"><label class="form-label">Observaciones</label><input class="form-input" id="moe_obs" placeholder="Observaciones..."></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="saveMOE()" style="flex:1;padding:13px;background:#7c3aed;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
+      <button onclick="closeModal('moeModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- VEHICLES MODULE -->
 <div id="vehiclesModule" class="screen">
   <div class="top-bar">
@@ -1957,7 +2011,7 @@ async function startSyncPolling() {
 
 async function syncToCloud() {
   try {
-    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},vacaciones:state.vacaciones||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},vacaciones:state.vacaciones||{},moe:state.moe||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
     // Track what we just saved
     const now = new Date().toISOString(); lastKnownUpdatedAt = now;
@@ -1969,7 +2023,7 @@ async function loadFromCloud() {
     // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
     if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings;
-      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
+      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.moe) state.moe=c.moe; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
     // Also load settings separately (saved by saveSettings)
     try {
       const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
@@ -3523,12 +3577,19 @@ function openEmpresaModule(idx) {
   // Render module buttons
   const btns = document.getElementById('empresaModuleBtns');
   btns.innerHTML = `
-    ${canSeeModule('empleados')?`<button class="main-btn" style="background:${em.color||'#5b8df6'};color:#fff;font-size:1.1rem;padding:22px 20px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start"
-      onclick="openCompanyWorkers(${idx})">
-      <span style="font-size:1.8rem">👥</span>
-      <div style="text-align:left"><div>Trabajadores</div><div style="font-size:.75rem;font-weight:400;opacity:.8;margin-top:2px">${getEmployees(idx).length} empleados registrados</div></div>
-      <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
-    </button>`:''}
+    ${canSeeModule('empleados')?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <button class="main-btn" style="background:${em.color||'#5b8df6'};color:#fff;font-size:1rem;padding:18px 14px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font);font-weight:700;width:100%"
+        onclick="openCompanyWorkers(${idx})">
+        <span style="font-size:1.6rem">👥</span>
+        <div style="text-align:left"><div>MOI</div><div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:2px">Mano de obra interna</div></div>
+      </button>
+      <button class="main-btn" style="background:#7c3aed;color:#fff;font-size:1rem;padding:18px 14px;border-radius:18px;border:none;cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font);font-weight:700;width:100%"
+        onclick="openMOE(${idx})">
+        <span style="font-size:1.6rem">🤝</span>
+        <div style="text-align:left"><div>MOE</div><div style="font-size:.7rem;font-weight:400;opacity:.8;margin-top:2px">Mano de obra externa</div></div>
+      </button>
+    </div>`:''}
     ${canSeeModule('permisos')?`<button class="main-btn" style="background:var(--surface2);color:var(--text1);font-size:1.1rem;padding:22px 20px;border-radius:18px;border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:14px;font-family:var(--font);font-weight:700;width:100%;justify-content:flex-start"
       onclick="openPermisos(${idx})">
       <span style="font-size:1.8rem">📅</span>
@@ -3550,6 +3611,180 @@ function openEmpresaModule(idx) {
       <span style="margin-left:auto;font-size:1.3rem;opacity:.7">›</span>
     </button>`:''}`;
   showScreen('empresaModuleScreen');
+}
+
+
+// ══════════════════════════════════════════════
+// MOE — MANO DE OBRA EXTERNA
+// ══════════════════════════════════════════════
+let currentMOEEmpresaIdx = 0;
+let editingMOEId = null;
+
+function getMOE(idx) {
+  if(!state.moe) state.moe = {};
+  if(!state.moe[idx]) state.moe[idx] = [];
+  return state.moe[idx];
+}
+
+function openMOE(idx) {
+  currentMOEEmpresaIdx = idx;
+  const em = (state.empresas||[])[idx]||{};
+  document.getElementById('moeTitle').textContent = (em.nombre||'Empresa') + ' · MOE';
+  renderMOE();
+  showScreen('moeScreen');
+}
+
+function renderMOE() {
+  const container = document.getElementById('moeContent');
+  if(!container) return;
+  const list = getMOE(currentMOEEmpresaIdx);
+  const q = '';
+
+  if(!list.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🤝</div><div class="empty-text">Sin personal externo registrado.</div><button class="add-btn" onclick="openAddMOE()" style="margin-top:16px">➕ Agregar MOE</button></div>`;
+    return;
+  }
+
+  // Group by tipo vinculación
+  const indep = list.filter(m=>m.tipoVinc==='independiente'||!m.tipoVinc);
+  const empresa = list.filter(m=>m.tipoVinc==='empresa');
+
+  let html = '<div style="padding:14px 16px">';
+
+  // Stats
+  const activos = list.filter(m=>{
+    if(!m.fechaFin) return true;
+    return new Date(m.fechaFin+'T23:59:59') >= new Date();
+  }).length;
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#7c3aed">${list.length}</div>
+      <div style="font-size:.7rem;color:var(--text2)">Total MOE</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:#22c55e">${activos}</div>
+      <div style="font-size:.7rem;color:var(--text2)">Activos</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:var(--accent2)">${list.length-activos}</div>
+      <div style="font-size:.7rem;color:var(--text2)">Finalizados</div>
+    </div>
+  </div>`;
+
+  const renderCard = m => {
+    const activo = !m.fechaFin || new Date(m.fechaFin+'T23:59:59') >= new Date();
+    const fmt = d => d?d.split('-').reverse().join('/'):'—';
+    const init = (m.nombre||'?')[0].toUpperCase();
+    return `<div style="background:var(--surface);border:1px solid ${activo?'rgba(124,58,237,.2)':'var(--border)'};border-radius:14px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(124,58,237,.15);border:2px solid #7c3aed;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7c3aed;flex-shrink:0">${init}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.9rem">${m.nombre||'—'}</div>
+          <div style="font-size:.74rem;color:var(--text2)">${m.cargo||'Sin cargo'}${m.empresa?' · 🏢 '+m.empresa:''}</div>
+          <div style="font-size:.72rem;color:var(--text2);margin-top:2px">
+            ${m.tipoDoc&&m.cedula?m.tipoDoc+': '+m.cedula+' · ':''}
+            ${m.celular||''}
+          </div>
+          <div style="display:flex;gap:8px;margin-top:5px;flex-wrap:wrap">
+            <span style="font-size:.68rem;background:${activo?'rgba(34,197,94,.12)':'rgba(239,68,68,.1)'};color:${activo?'#22c55e':'#ef4444'};padding:2px 8px;border-radius:10px;font-weight:700">${activo?'✅ Activo':'⛔ Finalizado'}</span>
+            ${m.fechaIni?`<span style="font-size:.68rem;color:var(--text2)">Inicio: ${fmt(m.fechaIni)}</span>`:''}
+            ${m.fechaFin?`<span style="font-size:.68rem;color:var(--text2)">Fin: ${fmt(m.fechaFin)}</span>`:''}
+          </div>
+          ${m.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:4px;font-style:italic">"${m.obs}"</div>`:''}
+        </div>
+        ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="openEditMOE('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
+          <button onclick="deleteMOE('${m.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
+        </div>`:''}
+      </div>
+    </div>`;
+  };
+
+  if(indep.length) {
+    html += `<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin-bottom:10px">👤 Independientes / Contratistas</div>`;
+    html += indep.map(renderCard).join('');
+  }
+  if(empresa.length) {
+    html += `<div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:700;margin:14px 0 10px">🏢 A través de empresa</div>`;
+    html += empresa.map(renderCard).join('');
+  }
+
+  html += `<button class="add-btn" onclick="openAddMOE()">➕ Agregar MOE</button></div>`;
+  container.innerHTML = html;
+}
+
+function openAddMOE() {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  editingMOEId = null;
+  document.getElementById('moeModalTitle').textContent = '🤝 Agregar MOE';
+  ['moe_nombre','moe_cedula','moe_empresa','moe_cargo','moe_celular','moe_correo','moe_obs'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  ['moe_fechaIni','moe_fechaFin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('moe_tipoDoc').value='';
+  document.getElementById('moe_tipoVinc').value='independiente';
+  toggleMOEEmpresa();
+  openModal('moeModal');
+}
+
+function openEditMOE(id) {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  const m = getMOE(currentMOEEmpresaIdx).find(x=>x.id===id);
+  if(!m) return;
+  editingMOEId = id;
+  document.getElementById('moeModalTitle').textContent = '✏️ Editar MOE';
+  document.getElementById('moe_nombre').value=m.nombre||'';
+  document.getElementById('moe_tipoDoc').value=m.tipoDoc||'';
+  document.getElementById('moe_cedula').value=m.cedula||'';
+  document.getElementById('moe_tipoVinc').value=m.tipoVinc||'independiente';
+  document.getElementById('moe_empresa').value=m.empresa||'';
+  document.getElementById('moe_cargo').value=m.cargo||'';
+  document.getElementById('moe_celular').value=m.celular||'';
+  document.getElementById('moe_correo').value=m.correo||'';
+  document.getElementById('moe_fechaIni').value=m.fechaIni||'';
+  document.getElementById('moe_fechaFin').value=m.fechaFin||'';
+  document.getElementById('moe_obs').value=m.obs||'';
+  toggleMOEEmpresa();
+  openModal('moeModal');
+}
+
+function toggleMOEEmpresa() {
+  const v = document.getElementById('moe_tipoVinc')?.value;
+  const g = document.getElementById('moe_empresa_grupo');
+  if(g) g.style.display = v==='empresa' ? '' : 'none';
+}
+
+function saveMOE() {
+  const nombre = document.getElementById('moe_nombre').value.trim();
+  if(!nombre){toast('⚠️ El nombre es obligatorio');return;}
+  if(!state.moe) state.moe={};
+  if(!state.moe[currentMOEEmpresaIdx]) state.moe[currentMOEEmpresaIdx]=[];
+  const reg = {
+    id: editingMOEId||('moe_'+Date.now()),
+    nombre,
+    tipoDoc: document.getElementById('moe_tipoDoc').value,
+    cedula: document.getElementById('moe_cedula').value.trim(),
+    tipoVinc: document.getElementById('moe_tipoVinc').value,
+    empresa: document.getElementById('moe_empresa').value.trim(),
+    cargo: document.getElementById('moe_cargo').value.trim(),
+    celular: document.getElementById('moe_celular').value.trim(),
+    correo: document.getElementById('moe_correo').value.trim(),
+    fechaIni: document.getElementById('moe_fechaIni').value,
+    fechaFin: document.getElementById('moe_fechaFin').value,
+    obs: document.getElementById('moe_obs').value.trim(),
+  };
+  const arr = state.moe[currentMOEEmpresaIdx];
+  if(editingMOEId){const i=arr.findIndex(x=>x.id===editingMOEId);if(i>=0)arr[i]=reg;}
+  else arr.push(reg);
+  save(); closeModal('moeModal'); renderMOE();
+  toast(editingMOEId?'✅ MOE actualizado':'✅ MOE agregado'); editingMOEId=null;
+}
+
+function deleteMOE(id) {
+  if(!canEdit()){toast('⛔ Sin permiso');return;}
+  if(!confirm('¿Eliminar este registro MOE?')) return;
+  state.moe[currentMOEEmpresaIdx] = getMOE(currentMOEEmpresaIdx).filter(x=>x.id!==id);
+  save(); renderMOE(); toast('🗑️ Eliminado');
 }
 
 function openCompanyWorkers(idx) {
