@@ -1035,6 +1035,19 @@
   <div class="screen-content pb-safe" id="moeContent"></div>
 </div>
 
+<!-- MOE FICHA SCREEN -->
+<div id="moeFichaScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('moeScreen')">← MOE</button>
+    <span class="bar-title">Ficha MOE</span>
+    <div class="bar-actions" style="display:flex;gap:6px">
+      <button class="icon-btn" onclick="openBajaMOE(currentMOEId)" title="Dar de baja" id="moeBajaBtn">⛔</button>
+      <button class="icon-btn" onclick="openEditMOE(currentMOEId)" title="Editar">✏️</button>
+    </div>
+  </div>
+  <div class="screen-content pb-safe" id="moeFichaContent"></div>
+</div>
+
 <!-- MOE MODAL -->
 <div class="modal-overlay" id="moeModal">
   <div class="modal" style="max-width:440px">
@@ -1066,13 +1079,43 @@
       <div class="form-group full"><label class="form-label">Cargo / Labor</label><input class="form-input" id="moe_cargo" placeholder="Ej: Mecánico, Electricista..."></div>
       <div class="form-group"><label class="form-label">Celular</label><input class="form-input" id="moe_celular" placeholder="Número de celular"></div>
       <div class="form-group"><label class="form-label">Correo</label><input class="form-input" id="moe_correo" placeholder="correo@ejemplo.com"></div>
-      <div class="form-group"><label class="form-label">Fecha inicio</label><input type="date" class="form-input" id="moe_fechaIni"></div>
-      <div class="form-group"><label class="form-label">Fecha fin</label><input type="date" class="form-input" id="moe_fechaFin"></div>
+      <div class="form-group full"><label class="form-label">Fecha inicio</label><input type="date" class="form-input" id="moe_fechaIni"></div>
+      <div style="height:1px;background:var(--border);margin:4px 0;grid-column:1/-1"></div>
+      <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent4);font-weight:700;grid-column:1/-1">🆘 Contacto de emergencia</div>
+      <div class="form-group"><label class="form-label">Nombre</label><input class="form-input" id="moe_emergNombre" placeholder="Nombre del contacto"></div>
+      <div class="form-group"><label class="form-label">Parentesco</label><input class="form-input" id="moe_emergParentesco" placeholder="Ej: Esposa, Madre..."></div>
+      <div class="form-group"><label class="form-label">Teléfono</label><input class="form-input" id="moe_emergCelular" placeholder="Número de contacto"></div>
+      <div class="form-group"><label class="form-label">Dirección</label><input class="form-input" id="moe_emergDireccion" placeholder="Dirección (opcional)"></div>
       <div class="form-group full"><label class="form-label">Observaciones</label><input class="form-input" id="moe_obs" placeholder="Observaciones..."></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button onclick="saveMOE()" style="flex:1;padding:13px;background:#7c3aed;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">💾 Guardar</button>
       <button onclick="closeModal('moeModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOE BAJA MODAL -->
+<div class="modal-overlay" id="moeBajaModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-title">
+      <span>⛔ Dar de baja — MOE</span>
+      <button class="modal-close" onclick="closeModal('moeBajaModal')">✕</button>
+    </div>
+    <div style="padding:4px 0 16px">
+      <div style="font-size:.85rem;color:var(--text2);margin-bottom:14px" id="moeBajaName"></div>
+      <div class="form-group full">
+        <label class="form-label">Fecha de retiro</label>
+        <input type="date" class="form-input" id="moe_fechaRetiro">
+      </div>
+      <div class="form-group full" style="margin-top:10px">
+        <label class="form-label">Motivo (opcional)</label>
+        <input class="form-input" id="moe_motivoBaja" placeholder="Ej: Fin de contrato, renuncia...">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onclick="confirmarBajaMOE()" style="flex:1;padding:13px;background:#ef4444;color:#fff;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-family:var(--font)">⛔ Confirmar baja</button>
+      <button onclick="closeModal('moeBajaModal')" style="padding:13px 20px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-family:var(--font)">Cancelar</button>
     </div>
   </div>
 </div>
@@ -3619,6 +3662,7 @@ function openEmpresaModule(idx) {
 // ══════════════════════════════════════════════
 let currentMOEEmpresaIdx = 0;
 let editingMOEId = null;
+let currentMOEId = null;
 
 function getMOE(idx) {
   if(!state.moe) state.moe = {};
@@ -3652,10 +3696,7 @@ function renderMOE() {
   let html = '<div style="padding:14px 16px">';
 
   // Stats
-  const activos = list.filter(m=>{
-    if(!m.fechaFin) return true;
-    return new Date(m.fechaFin+'T23:59:59') >= new Date();
-  }).length;
+  const activos = list.filter(m=> m.activo !== false).length;
   html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center">
       <div style="font-size:1.3rem;font-weight:800;color:#7c3aed">${list.length}</div>
@@ -3672,10 +3713,10 @@ function renderMOE() {
   </div>`;
 
   const renderCard = m => {
-    const activo = !m.fechaFin || new Date(m.fechaFin+'T23:59:59') >= new Date();
+    const activo = m.activo !== false;
     const fmt = d => d?d.split('-').reverse().join('/'):'—';
     const init = (m.nombre||'?')[0].toUpperCase();
-    return `<div style="background:var(--surface);border:1px solid ${activo?'rgba(124,58,237,.2)':'var(--border)'};border-radius:14px;padding:14px;margin-bottom:10px">
+    return `<div onclick="openMOEFicha('${m.id}')" style="cursor:pointer;background:var(--surface);border:1px solid ${activo?'rgba(124,58,237,.2)':'var(--border)'};border-radius:14px;padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="width:38px;height:38px;border-radius:50%;background:rgba(124,58,237,.15);border:2px solid #7c3aed;display:flex;align-items:center;justify-content:center;font-weight:800;color:#7c3aed;flex-shrink:0">${init}</div>
         <div style="flex:1;min-width:0">
@@ -3717,7 +3758,7 @@ function openAddMOE() {
   if(!canEdit()){toast('⛔ Sin permiso');return;}
   editingMOEId = null;
   document.getElementById('moeModalTitle').textContent = '🤝 Agregar MOE';
-  ['moe_nombre','moe_cedula','moe_empresa','moe_cargo','moe_celular','moe_correo','moe_obs'].forEach(id=>{
+  ['moe_nombre','moe_cedula','moe_empresa','moe_cargo','moe_celular','moe_correo','moe_obs','moe_emergNombre','moe_emergParentesco','moe_emergCelular','moe_emergDireccion'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.value='';
   });
   ['moe_fechaIni','moe_fechaFin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
@@ -3742,8 +3783,8 @@ function openEditMOE(id) {
   document.getElementById('moe_celular').value=m.celular||'';
   document.getElementById('moe_correo').value=m.correo||'';
   document.getElementById('moe_fechaIni').value=m.fechaIni||'';
-  document.getElementById('moe_fechaFin').value=m.fechaFin||'';
   document.getElementById('moe_obs').value=m.obs||'';
+  ['emergNombre','emergParentesco','emergCelular','emergDireccion'].forEach(f=>{const el=document.getElementById('moe_'+f);if(el)el.value=m[f]||'';});
   toggleMOEEmpresa();
   openModal('moeModal');
 }
@@ -3752,6 +3793,81 @@ function toggleMOEEmpresa() {
   const v = document.getElementById('moe_tipoVinc')?.value;
   const g = document.getElementById('moe_empresa_grupo');
   if(g) g.style.display = v==='empresa' ? '' : 'none';
+}
+
+
+
+function openMOEFicha(id) {
+  const m = getMOE(currentMOEEmpresaIdx).find(x=>x.id===id);
+  if(!m) return;
+  currentMOEId = id;
+  const activo = m.activo !== false;
+  const fmt = d => d?d.split('-').reverse().join('/'):'—';
+  const bajaBtn = document.getElementById('moeBajaBtn');
+  if(bajaBtn) bajaBtn.style.display = activo ? '' : 'none';
+
+  let emergSec = '';
+  if(m.emergNombre||m.emergCelular) {
+    emergSec = '<div class="section-title">🆘 Contacto de emergencia</div><div class="fields-grid">' +
+      '<div class="field-card field-full"><div class="field-label">Nombre</div><div class="field-value">'+(m.emergNombre||'—')+'</div></div>' +
+      '<div class="field-card"><div class="field-label">Parentesco</div><div class="field-value">'+(m.emergParentesco||'—')+'</div></div>' +
+      '<div class="field-card"><div class="field-label">Teléfono</div><div class="field-value">'+(m.emergCelular||'—')+'</div></div>' +
+      (m.emergDireccion?'<div class="field-card field-full"><div class="field-label">Dirección</div><div class="field-value">'+m.emergDireccion+'</div></div>':'') +
+      '</div>';
+  }
+
+  const container = document.getElementById('moeFichaContent');
+  container.innerHTML = '<div style="padding:16px">' +
+    '<div style="background:var(--surface);border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:14px">' +
+      '<div style="width:50px;height:50px;border-radius:50%;background:rgba(124,58,237,.15);border:2px solid #7c3aed;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;color:#7c3aed;flex-shrink:0">'+(m.nombre||'?')[0].toUpperCase()+'</div>' +
+      '<div style="flex:1"><div style="font-size:1.05rem;font-weight:800">'+(m.nombre||'—')+'</div>' +
+      '<div style="font-size:.78rem;color:var(--text2);margin-top:2px">'+(m.cargo||'Sin cargo')+'</div>' +
+      '<span style="display:inline-block;margin-top:6px;font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:700;background:'+(activo?'rgba(34,197,94,.12)':'rgba(239,68,68,.1)')+';color:'+(activo?'#22c55e':'#ef4444')+'">'+(activo?'✅ Activo':'⛔ Dado de baja')+'</span></div>' +
+    '</div>' +
+    '<div class="section-title">Identificación</div><div class="fields-grid">' +
+      ((m.tipoDoc||m.cedula)?'<div class="field-card"><div class="field-label">'+(m.tipoDoc||'Documento')+'</div><div class="field-value">'+(m.cedula||'—')+'</div></div>':'') +
+      '<div class="field-card"><div class="field-label">Tipo vinculación</div><div class="field-value">'+(m.tipoVinc==='empresa'?'A través de empresa':'Independiente / Contratista')+'</div></div>' +
+      (m.empresa?'<div class="field-card field-full"><div class="field-label">Empresa contratista</div><div class="field-value">'+m.empresa+'</div></div>':'') +
+    '</div>' +
+    '<div class="section-title">Contacto</div><div class="fields-grid">' +
+      '<div class="field-card"><div class="field-label">Celular</div><div class="field-value">'+(m.celular||'—')+'</div></div>' +
+      '<div class="field-card"><div class="field-label">Correo</div><div class="field-value">'+(m.correo||'—')+'</div></div>' +
+    '</div>' +
+    '<div class="section-title">Vinculación</div><div class="fields-grid">' +
+      '<div class="field-card"><div class="field-label">Fecha inicio</div><div class="field-value">'+fmt(m.fechaIni)+'</div></div>' +
+      (!activo?'<div class="field-card"><div class="field-label">Fecha retiro</div><div class="field-value" style="color:#ef4444">'+fmt(m.fechaRetiro)+'</div></div>':'') +
+      (m.motivoBaja?'<div class="field-card field-full"><div class="field-label">Motivo baja</div><div class="field-value">'+m.motivoBaja+'</div></div>':'') +
+      (m.obs?'<div class="field-card field-full"><div class="field-label">Observaciones</div><div class="field-value">'+m.obs+'</div></div>':'') +
+    '</div>' +
+    emergSec +
+  '</div>';
+  showScreen('moeFichaScreen');
+}
+
+
+function openBajaMOE(id) {
+  const m = getMOE(currentMOEEmpresaIdx).find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('moeBajaName').textContent = m.nombre||'';
+  document.getElementById('moe_fechaRetiro').value = new Date().toISOString().split('T')[0];
+  document.getElementById('moe_motivoBaja').value = '';
+  openModal('moeBajaModal');
+}
+
+function confirmarBajaMOE() {
+  const fechaRetiro = document.getElementById('moe_fechaRetiro').value;
+  if(!fechaRetiro){toast('⚠️ Ingresa la fecha de retiro');return;}
+  const arr = getMOE(currentMOEEmpresaIdx);
+  const i = arr.findIndex(x=>x.id===currentMOEId);
+  if(i<0) return;
+  arr[i].activo = false;
+  arr[i].fechaRetiro = fechaRetiro;
+  arr[i].motivoBaja = document.getElementById('moe_motivoBaja').value.trim();
+  save();
+  closeModal('moeBajaModal');
+  openMOEFicha(currentMOEId);
+  renderMOE();
+  toast('⛔ Dado de baja correctamente');
 }
 
 function saveMOE() {
@@ -3770,7 +3886,14 @@ function saveMOE() {
     celular: document.getElementById('moe_celular').value.trim(),
     correo: document.getElementById('moe_correo').value.trim(),
     fechaIni: document.getElementById('moe_fechaIni').value,
-    fechaFin: document.getElementById('moe_fechaFin').value,
+    emergNombre: document.getElementById('moe_emergNombre')?.value.trim()||'',
+    emergParentesco: document.getElementById('moe_emergParentesco')?.value.trim()||'',
+    emergCelular: document.getElementById('moe_emergCelular')?.value.trim()||'',
+    emergDireccion: document.getElementById('moe_emergDireccion')?.value.trim()||'',
+    emergNombre: document.getElementById('moe_emergNombre')?.value.trim()||'',
+    emergParentesco: document.getElementById('moe_emergParentesco')?.value.trim()||'',
+    emergCelular: document.getElementById('moe_emergCelular')?.value.trim()||'',
+    emergDireccion: document.getElementById('moe_emergDireccion')?.value.trim()||'',
     obs: document.getElementById('moe_obs').value.trim(),
   };
   const arr = state.moe[currentMOEEmpresaIdx];
