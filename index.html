@@ -3733,7 +3733,7 @@ function deleteEmpresa() {
   toast('🗑️ Empresa eliminada');
 }
 
-function goHome() { closeGlobalSearch(); updateNotifBadge(); showScreen('home'); }
+function goHome() { closeGlobalSearch(); updateNotifBadge(); renderEmpresasList(); showScreen('empresasScreen'); }
 function openSettings() { loadSettingsToForm(state.settings||{}); showScreen('settings'); }
 function getCompanyName(idx) { const em=(state.empresas||buildDefaultEmpresas())[idx]; return em?em.nombre:('Empresa '+(idx+1)); }
 
@@ -3741,10 +3741,14 @@ function getCompanyName(idx) { const em=(state.empresas||buildDefaultEmpresas())
 let currentTab = 'lista';
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById('tab-lista').classList.toggle('active', tab==='lista');
-  document.getElementById('tab-stats').classList.toggle('active', tab==='stats');
-  document.getElementById('panel-lista').style.display = tab==='lista'?'':'none';
-  document.getElementById('panel-stats').style.display = tab==='stats'?'':'none';
+  const tl=document.getElementById('tab-lista');
+  const ts=document.getElementById('tab-stats');
+  if(tl) tl.classList.toggle('active', tab==='lista');
+  if(ts) ts.classList.toggle('active', tab==='stats');
+  const pl=document.getElementById('employeeList');
+  const ps=document.getElementById('statsContent');
+  if(pl) pl.style.display = tab==='lista'?'':'none';
+  if(ps) ps.style.display = tab==='stats'?'':'none';
   if(tab==='stats') renderStats();
 }
 
@@ -5229,6 +5233,7 @@ function onLoginSuccess() {
   if(nameEl) nameEl.textContent = currentUser.username;
   if(roleEl) roleEl.textContent = roleLabels[currentUser.role] || currentUser.role;
   badge.style.display = 'flex';
+  const fab=document.getElementById('fabBtn');if(fab)fab.style.display='';
   // Navigate to home (applies permissions, shows all correct elements)
   goHome();
   startSyncPolling();
@@ -5287,6 +5292,8 @@ function applyUserPermissions() {
   const addVeh = document.getElementById('addVehTopBtn');
   if(addEmp) addEmp.style.display = showAdd ? '' : 'none';
   if(addVeh) addVeh.style.display = showAdd ? '' : 'none';
+  // Show FAB
+  const fabEl=document.getElementById('fabBtn');if(fabEl)fabEl.style.display=currentUser?'':' none';
 }
 
 // ── Permission helpers (new role system) ─────────────────────────
