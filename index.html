@@ -4886,7 +4886,8 @@ function saveVehicle(){
   if(!placa){alert('La placa es obligatoria.');return;}
   const fields=['placa','marca','modelo','color','propietario','tipoIdPropietario','noIdPropietario','soat_ini','soat_fin','rtm_ini','rtm_fin','poliza_ini','poliza_fin','leasingEntidad','aseguradora','noMotor','noChasis','noVin','fechaMatricula','noLicTransito'];
   const data={};fields.forEach(f=>data[f]=document.getElementById('veh_'+f).value.trim());
-  data.placa=data.placa.toUpperCase();data.tipo=document.getElementById('veh_tipo').value;
+  data.placa=data.placa.toUpperCase();const _tipoSel=document.getElementById('veh_tipo').value;
+  data.tipo=_tipoSel==='Otro'?(document.getElementById('veh_tipoOtro')?.value.trim()||'Otro'):_tipoSel;
   data.tipoServicio=document.getElementById('veh_tipoServicio')?.value||'';
   data.carroceria=document.getElementById('veh_carroceria')?.value||'';
   data.transportaPara=document.getElementById('veh_transportaPara')?.value.trim()||'';
