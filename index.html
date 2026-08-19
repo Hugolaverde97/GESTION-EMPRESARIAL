@@ -432,14 +432,14 @@
 
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="position:fixed;inset:0;z-index:10000;background:linear-gradient(135deg,#1a1d27 0%,#0f1117 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px">
-  <canvas id="loginIconCanvas" width="80" height="80" style="margin-bottom:16px"></canvas>
+  <canvas id="loginIcon" width="80" height="80" style="margin-bottom:16px"></canvas>
   <div id="appTitleEl" style="font-size:1.6rem;font-weight:800;color:#e8ecf4;letter-spacing:-.5px;margin-bottom:4px">Gestión Empresarial</div>
   <div id="appSubtitleEl" style="font-size:.85rem;color:#8b92a9;margin-bottom:32px">Sistema de gestión</div>
   <div style="width:100%;max-width:340px">
-    <input class="form-input" id="loginUser" placeholder="Usuario" style="margin-bottom:12px;font-size:1rem" autocapitalize="none">
-    <input class="form-input" id="loginPass" placeholder="Contraseña" type="password" style="margin-bottom:20px;font-size:1rem" onkeydown="if(event.key==='Enter')doLogin()">
-    <button onclick="doLogin()" style="width:100%;padding:14px;background:var(--accent1);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;font-family:var(--font);cursor:pointer">Entrar</button>
-    <div id="loginError" style="color:#f87171;text-align:center;margin-top:12px;font-size:.85rem"></div>
+    <input class="form-input" id="login_user" placeholder="Usuario" style="margin-bottom:12px;font-size:1rem" autocapitalize="none">
+    <input class="form-input" id="login_pass" placeholder="Contraseña" type="password" style="margin-bottom:20px;font-size:1rem" onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="loginBtn" onclick="doLogin()" style="width:100%;padding:14px;background:var(--accent1);color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:700;font-family:var(--font);cursor:pointer">Ingresar</button>
+    <div id="login_error" style="color:#f87171;text-align:center;margin-top:12px;font-size:.85rem;display:none"></div>
   </div>
 </div>
 
@@ -6924,6 +6924,22 @@ function drawLoginIcon() {
 (async function init(){
   // Draw icons
   drawLoginIcon();
+  // Also draw on splash canvas
+  try {
+    const sc2 = document.getElementById('splashIconCanvas');
+    if(sc2) {
+      const ctx2 = sc2.getContext('2d');
+      const s=80;
+      const grad=ctx2.createLinearGradient(0,0,s,s);
+      grad.addColorStop(0,'#2a2d3a');grad.addColorStop(1,'#1a1d27');
+      ctx2.fillStyle=grad;ctx2.beginPath();ctx2.roundRect(0,0,s,s,14);ctx2.fill();
+      ctx2.fillStyle='#e8dcc8';ctx2.beginPath();ctx2.roundRect(14,18,21,25,[3,0,0,3]);ctx2.fill();
+      ctx2.fillStyle='#f0e6d0';ctx2.beginPath();ctx2.roundRect(45,18,21,25,[0,3,3,0]);ctx2.fill();
+      const sg=ctx2.createLinearGradient(36,0,44,0);
+      sg.addColorStop(0,'#5b8df6');sg.addColorStop(1,'#4a7ae0');
+      ctx2.fillStyle=sg;ctx2.beginPath();ctx2.roundRect(36,17,8,27,2);ctx2.fill();
+    }
+  } catch(e){}
 
   // Check saved session
   try {
