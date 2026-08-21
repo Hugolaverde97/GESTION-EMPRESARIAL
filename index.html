@@ -3911,6 +3911,7 @@ function saveMOE() {
   if(editingMOEId){const i=arr.findIndex(x=>x.id===editingMOEId);if(i>=0)arr[i]=reg;}
   else arr.push(reg);
   auditLog(editingMOEId?'EDITAR':'CREAR','MOE',reg.nombre||'', editingMOEId?{...getMOE(currentMOEEmpresaIdx).find(x=>x.id===editingMOEId)}:null, {...reg});
+  auditLog(editingMOEId?'EDITAR':'CREAR','MOE',reg.nombre||'',editingMOEId?{...getMOE(currentMOEEmpresaIdx).find(x=>x.id===editingMOEId)}:null,{...reg});
   save(); closeModal('moeModal'); renderMOE();
   toast(editingMOEId?'✅ MOE actualizado':'✅ MOE agregado'); editingMOEId=null;
 }
@@ -4431,6 +4432,8 @@ function saveEmployee() {
   data.sexo=document.getElementById('emp_sexo').value;
   if(editingEmployee) {
     const e=state.employees.find(x=>x.id===currentEmployeeId); if(e) Object.assign(e,data);
+    const _empN=(data.apellidos?data.apellidos+', ':'')+data.nombres;
+    auditLog(editingEmployee?'EDITAR':'CREAR','Empleados',_empN,editingEmployee?{...state.employees.find(e=>e.id===editingEmployee)}:null,{...data});
     save(); closeModal('employeeModal'); openEmployee(currentEmployeeId); toast('✅ Empleado actualizado');
   } else {
     state.employees.push({id:'emp_'+Date.now(),companyIdx:currentCompany,docs:[],activo:true,renovaciones:[],...data});
@@ -4441,7 +4444,9 @@ function saveEmployee() {
 function deleteEmployee() {
   if(!canDelEmp()){toast('⛔ Sin permiso');return;}
   if(!confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return;
-  state.employees=state.employees.filter(x=>x.id!==currentEmployeeId);
+  const _de=state.employees.find(x=>x.id===currentEmployeeId);
+  auditLog('ELIMINAR','Empleados',(_de?.apellidos||'')+' '+(_de?.nombres||''),_de,null);
+    state.employees=state.employees.filter(x=>x.id!==currentEmployeeId);
   save(); goToCompanyList(); toast('🗑️ Empleado eliminado');
 }
 
@@ -4463,6 +4468,7 @@ function confirmRetiro() {
   if(retiroTarget.type==='emp') {
     const e=state.employees.find(x=>x.id===retiroTarget.id);
     if(e){e.activo=false;e.fechaRetiro=fecha;e.motivoRetiro=motivo;}
+    auditLog('BAJA','Empleados',(e?.apellidos||'')+' '+(e?.nombres||''),null,{fechaRetiro:fecha,motivo:motivo||''});
     save(); closeModal('retiroModal'); openEmployee(retiroTarget.id); toast('⛔ Empleado dado de baja');
   } else {
     const v=state.vehicles.find(x=>x.id===retiroTarget.id);
@@ -4907,6 +4913,7 @@ function saveVehicle(){
   data.trailerAsignado=_esTrac?(document.getElementById('veh_trailerAsignado')?.value||''):'';
   if(editingVehicle){
     const v=state.vehicles.find(x=>x.id===currentVehicleId);if(v)Object.assign(v,data);
+    auditLog(editingVehicleId?'EDITAR':'CREAR','Vehículos',data.placa||'',editingVehicleId?{...state.vehicles.find(v=>v.id===editingVehicleId)}:null,{...data});
     save();closeModal('vehicleModal');openVehicle(currentVehicleId);toast('✅ Vehículo actualizado');
   } else {
     state.vehicles.push({id:'veh_'+Date.now(),docs:[],activo:true,...data});
@@ -4917,7 +4924,9 @@ function saveVehicle(){
 function deleteVehicle(){
   if(!canDelVeh()){toast('⛔ Sin permiso');return;}
   if(!confirm('¿Eliminar este vehículo?')) return;
-  state.vehicles=state.vehicles.filter(x=>x.id!==currentVehicleId);
+  const _dv=state.vehicles.find(x=>x.id===currentVehicleId);
+  auditLog('ELIMINAR','Vehículos',_dv?.placa||'',_dv,null);
+    state.vehicles=state.vehicles.filter(x=>x.id!==currentVehicleId);
   save();goToVehiclesList();toast('🗑️ Vehículo eliminado');
 }
 
@@ -5185,6 +5194,7 @@ function saveTrailer() {
     if(i>=0) state.trailers[i]={...state.trailers[i],...data};
   } else { state.trailers.push(data); }
   editingTrailerId=null;
+  auditLog(editingTrailerId?'EDITAR':'CREAR','Tráileres',data.placa||'',editingTrailerId?{...state.trailers.find(t=>t.id===editingTrailerId)}:null,{...data});
   save(); closeModal('trailerModal'); renderTrailerList();
   toast('Tráiler guardado');
 }
@@ -5220,7 +5230,9 @@ function toggleTrailerActivo(id) {
 function deleteTrailer() {
   if(!canDelVeh()){toast('⛔ Sin permiso');return;}
   if(!confirm('¿Eliminar este tráiler?')) return;
-  state.trailers=(state.trailers||[]).filter(t=>t.id!==currentTrailerId);
+  const _dt=(state.trailers||[]).find(t=>t.id===currentTrailerId);
+  auditLog('ELIMINAR','Tráileres',_dt?.placa||'',_dt,null);
+    state.trailers=(state.trailers||[]).filter(t=>t.id!==currentTrailerId);
   // Unassign from any vehicle
   (state.vehicles||[]).forEach(v=>{if(v.trailerAsignado===currentTrailerId)v.trailerAsignado='';});
   persistData(); showScreen('trailersList'); renderTrailerList();
@@ -7414,6 +7426,41 @@ self.addEventListener('activate', e => e.waitUntil(
   navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
 }
 </script>
+
+<!-- AUDIT SCREEN -->
+<div id="auditScreen" class="screen">
+  <div class="top-bar">
+    <button class="back-btn" onclick="showScreen('empresasScreen')">← Inicio</button>
+    <span class="bar-title">🔍 Auditoría</span>
+    <div class="bar-actions">
+      <button class="icon-btn" onclick="exportAuditoria()" title="Descargar CSV">📥</button>
+    </div>
+  </div>
+  <div style="padding:10px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+    <select class="form-select" id="aud_filtroAccion" onchange="renderAuditScreen()" style="flex:1;min-width:110px;font-size:.82rem;padding:6px 10px">
+      <option value="">Todas las acciones</option>
+      <option value="CREAR">➕ Crear</option>
+      <option value="EDITAR">✏️ Editar</option>
+      <option value="ELIMINAR">🗑️ Eliminar</option>
+      <option value="BAJA">⛔ Baja</option>
+      <option value="RENOVAR">🔄 Renovar</option>
+    </select>
+    <select class="form-select" id="aud_filtroModulo" onchange="renderAuditScreen()" style="flex:1;min-width:110px;font-size:.82rem;padding:6px 10px">
+      <option value="">Todos los módulos</option>
+      <option value="Empleados">👥 Empleados</option>
+      <option value="Vehículos">🚗 Vehículos</option>
+      <option value="Tráileres">🚛 Tráileres</option>
+      <option value="Vacaciones">🏖️ Vacaciones</option>
+      <option value="MOE">🤝 MOE</option>
+      <option value="Empresas">🏢 Empresas</option>
+    </select>
+    <select class="form-select" id="aud_filtroUsuario" onchange="renderAuditScreen()" style="flex:1;min-width:110px;font-size:.82rem;padding:6px 10px">
+      <option value="">Todos los usuarios</option>
+    </select>
+  </div>
+  <div class="screen-content pb-safe" id="auditContent"></div>
+</div>
+
 </body>
 </html>
 <!-- VACACIONES MODAL -->
