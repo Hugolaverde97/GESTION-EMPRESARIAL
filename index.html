@@ -1364,6 +1364,12 @@
       <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Exportar</span>
       <button onclick="closeFabMenu();openExportModal()" style="width:46px;height:46px;border-radius:50%;background:#16a34a;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(22,163,74,.4);display:flex;align-items:center;justify-content:center">📥</button>
     </div>
+    <div id="fabAuditBtn" style="display:none;flex-direction:column;align-items:flex-end;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Auditoría</span>
+        <button onclick="closeFabMenu();openAuditScreen()" style="width:46px;height:46px;border-radius:50%;background:#7c3aed;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(124,58,237,.4);display:flex;align-items:center;justify-content:center">🔍</button>
+      </div>
+    </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span style="background:rgba(0,0,0,.75);color:#fff;font-size:.75rem;padding:4px 10px;border-radius:20px;white-space:nowrap">Cumpleaños</span>
       <button onclick="closeFabMenu();openBirthdays()" style="width:46px;height:46px;border-radius:50%;background:#ec4899;border:none;color:#fff;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(236,72,153,.4);display:flex;align-items:center;justify-content:center">🎂</button>
@@ -2056,7 +2062,7 @@ async function startSyncPolling() {
 
 async function syncToCloud() {
   try {
-    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},vacaciones:state.vacaciones||{},moe:state.moe||{},pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
+    await sb.from('gestion_data').upsert({ key:'main', value:JSON.stringify({employees:state.employees,vehicles:state.vehicles,trailers:state.trailers||[],empresas:state.empresas||[],settings:state.settings||{},organigramas:state.organigramas||{},permisos:state.permisos||{},festivos:state.festivos||{},vacaciones:state.vacaciones||{},moe:state.moe||{},auditoria:state.auditoria||[],pa:state.pa||{}}), updated_at:new Date().toISOString() }, {onConflict:'key'});
     showSyncStatus('✅ Sincronizado');
     // Track what we just saved
     const now = new Date().toISOString(); lastKnownUpdatedAt = now;
@@ -2068,7 +2074,7 @@ async function loadFromCloud() {
     // Load main data
     const {data} = await sb.from('gestion_data').select('value').eq('key','main').single();
     if(data?.value) { const c=JSON.parse(data.value); state.employees=c.employees||[]; state.vehicles=c.vehicles||[]; state.trailers=c.trailers||state.trailers||[]; if(c.empresas?.length) state.empresas=c.empresas; if(c.settings) state.settings=c.settings;
-      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.moe) state.moe=c.moe; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
+      if(c.organigramas) state.organigramas=c.organigramas; if(c.permisos) state.permisos=c.permisos; if(c.festivos) state.festivos=c.festivos; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.moe) state.moe=c.moe; if(c.auditoria) state.auditoria=c.auditoria; if(c.vacaciones) state.vacaciones=c.vacaciones; if(c.pa) state.pa=c.pa; }
     // Also load settings separately (saved by saveSettings)
     try {
       const {data:sd} = await sb.from('gestion_data').select('value').eq('key','settings').single();
@@ -2999,6 +3005,9 @@ function saveVacacion() {
     arr.push(registro);
   }
 
+  const _vacEmp = getEmployees(currentVacEmpresaIdx).find(e=>e.id===empId);
+  const _vacNom = (_vacEmp?.apellidos||'')+' '+(_vacEmp?.nombres||'');
+  auditLog(editingVacId?'EDITAR':'CREAR','Vacaciones',_vacNom, editingVacId?{...getVacaciones(currentVacEmpresaIdx).find(x=>x.id===editingVacId)}:null, {...registro});
   save();
   closeModal('vacacionModal');
   renderVacaciones();
@@ -3901,6 +3910,7 @@ function saveMOE() {
   const arr = state.moe[currentMOEEmpresaIdx];
   if(editingMOEId){const i=arr.findIndex(x=>x.id===editingMOEId);if(i>=0)arr[i]=reg;}
   else arr.push(reg);
+  auditLog(editingMOEId?'EDITAR':'CREAR','MOE',reg.nombre||'', editingMOEId?{...getMOE(currentMOEEmpresaIdx).find(x=>x.id===editingMOEId)}:null, {...reg});
   save(); closeModal('moeModal'); renderMOE();
   toast(editingMOEId?'✅ MOE actualizado':'✅ MOE agregado'); editingMOEId=null;
 }
@@ -5510,8 +5520,9 @@ function applyUserPermissions() {
 
   const fabUsers = document.getElementById('fabUsersBtn');
   if(fabUsers) fabUsers.style.display = canManageUsers() ? 'flex' : 'none';
-
-  const fabSett = document.getElementById('fabSettingsBtn');
+  const fabAudit = document.getElementById('fabAuditBtn');
+  if(fabAudit) fabAudit.style.display = isSuperadmin() ? 'flex' : 'none';
+   const fabSett = document.getElementById('fabSettingsBtn');
   if(fabSett) fabSett.style.display = (isSuperadmin()||isAdmin()||isEditor()) ? 'flex' : 'none';
 
   const usersFabEl = document.getElementById('usersFab');
@@ -5533,6 +5544,138 @@ function applyUserPermissions() {
 }
 
 // ── Permission helpers (new role system) ─────────────────────────
+
+// ══════════════════════════════════════════════
+// SISTEMA DE AUDITORÍA
+// ══════════════════════════════════════════════
+function auditLog(accion, modulo, entidad, antes, despues) {
+  if(!currentUser) return;
+  if(!state.auditoria) state.auditoria = [];
+
+  // Build diff of changed fields
+  let cambios = [];
+  if(antes && despues) {
+    const allKeys = new Set([...Object.keys(antes||{}), ...Object.keys(despues||{})]);
+    allKeys.forEach(k => {
+      // Skip internal/irrelevant fields
+      if(['id','creadoEn','updatedAt'].includes(k)) return;
+      const a = String(antes[k]??'');
+      const d = String(despues[k]??'');
+      if(a !== d) cambios.push({ campo: k, antes: a, despues: d });
+    });
+  }
+
+  const registro = {
+    id: 'aud_'+Date.now(),
+    fecha: new Date().toISOString(),
+    usuario: currentUser.username,
+    rol: currentUser.role,
+    accion,        // 'CREAR' | 'EDITAR' | 'ELIMINAR' | 'BAJA' | 'RENOVAR'
+    modulo,        // 'Empleados' | 'Vehículos' | 'Tráileres' | 'Vacaciones' | 'MOE' | 'Empresas' | 'Usuarios'
+    entidad,       // Nombre/descripción del registro afectado
+    cambios,       // Array de {campo, antes, despues}
+    empresa: (state.empresas||[])[currentCompany||0]?.nombre || '',
+  };
+
+  state.auditoria.push(registro);
+  // Keep last 2000 records
+  if(state.auditoria.length > 2000) state.auditoria = state.auditoria.slice(-2000);
+}
+
+function exportAuditoria() {
+  if(!isSuperadmin()) { toast('⛔ Solo el superadmin puede ver la auditoría'); return; }
+  const logs = state.auditoria || [];
+  if(!logs.length) { toast('Sin registros de auditoría'); return; }
+
+  const rows = [['Fecha','Usuario','Rol','Acción','Módulo','Empresa','Entidad','Campo','Valor anterior','Valor nuevo']];
+
+  logs.slice().reverse().forEach(r => {
+    const fecha = new Date(r.fecha).toLocaleString('es-CO');
+    if(r.cambios && r.cambios.length > 0) {
+      r.cambios.forEach(c => {
+        rows.push([fecha, r.usuario, r.rol, r.accion, r.modulo, r.empresa, r.entidad, c.campo, c.antes, c.despues]);
+      });
+    } else {
+      rows.push([fecha, r.usuario, r.rol, r.accion, r.modulo, r.empresa, r.entidad, '', '', '']);
+    }
+  });
+
+  const csv = '\ufeff' + rows.map(r => r.map(v => '"'+String(v||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'auditoria_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('📥 Auditoría descargada');
+}
+
+
+function openAuditScreen() {
+  if(!isSuperadmin()) { toast('⛔ Solo el superadmin'); return; }
+  const logs = state.auditoria || [];
+  const usuarios = [...new Set(logs.map(r=>r.usuario))].sort();
+  const sel = document.getElementById('aud_filtroUsuario');
+  if(sel) sel.innerHTML = '<option value="">Todos los usuarios</option>' +
+    usuarios.map(u=>`<option value="${u}">${u}</option>`).join('');
+  renderAuditScreen();
+  showScreen('auditScreen');
+}
+
+function renderAuditScreen() {
+  const container = document.getElementById('auditContent');
+  if(!container) return;
+  const logs = (state.auditoria||[]).slice().reverse();
+  const fa = document.getElementById('aud_filtroAccion')?.value||'';
+  const fm = document.getElementById('aud_filtroModulo')?.value||'';
+  const fu = document.getElementById('aud_filtroUsuario')?.value||'';
+  let filtered = logs;
+  if(fa) filtered = filtered.filter(r=>r.accion===fa);
+  if(fm) filtered = filtered.filter(r=>r.modulo===fm);
+  if(fu) filtered = filtered.filter(r=>r.usuario===fu);
+
+  if(!filtered.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Sin registros.</div></div>';
+    return;
+  }
+
+  const aColor = {CREAR:'#22c55e',EDITAR:'#5b8df6',ELIMINAR:'#ef4444',BAJA:'#f87171',RENOVAR:'#f59e0b'};
+  const aIcon  = {CREAR:'➕',EDITAR:'✏️',ELIMINAR:'🗑️',BAJA:'⛔',RENOVAR:'🔄'};
+
+  let html = `<div style="padding:12px 16px"><div style="font-size:.75rem;color:var(--text2);margin-bottom:10px">${filtered.length} registro${filtered.length!==1?'s':''}</div>`;
+
+  filtered.forEach(r => {
+    const color = aColor[r.accion]||'var(--text2)';
+    const icon  = aIcon[r.accion]||'•';
+    const fecha = new Date(r.fecha).toLocaleString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${r.cambios?.length?'6':'0'}px">
+        <span style="font-size:1rem">${icon}</span>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:.82rem;font-weight:700;color:${color}">${r.accion}</span>
+            <span style="font-size:.78rem;font-weight:600">${r.modulo}</span>
+            <span style="font-size:.78rem;color:var(--text2)">· ${r.entidad||'—'}</span>
+          </div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">👤 ${r.usuario} · ${fecha}${r.empresa?' · '+r.empresa:''}</div>
+        </div>
+      </div>
+      ${r.cambios&&r.cambios.length?`<div style="background:var(--surface2);border-radius:8px;padding:8px 10px">${
+        r.cambios.map(c=>`<div style="font-size:.73rem;padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <span style="color:var(--accent2);font-weight:600;min-width:90px;font-size:.7rem">${c.campo}</span>
+          ${c.antes?`<span style="color:#ef4444;opacity:.8;text-decoration:line-through">${String(c.antes).substring(0,35)}</span>`:''}
+          ${c.antes&&c.despues?'<span style="color:var(--text2)">→</span>':''}
+          ${c.despues?`<span style="color:#22c55e">${String(c.despues).substring(0,35)}</span>`:''}
+        </div>`).join('')
+      }</div>`:''}
+    </div>`;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 function isSuperadmin() { return currentUser?.username === 'HugoLaverde'; }
 function isAdmin()      { return isSuperadmin() || currentUser?.role === 'admin'; }
 function isEditor()     { return currentUser?.role === 'editor'; }
