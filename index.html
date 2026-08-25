@@ -3086,8 +3086,7 @@ function exportVacacionesCSV() {
       res.periodoParcial?.diasParciales||0, ''
     ]);
 
-    // Blank separator row
-    rows.push(['','','','','','','','','','','','','','','','']);
+    // (no blank separator - causes filter issues in Excel)
   });
 
   const csv = '\ufeff' + rows.map(row =>
