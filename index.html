@@ -3706,10 +3706,24 @@ function openMOE(idx) {
   showScreen('moeScreen');
 }
 
+
+let moeFilter = 'todos';
+
+function setMOEFilter(f) {
+  moeFilter = f;
+  ['todos','activos','inactivos'].forEach(k => {
+    const btn = document.getElementById('moefilter-'+k);
+    if(btn) btn.classList.toggle('active', k===f);
+  });
+  renderMOE();
+}
+
 function renderMOE() {
   const container = document.getElementById('moeContent');
   if(!container) return;
-  const list = getMOE(currentMOEEmpresaIdx);
+  const allMOE = getMOE(currentMOEEmpresaIdx);
+  const list = moeFilter==='activos' ? allMOE.filter(m=>m.activo!==false) :
+               moeFilter==='inactivos' ? allMOE.filter(m=>m.activo===false) : allMOE;
   const q = '';
 
   if(!list.length) {
@@ -3762,8 +3776,9 @@ function renderMOE() {
           ${m.obs?`<div style="font-size:.72rem;color:var(--text2);margin-top:4px;font-style:italic">"${m.obs}"</div>`:''}
         </div>
         ${canEdit()?`<div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="openEditMOE('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
-          <button onclick="deleteMOE('${m.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
+          ${activo?`<button onclick="event.stopPropagation();currentMOEId='${m.id}';openBajaMOE('${m.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444" title="Dar de baja">⛔</button>`:''}
+          <button onclick="event.stopPropagation();openEditMOE('${m.id}')" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:var(--text2)">✏️</button>
+          <button onclick="event.stopPropagation();deleteMOE('${m.id}')" style="background:none;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:.8rem;color:#ef4444">🗑️</button>
         </div>`:''}
       </div>
     </div>`;
@@ -3872,6 +3887,12 @@ function openMOEFicha(id) {
   showScreen('moeFichaScreen');
 }
 
+
+
+function openBajaMOEFromList(id) {
+  currentMOEId = id;
+  openBajaMOE(id);
+}
 
 function openBajaMOE(id) {
   const m = getMOE(currentMOEEmpresaIdx).find(x=>x.id===id);
